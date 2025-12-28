@@ -50,9 +50,9 @@ export function normalizeArabic(text: string, removeSpaces = false): string {
 /**
  * Fuzzy match Arabic names
  * Matches if:
- * 1. All search terms appear in the name (in any order)
+ * 1. Search terms appear in the name IN ORDER
  * 2. Search without spaces matches name without spaces (عبدالرحمن = عبد الرحمن)
- * Example: "جمال شحاتة" matches "جمال عمر السيد شحاته"
+ * Example: "محمد ابراهيم" matches "محمد علي ابراهيم" but NOT "ابراهيم محمد"
  * Example: "عبدالرحمن" matches "عبد الرحمن"
  */
 export function fuzzyMatchArabic(searchQuery: string, targetText: string): boolean {
@@ -70,8 +70,17 @@ export function fuzzyMatchArabic(searchQuery: string, targetText: string): boole
   // Split search query into terms
   const searchTerms = normalizedQuery.split(' ').filter(term => term.length > 0);
   
-  // All search terms must be found in the target
-  return searchTerms.every(term => normalizedTarget.includes(term));
+  // All search terms must be found IN ORDER in the target
+  let lastIndex = -1;
+  for (const term of searchTerms) {
+    const index = normalizedTarget.indexOf(term, lastIndex + 1);
+    if (index === -1 || index <= lastIndex) {
+      return false;
+    }
+    lastIndex = index;
+  }
+  
+  return true;
 }
 
 /**
