@@ -82,11 +82,20 @@ export default function Home() {
   
   // Filters - default to today
   const [nameFilter, setNameFilter] = useState("");
+  const [debouncedNameFilter, setDebouncedNameFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date());
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
 
   const supabase = createClient();
+
+  // Debounce the name filter for filtering - 300ms delay
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedNameFilter(nameFilter);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [nameFilter]);
 
   useEffect(() => {
     checkUser();
@@ -98,11 +107,10 @@ export default function Home() {
     fetchClients();
   }, [dateFrom, dateTo]);
 
-  // Refetch when name filter is cleared or set (for global search)
+  // Refetch when debounced name filter changes (for global search)
   useEffect(() => {
-    // Only refetch if nameFilter changes between empty and non-empty
     fetchClients();
-  }, [nameFilter ? "searching" : "not-searching"]);
+  }, [debouncedNameFilter ? "searching" : "not-searching"]);
 
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -130,7 +138,7 @@ export default function Home() {
           .range(from, from + batchSize - 1);
 
         // Skip date filters if user is searching by name (search all clients)
-        if (!nameFilter) {
+        if (!debouncedNameFilter) {
           if (dateFrom) {
             query = query.gte("client_date", format(dateFrom, "yyyy-MM-dd"));
           }
@@ -177,8 +185,8 @@ export default function Home() {
 
   const filteredClients = useMemo(() => {
     return clients.filter((client) => {
-      // Name filter (client-side for Arabic fuzzy matching)
-      if (nameFilter && !fuzzyMatchArabic(nameFilter, client.name)) {
+      // Name filter (client-side for Arabic fuzzy matching) - uses debounced value
+      if (debouncedNameFilter && !fuzzyMatchArabic(debouncedNameFilter, client.name)) {
         return false;
       }
       // Category filter
@@ -189,7 +197,7 @@ export default function Home() {
       // Date filtering is done at database level for performance
       return true;
     });
-  }, [clients, nameFilter, categoryFilter]);
+  }, [clients, debouncedNameFilter, categoryFilter]);
 
   const todayClients = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -527,7 +535,7 @@ export default function Home() {
                 <div className="space-y-1">
                   <Label className="text-xs">التصنيف</Label>
                   <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                    <SelectTrigger className="h-9">
+                    <SelectTrigger className="h-9 w-full text-right">
                       <SelectValue placeholder="الكل" />
                     </SelectTrigger>
                     <SelectContent>
@@ -651,11 +659,11 @@ export default function Home() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-14 text-center">#</TableHead>
-                    <TableHead className="w-24">التاريخ</TableHead>
-                    <TableHead>الاسم</TableHead>
-                    <TableHead className="w-20 hidden sm:table-cell">التصنيف</TableHead>
-                    <TableHead className="hidden md:table-cell">الملاحظات</TableHead>
+                    <TableHead className="w-14 text-center">م</TableHead>
+                    <TableHead className="w-24 text-center">التاريخ</TableHead>
+                    <TableHead className="text-center">الاسم</TableHead>
+                    <TableHead className="hidden sm:table-cell text-center">التصنيف</TableHead>
+                    <TableHead className="hidden md:table-cell text-center">الملاحظات</TableHead>
                     <TableHead className="w-24 text-center">إجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
