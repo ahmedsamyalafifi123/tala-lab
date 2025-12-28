@@ -312,8 +312,14 @@ export default function Home() {
       }
 
       await fetchClients();
-      setShowAddModal(false);
-      setEditingClient(null);
+      
+      if (editingClient) {
+        setShowAddModal(false);
+        setEditingClient(null);
+      } else {
+        // For new clients, keep modal open to allow adding more
+        // We can optionally show a toast here if we had one
+      }
     } catch (error) {
       console.error("Error saving client:", error);
       alert("حدث خطأ أثناء الحفظ");

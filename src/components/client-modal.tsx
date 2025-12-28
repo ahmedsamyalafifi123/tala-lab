@@ -77,13 +77,27 @@ export function ClientModal({
       category: category === "none" ? null : category,
       client_date: format(date, "yyyy-MM-dd"),
     });
+
+    // If we are adding a new client (not editing), reset the form to allow adding another
+    if (!client) {
+      setName("");
+      setNotes("");
+      setCategory(null);
+      // We keep the date as is, assuming the user might want to add multiple entries for the same date
+      // Reset focus to name input
+      const nameInput = document.getElementById("name");
+      if (nameInput) {
+        nameInput.focus();
+      }
+    }
   };
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent 
         side="bottom" 
-        className="h-[90vh] sm:h-[75vh] rounded-t-3xl sm:max-w-lg sm:mx-auto sm:rounded-t-2xl"
+        className="h-auto max-h-[90dvh] rounded-t-3xl sm:max-w-lg sm:mx-auto sm:rounded-t-2xl flex flex-col"
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
           <SheetHeader className="border-b pb-4">
@@ -92,7 +106,7 @@ export function ClientModal({
             </SheetTitle>
           </SheetHeader>
 
-          <div className="flex-1 overflow-auto p-4 space-y-6">
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
             <div className="space-y-2">
               <Label htmlFor="name" className="text-base">
                 الاسم <span className="text-destructive">*</span>
