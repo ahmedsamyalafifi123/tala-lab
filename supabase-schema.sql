@@ -11,7 +11,7 @@ CREATE TABLE clients (
   client_date DATE DEFAULT CURRENT_DATE,
   name TEXT NOT NULL,
   notes TEXT,
-  category TEXT CHECK (category IN ('صحة مدرسية', 'cbc')),
+  category TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   created_by UUID REFERENCES auth.users(id),
@@ -36,6 +36,20 @@ BEFORE INSERT ON clients
 FOR EACH ROW
 EXECUTE FUNCTION generate_daily_id();
 
+-- Categories table for dynamic category management
+CREATE TABLE categories (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  color TEXT DEFAULT 'default',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Insert default categories
+INSERT INTO categories (name, color) VALUES 
+  ('صحة مدرسية', 'default'),
+  ('cbc', 'secondary');
+
 -- Audit log for tracking changes
 CREATE TABLE audit_log (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -51,6 +65,7 @@ CREATE TABLE audit_log (
 
 -- Enable RLS
 ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
 
 -- Policies - All authenticated users can read/write
@@ -59,11 +74,17 @@ CREATE POLICY "Anyone can insert clients" ON clients FOR INSERT TO authenticated
 CREATE POLICY "Anyone can update clients" ON clients FOR UPDATE TO authenticated USING (true);
 CREATE POLICY "Anyone can delete clients" ON clients FOR DELETE TO authenticated USING (true);
 
+CREATE POLICY "Anyone can view categories" ON categories FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Anyone can insert categories" ON categories FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Anyone can update categories" ON categories FOR UPDATE TO authenticated USING (true);
+CREATE POLICY "Anyone can delete categories" ON categories FOR DELETE TO authenticated USING (true);
+
 CREATE POLICY "Anyone can view audit_log" ON audit_log FOR SELECT TO authenticated USING (true);
 CREATE POLICY "Anyone can insert audit_log" ON audit_log FOR INSERT TO authenticated WITH CHECK (true);
 
 -- Create indexes for better performance
 CREATE INDEX idx_clients_date ON clients(client_date DESC);
 CREATE INDEX idx_clients_name ON clients(name);
+CREATE INDEX idx_clients_category ON clients(category);
 CREATE INDEX idx_audit_log_record ON audit_log(record_id);
 CREATE INDEX idx_audit_log_created ON audit_log(created_at DESC);

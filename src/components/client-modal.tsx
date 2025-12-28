@@ -1,17 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Client } from "@/types";
+import { format } from "date-fns";
+import { ar } from "date-fns/locale";
+import { CalendarIcon, Loader2 } from "lucide-react";
+import { Client, Category } from "@/types";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetFooter,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -19,12 +29,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 interface ClientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { name: string; notes: string; category: string | null }) => Promise<void>;
+  onSave: (data: { name: string; notes: string; category: string | null; client_date: string }) => Promise<void>;
   client?: Client | null;
+  categories: Category[];
   isLoading?: boolean;
 }
 
@@ -33,21 +45,25 @@ export function ClientModal({
   onClose,
   onSave,
   client,
+  categories,
   isLoading = false,
 }: ClientModalProps) {
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
   const [category, setCategory] = useState<string | null>(null);
+  const [date, setDate] = useState<Date>(new Date());
 
   useEffect(() => {
     if (client) {
       setName(client.name);
       setNotes(client.notes || "");
       setCategory(client.category);
+      setDate(new Date(client.client_date));
     } else {
       setName("");
       setNotes("");
       setCategory(null);
+      setDate(new Date());
     }
   }, [client, isOpen]);
 
@@ -59,20 +75,24 @@ export function ClientModal({
       name: name.trim(),
       notes: notes.trim(),
       category: category === "none" ? null : category,
+      client_date: format(date, "yyyy-MM-dd"),
     });
   };
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl glass border-0 p-0">
-        <div className="flex flex-col h-full">
-          <SheetHeader className="p-6 border-b border-border/50">
-            <SheetTitle className="text-xl gradient-text">
+      <SheetContent 
+        side="bottom" 
+        className="h-[90vh] sm:h-[75vh] rounded-t-3xl sm:max-w-lg sm:mx-auto sm:rounded-t-2xl"
+      >
+        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+          <SheetHeader className="border-b pb-4">
+            <SheetTitle className="text-xl">
               {client ? "تعديل الحالة" : "إضافة حالة جديدة"}
             </SheetTitle>
           </SheetHeader>
 
-          <form onSubmit={handleSubmit} className="flex-1 flex flex-col p-6 gap-6 overflow-auto">
+          <div className="flex-1 overflow-auto p-4 space-y-6">
             <div className="space-y-2">
               <Label htmlFor="name" className="text-base">
                 الاسم <span className="text-destructive">*</span>
@@ -82,10 +102,37 @@ export function ClientModal({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="أدخل اسم العميل"
-                className="py-6 text-lg bg-secondary/50 border-0 rounded-xl"
+                className="h-12 text-lg"
                 required
                 autoFocus
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-base">التاريخ</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full h-12 justify-start text-lg font-normal",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="me-2 h-5 w-5" />
+                    {date ? format(date, "PPP", { locale: ar }) : "اختر التاريخ"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={(d) => d && setDate(d)}
+                    initialFocus
+                    locale={ar}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">
@@ -96,18 +143,19 @@ export function ClientModal({
                 value={category || "none"}
                 onValueChange={(value) => setCategory(value === "none" ? null : value)}
               >
-                <SelectTrigger className="py-6 text-lg bg-secondary/50 border-0 rounded-xl">
+                <SelectTrigger className="h-12 text-lg">
                   <SelectValue placeholder="اختر التصنيف (اختياري)" />
                 </SelectTrigger>
-                <SelectContent className="glass border-0">
+                <SelectContent>
                   <SelectItem value="none">بدون تصنيف</SelectItem>
-                  <SelectItem value="صحة مدرسية">صحة مدرسية</SelectItem>
-                  <SelectItem value="cbc">CBC</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2 flex-1">
+            <div className="space-y-2">
               <Label htmlFor="notes" className="text-base">
                 الملاحظات
               </Label>
@@ -116,15 +164,17 @@ export function ClientModal({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="أدخل الملاحظات (اختياري)"
-                className="min-h-[150px] text-lg bg-secondary/50 border-0 rounded-xl resize-none"
+                className="min-h-[100px] text-lg resize-none"
               />
             </div>
+          </div>
 
-            <div className="flex gap-3 pt-4">
+          <SheetFooter className="border-t pt-4">
+            <div className="flex gap-3 w-full">
               <Button
                 type="button"
-                variant="secondary"
-                className="flex-1 py-6 text-lg rounded-xl"
+                variant="outline"
+                className="flex-1 h-12 text-lg"
                 onClick={onClose}
                 disabled={isLoading}
               >
@@ -132,27 +182,12 @@ export function ClientModal({
               </Button>
               <Button
                 type="submit"
-                className="flex-1 py-6 text-lg gradient-btn border-0 rounded-xl text-white"
+                className="flex-1 h-12 text-lg"
                 disabled={isLoading || !name.trim()}
               >
                 {isLoading ? (
                   <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
+                    <Loader2 className="h-5 w-5 animate-spin" />
                     جاري الحفظ...
                   </span>
                 ) : client ? (
@@ -162,8 +197,8 @@ export function ClientModal({
                 )}
               </Button>
             </div>
-          </form>
-        </div>
+          </SheetFooter>
+        </form>
       </SheetContent>
     </Sheet>
   );

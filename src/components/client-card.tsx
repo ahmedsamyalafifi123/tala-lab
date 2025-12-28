@@ -1,7 +1,8 @@
 "use client";
 
 import { Client } from "@/types";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 interface ClientCardProps {
   client: Client;
@@ -12,51 +13,35 @@ export function ClientCard({ client, onClick }: ClientCardProps) {
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString("ar-EG", {
-      year: "numeric",
       month: "short",
       day: "numeric",
     });
   };
 
-  const getCategoryBadge = (category: string | null) => {
-    if (!category) return null;
-    
-    const isHealth = category === "صحة مدرسية";
-    return (
-      <span
-        className={`px-3 py-1 rounded-full text-xs font-medium text-white ${
-          isHealth ? "badge-health" : "badge-cbc"
-        }`}
-      >
-        {category}
-      </span>
-    );
-  };
-
   return (
     <Card
-      className="p-4 glass border-0 rounded-2xl card-interactive cursor-pointer"
+      className="cursor-pointer transition-all hover:shadow-md hover:bg-accent/50"
       onClick={() => onClick(client)}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full gradient-btn flex items-center justify-center text-white font-bold text-lg">
-            {client.daily_id}
-          </div>
-          <div>
-            <h3 className="font-semibold text-lg">{client.name}</h3>
-            <p className="text-sm text-muted-foreground">
-              {formatDate(client.client_date)}
-            </p>
-          </div>
+      <CardContent className="p-3 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0">
+          {client.daily_id}
         </div>
-        {getCategoryBadge(client.category)}
-      </div>
-      {client.notes && (
-        <p className="mt-3 text-sm text-muted-foreground line-clamp-2 pe-16">
-          {client.notes}
-        </p>
-      )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="font-medium truncate">{client.name}</h3>
+            {client.category && (
+              <Badge variant={client.category === "صحة مدرسية" ? "default" : "secondary"} className="text-xs shrink-0">
+                {client.category === "صحة مدرسية" ? "صحة" : "CBC"}
+              </Badge>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground truncate">
+            {formatDate(client.client_date)}
+            {client.notes && ` • ${client.notes}`}
+          </p>
+        </div>
+      </CardContent>
     </Card>
   );
 }

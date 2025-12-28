@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -46,8 +48,12 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 page-transition">
-      <Card className="w-full max-w-md glass border-0">
+    <main className="min-h-screen flex items-center justify-center p-4">
+      <div className="absolute top-4 left-4">
+        <ThemeToggle />
+      </div>
+      
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto">
             <Image
@@ -59,7 +65,7 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <CardTitle className="text-2xl gradient-text">حالات معمل عيادة تلا</CardTitle>
+            <CardTitle className="text-2xl">حالات معمل عيادة تلا</CardTitle>
             <CardDescription className="mt-2">
               {isSignUp ? "إنشاء حساب جديد" : "تسجيل الدخول"}
             </CardDescription>
@@ -75,7 +81,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="example@email.com"
-                className="py-6 bg-secondary/50 border-0 rounded-xl"
+                className="h-12"
                 required
                 dir="ltr"
               />
@@ -88,7 +94,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="py-6 bg-secondary/50 border-0 rounded-xl"
+                className="h-12"
                 required
                 minLength={6}
                 dir="ltr"
@@ -96,34 +102,19 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className={`p-3 rounded-xl text-sm ${error.includes("تم إنشاء") ? "bg-green-500/20 text-green-400" : "bg-destructive/20 text-destructive"}`}>
+              <div className={`p-3 rounded-xl text-sm ${error.includes("تم إنشاء") ? "bg-green-500/20 text-green-600 dark:text-green-400" : "bg-destructive/20 text-destructive"}`}>
                 {error}
               </div>
             )}
 
             <Button
               type="submit"
-              className="w-full py-6 text-lg gradient-btn border-0 rounded-xl text-white"
+              className="w-full h-12 text-lg"
               disabled={isLoading}
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
+                  <Loader2 className="h-5 w-5 animate-spin" />
                   جاري التحميل...
                 </span>
               ) : isSignUp ? (

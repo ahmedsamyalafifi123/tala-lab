@@ -1,22 +1,28 @@
 "use client";
 
+import { useState } from "react";
+import { Trash2, Pencil, Loader2 } from "lucide-react";
 import { Client } from "@/types";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetFooter,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { useState } from "react";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ClientDetailsProps {
   client: Client | null;
@@ -57,21 +63,6 @@ export function ClientDetails({
     });
   };
 
-  const getCategoryBadge = (category: string | null) => {
-    if (!category) return null;
-
-    const isHealth = category === "صحة مدرسية";
-    return (
-      <span
-        className={`px-4 py-2 rounded-full text-sm font-medium text-white ${
-          isHealth ? "badge-health" : "badge-cbc"
-        }`}
-      >
-        {category}
-      </span>
-    );
-  };
-
   const handleDelete = async () => {
     await onDelete(client);
     setShowDeleteConfirm(false);
@@ -80,12 +71,15 @@ export function ClientDetails({
   return (
     <>
       <Sheet open={isOpen} onOpenChange={onClose}>
-        <SheetContent side="bottom" className="h-[80vh] rounded-t-3xl glass border-0 p-0">
+        <SheetContent 
+          side="bottom" 
+          className="h-[80vh] sm:h-[60vh] rounded-t-3xl sm:max-w-lg sm:mx-auto sm:rounded-t-2xl"
+        >
           <div className="flex flex-col h-full">
-            <SheetHeader className="p-6 border-b border-border/50">
+            <SheetHeader className="border-b pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full gradient-btn flex items-center justify-center text-white font-bold text-xl">
+                  <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-xl">
                     {client.daily_id}
                   </div>
                   <div>
@@ -93,104 +87,99 @@ export function ClientDetails({
                     <p className="text-sm text-muted-foreground">{formatDate(client.client_date)}</p>
                   </div>
                 </div>
-                {getCategoryBadge(client.category)}
+                {client.category && (
+                  <Badge variant={client.category === "صحة مدرسية" ? "default" : "secondary"}>
+                    {client.category}
+                  </Badge>
+                )}
               </div>
             </SheetHeader>
 
-            <div className="flex-1 overflow-auto p-6 space-y-6">
+            <div className="flex-1 overflow-auto p-4 space-y-6">
               {client.notes && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium text-muted-foreground">الملاحظات</h4>
-                  <div className="p-4 bg-secondary/30 rounded-xl">
-                    <p className="text-base leading-relaxed whitespace-pre-wrap">
-                      {client.notes}
-                    </p>
-                  </div>
+                  <Card>
+                    <CardContent className="p-4">
+                      <p className="text-base leading-relaxed whitespace-pre-wrap">
+                        {client.notes}
+                      </p>
+                    </CardContent>
+                  </Card>
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-secondary/30 rounded-xl">
-                  <p className="text-sm text-muted-foreground mb-1">تم الإنشاء</p>
-                  <p className="font-medium">{formatTime(client.created_at)}</p>
-                </div>
-                <div className="p-4 bg-secondary/30 rounded-xl">
-                  <p className="text-sm text-muted-foreground mb-1">آخر تحديث</p>
-                  <p className="font-medium">{formatTime(client.updated_at)}</p>
-                </div>
+                <Card>
+                  <CardContent className="p-4">
+                    <p className="text-sm text-muted-foreground mb-1">تم الإنشاء</p>
+                    <p className="font-medium">{formatTime(client.created_at)}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <p className="text-sm text-muted-foreground mb-1">آخر تحديث</p>
+                    <p className="font-medium">{formatTime(client.updated_at)}</p>
+                  </CardContent>
+                </Card>
               </div>
             </div>
 
-            <div className="p-6 border-t border-border/50">
-              <div className="flex gap-3">
+            <SheetFooter className="border-t pt-4">
+              <div className="flex gap-3 w-full">
                 <Button
                   variant="destructive"
-                  className="flex-1 py-6 text-lg rounded-xl"
+                  className="flex-1 h-12 text-lg"
                   onClick={() => setShowDeleteConfirm(true)}
                 >
-                  <svg className="w-5 h-5 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
+                  <Trash2 className="w-5 h-5 me-2" />
                   حذف
                 </Button>
                 <Button
-                  className="flex-1 py-6 text-lg gradient-btn border-0 rounded-xl text-white"
+                  className="flex-1 h-12 text-lg"
                   onClick={() => {
                     onClose();
                     onEdit(client);
                   }}
                 >
-                  <svg className="w-5 h-5 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                    />
-                  </svg>
+                  <Pencil className="w-5 h-5 me-2" />
                   تعديل
                 </Button>
               </div>
-            </div>
+            </SheetFooter>
           </div>
         </SheetContent>
       </Sheet>
 
-      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent className="glass border-0 rounded-2xl max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-xl">تأكيد الحذف</DialogTitle>
-            <DialogDescription className="text-base pt-2">
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
+            <AlertDialogDescription>
               هل أنت متأكد من حذف حالة <strong>{client.name}</strong>؟
               <br />
               لا يمكن التراجع عن هذا الإجراء.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex gap-3 pt-4">
-            <Button
-              variant="secondary"
-              className="flex-1 py-5 rounded-xl"
-              onClick={() => setShowDeleteConfirm(false)}
-              disabled={isDeleting}
-            >
-              إلغاء
-            </Button>
-            <Button
-              variant="destructive"
-              className="flex-1 py-5 rounded-xl"
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-3">
+            <AlertDialogCancel disabled={isDeleting}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? "جاري الحذف..." : "حذف"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              {isDeleting ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  جاري الحذف...
+                </span>
+              ) : (
+                "حذف"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

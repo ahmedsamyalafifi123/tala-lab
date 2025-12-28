@@ -23,8 +23,9 @@ const diacriticsRegex = /[\u064B-\u065F\u0670]/g;
  * - Normalizes taa marbuta (ة) to هاء (ه)
  * - Normalizes yaa variants
  * - Removes diacritics (tashkeel)
+ * - Removes spaces for comparison (عبد الرحمن = عبدالرحمن)
  */
-export function normalizeArabic(text: string): string {
+export function normalizeArabic(text: string, removeSpaces = false): string {
   if (!text) return '';
   
   // Remove diacritics first
@@ -38,17 +39,33 @@ export function normalizeArabic(text: string): string {
   // Normalize whitespace
   normalized = normalized.replace(/\s+/g, ' ').trim();
   
+  // Optionally remove all spaces for compound name matching
+  if (removeSpaces) {
+    normalized = normalized.replace(/\s/g, '');
+  }
+  
   return normalized.toLowerCase();
 }
 
 /**
  * Fuzzy match Arabic names
- * Matches if all search terms appear in the name (in any order)
+ * Matches if:
+ * 1. All search terms appear in the name (in any order)
+ * 2. Search without spaces matches name without spaces (عبدالرحمن = عبد الرحمن)
  * Example: "جمال شحاتة" matches "جمال عمر السيد شحاته"
+ * Example: "عبدالرحمن" matches "عبد الرحمن"
  */
 export function fuzzyMatchArabic(searchQuery: string, targetText: string): boolean {
   const normalizedQuery = normalizeArabic(searchQuery);
   const normalizedTarget = normalizeArabic(targetText);
+  
+  // Direct match without spaces (handles عبدالرحمن = عبد الرحمن)
+  const queryNoSpaces = normalizeArabic(searchQuery, true);
+  const targetNoSpaces = normalizeArabic(targetText, true);
+  
+  if (targetNoSpaces.includes(queryNoSpaces)) {
+    return true;
+  }
   
   // Split search query into terms
   const searchTerms = normalizedQuery.split(' ').filter(term => term.length > 0);
@@ -65,14 +82,18 @@ export function getMatchScore(searchQuery: string, targetText: string): number {
   const normalizedQuery = normalizeArabic(searchQuery);
   const normalizedTarget = normalizeArabic(targetText);
   
+  // Check spaceless match
+  const queryNoSpaces = normalizeArabic(searchQuery, true);
+  const targetNoSpaces = normalizeArabic(targetText, true);
+  
   // Exact match gets highest score
-  if (normalizedTarget === normalizedQuery) return 100;
+  if (normalizedTarget === normalizedQuery || targetNoSpaces === queryNoSpaces) return 100;
   
   // Starts with query gets high score
-  if (normalizedTarget.startsWith(normalizedQuery)) return 80;
+  if (normalizedTarget.startsWith(normalizedQuery) || targetNoSpaces.startsWith(queryNoSpaces)) return 80;
   
   // Contains query gets medium score
-  if (normalizedTarget.includes(normalizedQuery)) return 60;
+  if (normalizedTarget.includes(normalizedQuery) || targetNoSpaces.includes(queryNoSpaces)) return 60;
   
   // Fuzzy match (all terms found) gets lower score
   if (fuzzyMatchArabic(searchQuery, targetText)) return 40;

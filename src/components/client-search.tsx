@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface ClientSearchProps {
@@ -19,24 +20,10 @@ export function ClientSearch({ onSearch, placeholder = "ابحث بالاسم...
 
   return (
     <div className="relative">
-      <div className="absolute inset-y-0 start-0 flex items-center ps-4 pointer-events-none">
-        <svg
-          className="w-5 h-5 text-muted-foreground"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
-      </div>
+      <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
       <Input
         type="search"
-        className="w-full ps-12 pe-4 py-6 text-lg glass border-0 rounded-2xl focus:ring-2 focus:ring-primary/50 transition-all"
+        className="w-full ps-10 h-12 text-lg"
         placeholder={placeholder}
         value={query}
         onChange={handleChange}
