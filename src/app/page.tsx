@@ -71,6 +71,8 @@ export default function Home() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isFiltering, setIsFiltering] = useState(false);
+  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -183,20 +185,31 @@ export default function Home() {
     }
   };
 
-  const filteredClients = useMemo(() => {
-    return clients.filter((client) => {
-      // Name filter (client-side for Arabic fuzzy matching) - uses debounced value
-      if (debouncedNameFilter && !fuzzyMatchArabic(debouncedNameFilter, client.name)) {
-        return false;
-      }
-      // Category filter
-      if (categoryFilter !== "all") {
-        if (categoryFilter === "none" && client.category !== null) return false;
-        if (categoryFilter !== "none" && client.category !== categoryFilter) return false;
-      }
-      // Date filtering is done at database level for performance
-      return true;
-    });
+  // Async filtering to prevent UI freeze
+  useEffect(() => {
+    setIsFiltering(true);
+    
+    // Use setTimeout to allow UI to update (show loading spinner) before heavy filtering
+    const timer = setTimeout(() => {
+      const results = clients.filter((client) => {
+        // Name filter (client-side for Arabic fuzzy matching) - uses debounced value
+        if (debouncedNameFilter && !fuzzyMatchArabic(debouncedNameFilter, client.name)) {
+          return false;
+        }
+        // Category filter
+        if (categoryFilter !== "all") {
+          if (categoryFilter === "none" && client.category !== null) return false;
+          if (categoryFilter !== "none" && client.category !== categoryFilter) return false;
+        }
+        // Date filtering is done at database level for performance
+        return true;
+      });
+      
+      setFilteredClients(results);
+      setIsFiltering(false);
+    }, 10);
+    
+    return () => clearTimeout(timer);
   }, [clients, debouncedNameFilter, categoryFilter]);
 
   const todayClients = useMemo(() => {
@@ -612,7 +625,7 @@ export default function Home() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Badge variant="secondary">{filteredClients.length} نتيجة</Badge>
-            {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            {(isLoading || isFiltering) && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </div>
           <div className="flex items-center gap-2">
             {/* Hidden file input for import */}
@@ -675,61 +688,70 @@ export default function Home() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredClients.map((client) => (
-                      <TableRow key={client.uuid}>
-                        <TableCell className="text-center">
-                          <Badge variant="outline" className="font-mono">{client.daily_id}</Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {formatDate(client.client_date)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">{client.name}</div>
-                          <div className="sm:hidden text-xs text-muted-foreground">
-                            {client.category && (
-                              <Badge variant="secondary" className="text-xs mt-1">
+                    <>
+                      {filteredClients.slice(0, 100).map((client) => (
+                        <TableRow key={client.uuid}>
+                          <TableCell className="text-center">
+                            <Badge variant="outline" className="font-mono">{client.daily_id}</Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {formatDate(client.client_date)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">{client.name}</div>
+                            <div className="sm:hidden text-xs text-muted-foreground">
+                              {client.category && (
+                                <Badge variant="secondary" className="text-xs mt-1">
+                                  {client.category}
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell">
+                            {client.category ? (
+                              <Badge variant="secondary">
                                 {client.category}
                               </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
                             )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell">
-                          {client.category ? (
-                            <Badge variant="secondary">
-                              {client.category}
-                            </Badge>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-xs truncate">
-                          {client.notes || "-"}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => {
-                                setEditingClient(client);
-                                setShowAddModal(true);
-                              }}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => setDeleteClient(client)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-xs truncate">
+                            {client.notes || "-"}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center justify-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => {
+                                  setEditingClient(client);
+                                  setShowAddModal(true);
+                                }}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                onClick={() => setDeleteClient(client)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {filteredClients.length > 100 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-4 text-xs text-muted-foreground bg-muted/20">
+                            يتم عرض أول 100 نتيجة فقط لضمان سرعة البحث. يرجى تدقيق البحث للوصول لنتائج محددة.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
                   )}
                 </TableBody>
               </Table>
