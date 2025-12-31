@@ -96,17 +96,17 @@ export function ClientModal({
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent 
         side="bottom" 
-        className="h-auto max-h-[90dvh] rounded-t-3xl sm:max-w-lg sm:mx-auto sm:rounded-t-2xl flex flex-col"
+        className="h-auto max-h-[85dvh] rounded-t-3xl sm:max-w-lg sm:mx-auto sm:rounded-t-2xl flex flex-col overflow-hidden"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <form onSubmit={handleSubmit} className="flex flex-col h-full">
-          <SheetHeader className="border-b pb-4">
+        <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0 overflow-hidden">
+          <SheetHeader className="border-b pb-4 flex-shrink-0">
             <SheetTitle className="text-xl">
               {client ? "تعديل الحالة" : "إضافة حالة جديدة"}
             </SheetTitle>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-6">
             <div className="space-y-2">
               <Label htmlFor="name" className="text-base">
                 الاسم <span className="text-destructive">*</span>
@@ -183,7 +183,7 @@ export function ClientModal({
             </div>
           </div>
 
-          <SheetFooter className="border-t pt-4">
+          <SheetFooter className="border-t pt-4 flex-shrink-0">
             <div className="flex gap-3 w-full">
               <Button
                 type="button"
