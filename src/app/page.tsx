@@ -962,9 +962,15 @@ export default function Home() {
                           <meta charset="UTF-8">
                           <title>طباعة حالات المعمل</title>
                           <style>
+                            @font-face {
+                              font-family: 'Cairo';
+                              src: url('/assets/Cairo.ttf') format('truetype');
+                              font-weight: 400;
+                              font-style: normal;
+                            }
                             @page {
-                              size: A4;
-                              margin: 15mm;
+                              size: 210mm 297mm;
+                              margin: 10mm;
                             }
                             * {
                               box-sizing: border-box;
@@ -972,7 +978,7 @@ export default function Home() {
                               padding: 0;
                             }
                             body {
-                              font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+                              font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
                               font-size: 10px;
                               line-height: 1.2;
                               color: #000;
@@ -999,20 +1005,20 @@ export default function Home() {
                             table {
                               width: 48%;
                               border-collapse: collapse;
-                              font-size: 10px;
+                              font-size: 12px;
                             }
                             th, td {
                               border: 1px solid #333;
                               padding: 6px 4px;
                               text-align: center;
-                              font-size: 10px;
+                              font-size: 12px;
                             }
                             th {
                               background-color: #e5e5e5;
                               font-weight: bold;
                             }
                             td {
-                              font-weight: bold;
+                              font-weight: normal;
                             }
                             tr:nth-child(even) {
                               background-color: #fafafa;
@@ -1062,17 +1068,23 @@ export default function Home() {
                           <meta charset="UTF-8">
                           <title>حالات المعمل - PDF</title>
                           <style>
-                            @page { size: A4; margin: 8mm; }
+                            @font-face {
+                              font-family: 'Cairo';
+                              src: url('/assets/Cairo.ttf') format('truetype');
+                              font-weight: 400;
+                              font-style: normal;
+                            }
+                            @page { size: 210mm 297mm; margin: 10mm; }
                             * { box-sizing: border-box; margin: 0; padding: 0; }
-                            body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 10px; line-height: 1.2; color: #000; direction: rtl; }
+                            body { font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 12px; line-height: 1.2; color: #000; direction: rtl; }
                             .header { text-align: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #333; }
                             .header h1 { font-size: 16px; margin-bottom: 3px; }
-                            .header p { font-size: 10px; color: #666; }
+                            .header p { font-size: 12px; color: #666; }
                             div[style*="display: flex"] { display: flex !important; gap: 4mm; }
-                            table { width: 48%; border-collapse: collapse; font-size: 10px; }
-                            th, td { border: 1px solid #333; padding: 6px 4px; text-align: center; font-size: 10px; }
+                            table { width: 48%; border-collapse: collapse; font-size: 12px; }
+                            th, td { border: 1px solid #333; padding: 6px 4px; text-align: center; font-size: 12px; }
                             th { background-color: #e5e5e5; font-weight: bold; }
-                            td { font-weight: bold; }
+                            td { font-weight: normal; }
                             tr:nth-child(even) { background-color: #fafafa; }
                             .footer { margin-top: 15px; text-align: center; font-size: 8px; color: #666; border-top: 1px solid #ccc; padding-top: 8px; }
                             @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
@@ -1104,10 +1116,18 @@ export default function Home() {
           </DialogHeader>
           
           <div className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-900 p-4">
+            <style dangerouslySetInnerHTML={{ __html: `
+              @font-face {
+                font-family: 'Cairo';
+                src: url('/assets/Cairo.ttf') format('truetype');
+                font-weight: 400;
+                font-style: normal;
+              }
+            `}} />
             <div 
               id="print-content"
               className="bg-white mx-auto shadow-lg"
-              style={{ width: '210mm', minHeight: '297mm', padding: '8mm' }}
+              style={{ width: '210mm', minHeight: '297mm', padding: '8mm', fontFamily: "'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif" }}
             >
               {/* Header */}
               <div className="header text-center mb-3 pb-2 border-b-2 border-gray-800">
@@ -1138,21 +1158,19 @@ export default function Home() {
                   return (
                     <>
                       {/* Left Table */}
-                      <table className="border-collapse text-black" style={{ fontSize: '8px', width: '48%' }}>
+                      <table className="border-collapse text-black" style={{ fontSize: '12px', width: '48%' }}>
                         <thead>
                           <tr className="bg-gray-200">
-                            <th className="border border-gray-800 p-1 text-center" style={{ width: '15px' }}>م</th>
-                            <th className="border border-gray-800 p-1 text-center" style={{ width: '80px', fontSize: '10px' }}>الاسم</th>
-                            <th className="border border-gray-800 p-1 text-center" style={{ width: '30px', fontSize: '10px' }}>ملاحظات</th>
-                            <th className="border border-gray-800 p-1 text-center" style={{ width: '20px', fontSize: '10px' }}>الاستلام</th>
+                            <th className="border border-gray-800 p-1 text-center" style={{ width: '25px', fontSize: '12px' }}>م</th>
+                            <th className="border border-gray-800 p-1 text-center" style={{ fontSize: '12px' }}>الاسم</th>
+                            <th className="border border-gray-800 p-1 text-center" style={{ width: '40px', fontSize: '12px' }}>الاستلام</th>
                           </tr>
                         </thead>
                         <tbody>
                           {leftData.map((client, index) => (
                             <tr key={client.uuid} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                              <td className="border border-gray-800 py-2 px-1 text-center font-bold" style={{ fontSize: '10px' }}>{client.daily_id}</td>
-                              <td className="border border-gray-800 py-2 px-1 text-center font-bold" style={{ fontSize: '10px', maxWidth: '70px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</td>
-                              <td className="border border-gray-800 py-2 px-1 text-center font-bold" style={{ fontSize: '10px' }}>{client.notes || ''}</td>
+                              <td className="border border-gray-800 py-2 px-1 text-center" style={{ fontSize: '12px' }}>{client.daily_id}</td>
+                              <td className="border border-gray-800 py-2 px-1 text-center" style={{ fontSize: '14px' }}>{client.name}</td>
                               <td className="border border-gray-800 py-2 px-1"></td>
                             </tr>
                           ))}
@@ -1160,21 +1178,19 @@ export default function Home() {
                       </table>
 
                       {/* Right Table */}
-                      <table className="border-collapse text-black" style={{ fontSize: '8px', width: '48%' }}>
+                      <table className="border-collapse text-black" style={{ fontSize: '12px', width: '48%' }}>
                         <thead>
                           <tr className="bg-gray-200">
-                            <th className="border border-gray-800 p-1 text-center" style={{ width: '15px' }}>م</th>
-                            <th className="border border-gray-800 p-1 text-center" style={{ width: '80px', fontSize: '10px' }}>الاسم</th>
-                            <th className="border border-gray-800 p-1 text-center" style={{ width: '30px', fontSize: '10px' }}>ملاحظات</th>
-                            <th className="border border-gray-800 p-1 text-center" style={{ width: '20px', fontSize: '10px' }}>الاستلام</th>
+                            <th className="border border-gray-800 p-1 text-center" style={{ width: '25px', fontSize: '12px' }}>م</th>
+                            <th className="border border-gray-800 p-1 text-center" style={{ fontSize: '12px' }}>الاسم</th>
+                            <th className="border border-gray-800 p-1 text-center" style={{ width: '40px', fontSize: '12px' }}>الاستلام</th>
                           </tr>
                         </thead>
                         <tbody>
                           {rightData.map((client, index) => (
                             <tr key={client.uuid} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                              <td className="border border-gray-800 py-2 px-1 text-center font-bold" style={{ fontSize: '10px' }}>{client.daily_id}</td>
-                              <td className="border border-gray-800 py-2 px-1 text-center font-bold" style={{ fontSize: '10px', maxWidth: '70px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</td>
-                              <td className="border border-gray-800 py-2 px-1 text-center font-bold" style={{ fontSize: '10px' }}>{client.notes || ''}</td>
+                              <td className="border border-gray-800 py-2 px-1 text-center" style={{ fontSize: '12px' }}>{client.daily_id}</td>
+                              <td className="border border-gray-800 py-2 px-1 text-center" style={{ fontSize: '14px' }}>{client.name}</td>
                               <td className="border border-gray-800 py-2 px-1"></td>
                             </tr>
                           ))}
