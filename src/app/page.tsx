@@ -1071,7 +1071,28 @@ export default function Home() {
                       html2canvas: { 
                         scale: 2,
                         useCORS: true,
-                        letterRendering: true
+                        letterRendering: true,
+                        backgroundColor: '#ffffff',
+                        onclone: (clonedDoc: Document) => {
+                          // Fix unsupported color functions by converting to simple colors
+                          const style = clonedDoc.createElement('style');
+                          style.textContent = `
+                            * { 
+                              color: #000 !important; 
+                              background-color: inherit !important;
+                              border-color: #333 !important;
+                            }
+                            .bg-white { background-color: #fff !important; }
+                            .bg-gray-50 { background-color: #f9fafb !important; }
+                            .bg-gray-100 { background-color: #f3f4f6 !important; }
+                            .bg-gray-200 { background-color: #e5e7eb !important; }
+                            .text-gray-600 { color: #4b5563 !important; }
+                            .text-gray-500 { color: #6b7280 !important; }
+                            .border-gray-800 { border-color: #1f2937 !important; }
+                            .border-gray-300 { border-color: #d1d5db !important; }
+                          `;
+                          clonedDoc.head.appendChild(style);
+                        }
                       },
                       jsPDF: { 
                         unit: 'mm' as const, 
