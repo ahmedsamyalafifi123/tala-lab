@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -27,7 +26,6 @@ import { fuzzyMatchArabic } from "@/lib/arabic-utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ClientModal } from "@/components/client-modal";
 import { SettingsModal } from "@/components/settings-modal";
-import { ExitConfirmation } from "@/components/exit-confirmation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,7 +72,6 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function Home() {
-  const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -613,7 +610,6 @@ export default function Home() {
 
   return (
     <main className="min-h-screen pb-24">
-      <ExitConfirmation />
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -649,7 +645,7 @@ export default function Home() {
                 className="rounded-xl"
                 onClick={async () => {
                   await supabase.auth.signOut();
-                  router.push("/login");
+                  window.location.href = "/login";
                 }}
               >
                 <LogOut className="h-4 w-4" />
