@@ -289,8 +289,8 @@ export function ClientModal({
   }
 
   return (
-    <Drawer open={isOpen} onOpenChange={onClose}>
-      <DrawerContent className="h-[90vh] flex flex-col fixed bottom-0 inset-x-0 outline-none">
+    <Drawer open={isOpen} onOpenChange={onClose} shouldScaleBackground={false}>
+      <DrawerContent className="max-h-[90vh] flex flex-col outline-none">
         <DrawerHeader className="border-b p-4 flex-shrink-0 text-right">
           <DrawerTitle className="text-xl">
             {client ? "تعديل الحالة" : "إضافة حالة جديدة"}
