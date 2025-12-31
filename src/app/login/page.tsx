@@ -45,7 +45,7 @@ export default function LoginPage() {
           password,
         });
         if (error) throw error;
-        setError("تم إنشاء الحساب! يرجى تفعيل البريد الإلكتروني");
+        setError("تم إنشاء الحساب بنجاح ✨!");
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,

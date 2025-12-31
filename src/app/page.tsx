@@ -44,6 +44,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -93,6 +94,11 @@ export default function Home() {
   const [printReversed, setPrintReversed] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [deleteClient, setDeleteClient] = useState<Client | null>(null);
+  
+  // Bulk Selection
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   
   // Filters - default to today
   const [nameFilter, setNameFilter] = useState("");
@@ -425,6 +431,76 @@ export default function Home() {
       alert("حدث خطأ أثناء الحفظ");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    
+    setIsBulkDeleting(true);
+    try {
+      // 1. Identify affected dates
+      const selectedClients = clients.filter(c => c.uuid && selectedIds.includes(c.uuid));
+      const affectedDates = new Set(selectedClients.map(c => c.client_date));
+
+      // 2. Delete from database
+      const { error } = await supabase
+        .from("clients")
+        .delete()
+        .in("uuid", selectedIds);
+
+      if (error) throw error;
+
+      // 3. Re-sequence daily_id for affected dates
+      for (const date of Array.from(affectedDates)) {
+         const { data: remainingClients } = await supabase
+            .from("clients")
+            .select("uuid, daily_id")
+            .eq("client_date", date)
+            .order("daily_id", { ascending: true });
+            
+         if (remainingClients) {
+            // Update sequentially
+            for (let i = 0; i < remainingClients.length; i++) {
+               const client = remainingClients[i];
+               const correctId = i + 1;
+               if (client.daily_id !== correctId) {
+                  await supabase
+                    .from("clients")
+                    .update({ daily_id: correctId })
+                    .eq("uuid", client.uuid);
+               }
+            }
+         }
+      }
+
+      // 4. Start fresh fetch to see updated IDs
+      await fetchClients();
+      setSelectedIds([]);
+      setShowBulkDeleteDialog(false);
+      
+    } catch (error) {
+      console.error("Error deleting clients:", error);
+      alert("حدث خطأ أثناء حذف الحالات");
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const ids = filteredClients.map(c => c.uuid || "").filter(id => id !== "");
+      setSelectedIds(ids);
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectRow = (uuid: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, uuid]);
+    } else {
+      setSelectedIds(prev => prev.filter(id => id !== uuid));
     }
   };
 
@@ -801,6 +877,17 @@ export default function Home() {
               )}
               <span className="hidden sm:inline">تصدير</span>
             </Button>
+            {selectedIds.length > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowBulkDeleteDialog(true)}
+                className="px-2 sm:px-3 bg-red-600 hover:bg-red-700 text-white"
+              >
+                <Trash2 className="h-4 w-4 sm:me-1" />
+                <span className="hidden sm:inline">حذف المحدد ({selectedIds.length})</span>
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -821,6 +908,14 @@ export default function Home() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[50px] min-w-[50px] text-center text-muted-foreground/50">
+                      <Checkbox 
+                        checked={filteredClients.length > 0 && selectedIds.length === filteredClients.length}
+                        onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                        aria-label="Select all"
+                        className="mx-auto"
+                      />
+                    </TableHead>
                     <TableHead className="w-14 text-center">م</TableHead>
                     <TableHead className="w-24 text-center">التاريخ</TableHead>
                     <TableHead className="text-center">الاسم</TableHead>
@@ -832,14 +927,22 @@ export default function Home() {
                 <TableBody>
                   {filteredClients.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                         {hasFilters ? "لا توجد نتائج" : "لا توجد بيانات"}
                       </TableCell>
                     </TableRow>
                   ) : (
                     <>
                       {(printReversed ? [...filteredClients].reverse() : filteredClients).slice(0, 100).map((client) => (
-                        <TableRow key={client.uuid}>
+                        <TableRow key={client.uuid} data-state={selectedIds.includes(client.uuid || "") ? "selected" : undefined}>
+                          <TableCell className="text-center">
+                            <Checkbox 
+                              checked={!!client.uuid && selectedIds.includes(client.uuid)}
+                              onCheckedChange={(checked) => handleSelectRow(client.uuid || "", checked as boolean)}
+                              aria-label={`Select ${client.name}`}
+                              className="mx-auto"
+                            />
+                          </TableCell>
                           <TableCell className="text-center">
                             <Badge variant="outline" className="font-mono">{client.daily_id}</Badge>
                           </TableCell>
@@ -895,7 +998,7 @@ export default function Home() {
                       ))}
                       {filteredClients.length > 100 && (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-4 text-xs text-muted-foreground bg-muted/20">
+                          <TableCell colSpan={7} className="text-center py-4 text-xs text-muted-foreground bg-muted/20">
                             يتم عرض أول 100 نتيجة فقط لضمان سرعة البحث. يرجى تدقيق البحث للوصول لنتائج محددة.
                           </TableCell>
                         </TableRow>
@@ -961,6 +1064,37 @@ export default function Home() {
                 </span>
               ) : (
                 "حذف"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>تأكيد الحذف الجماعي</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من حذف <strong>{selectedIds.length}</strong> حالة محددة؟
+              <br />
+              لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-3">
+            <AlertDialogCancel disabled={isBulkDeleting}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={isBulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isBulkDeleting ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  جاري الحذف...
+                </span>
+              ) : (
+                "حذف المحدد"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
