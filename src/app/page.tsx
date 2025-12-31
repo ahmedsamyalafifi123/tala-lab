@@ -15,7 +15,8 @@ import {
   Plus,
   Pencil,
   Trash2,
-  Settings
+  Settings,
+  Printer
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase";
@@ -87,6 +88,7 @@ export default function Home() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [deleteClient, setDeleteClient] = useState<Client | null>(null);
   
@@ -676,6 +678,15 @@ export default function Home() {
               )}
               تصدير
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPrintModal(true)}
+              disabled={filteredClients.length === 0}
+            >
+              <Printer className="h-4 w-4 me-1" />
+              طباعة
+            </Button>
           </div>
         </div>
 
@@ -914,6 +925,217 @@ export default function Home() {
               >
                 إلغاء
               </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Print Modal */}
+      <Dialog open={showPrintModal} onOpenChange={setShowPrintModal}>
+        <DialogContent className="max-w-[95vw] h-[95vh] overflow-hidden flex flex-col" dir="rtl">
+          <DialogHeader className="flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <DialogTitle>معاينة الطباعة</DialogTitle>
+              <Button
+                onClick={() => {
+                  const printContent = document.getElementById('print-content');
+                  if (printContent) {
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                      printWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html dir="rtl" lang="ar">
+                        <head>
+                          <meta charset="UTF-8">
+                          <title>طباعة حالات المعمل</title>
+                          <style>
+                            @page {
+                              size: A4;
+                              margin: 15mm;
+                            }
+                            * {
+                              box-sizing: border-box;
+                              margin: 0;
+                              padding: 0;
+                            }
+                            body {
+                              font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+                              font-size: 12px;
+                              line-height: 1.4;
+                              color: #000;
+                              direction: rtl;
+                            }
+                            .header {
+                              text-align: center;
+                              margin-bottom: 20px;
+                              padding-bottom: 10px;
+                              border-bottom: 2px solid #333;
+                            }
+                            .header h1 {
+                              font-size: 18px;
+                              margin-bottom: 5px;
+                            }
+                            .header p {
+                              font-size: 11px;
+                              color: #666;
+                            }
+                            table {
+                              width: 100%;
+                              border-collapse: collapse;
+                              margin-top: 10px;
+                            }
+                            th, td {
+                              border: 1px solid #333;
+                              padding: 6px 8px;
+                              text-align: right;
+                            }
+                            th {
+                              background-color: #f0f0f0;
+                              font-weight: bold;
+                              font-size: 11px;
+                            }
+                            td {
+                              font-size: 11px;
+                            }
+                            tr:nth-child(even) {
+                              background-color: #fafafa;
+                            }
+                            .row-number {
+                              text-align: center;
+                              width: 40px;
+                              font-weight: bold;
+                            }
+                            .date-col {
+                              width: 80px;
+                              text-align: center;
+                            }
+                            .category-col {
+                              width: 80px;
+                              text-align: center;
+                            }
+                            .footer {
+                              margin-top: 20px;
+                              text-align: center;
+                              font-size: 10px;
+                              color: #666;
+                              border-top: 1px solid #ccc;
+                              padding-top: 10px;
+                            }
+                            @media print {
+                              body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+                            }
+                          </style>
+                        </head>
+                        <body>
+                          ${printContent.innerHTML}
+                        </body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      printWindow.focus();
+                      setTimeout(() => {
+                        printWindow.print();
+                        printWindow.close();
+                      }, 250);
+                    }
+                  }
+                }}
+                className="gap-2"
+              >
+                <Printer className="h-4 w-4" />
+                طباعة
+              </Button>
+            </div>
+            <DialogDescription>
+              عدد الحالات: {filteredClients.length} | {dateFrom ? format(dateFrom, "d/M/yyyy") : ''} {dateFrom && dateTo ? '-' : ''} {dateTo ? format(dateTo, "d/M/yyyy") : ''}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-900 p-4">
+            <div 
+              id="print-content"
+              className="bg-white mx-auto shadow-lg"
+              style={{ width: '210mm', minHeight: '297mm', padding: '8mm' }}
+            >
+              {/* Header */}
+              <div className="header text-center mb-3 pb-2 border-b-2 border-gray-800">
+                <h1 className="text-lg font-bold mb-0 text-black">حالات معمل عيادة تلا</h1>
+                <p className="text-xs text-gray-600">
+                  {dateFrom && dateTo ? (
+                    <>من {format(dateFrom, "d/M/yyyy")} إلى {format(dateTo, "d/M/yyyy")}</>
+                  ) : dateFrom ? (
+                    <>من {format(dateFrom, "d/M/yyyy")}</>
+                  ) : dateTo ? (
+                    <>حتى {format(dateTo, "d/M/yyyy")}</>
+                  ) : (
+                    <>جميع الحالات</>
+                  )}
+                  {' • '} إجمالي: {filteredClients.length} حالة
+                </p>
+              </div>
+
+              {/* Two Tables Side by Side */}
+              <div style={{ display: 'flex', gap: '4mm' }}>
+                {/* Split data into two halves */}
+                {(() => {
+                  const half = Math.ceil(filteredClients.length / 2);
+                  const leftData = filteredClients.slice(0, half);
+                  const rightData = filteredClients.slice(half);
+                  
+                  return (
+                    <>
+                      {/* Left Table */}
+                      <table className="border-collapse text-black" style={{ fontSize: '8px', width: '48%' }}>
+                        <thead>
+                          <tr className="bg-gray-200">
+                            <th className="border border-gray-800 p-1 text-center" style={{ width: '15px' }}>م</th>
+                            <th className="border border-gray-800 p-1 text-center" style={{ width: '80px', fontSize: '10px' }}>الاسم</th>
+                            <th className="border border-gray-800 p-1 text-center" style={{ width: '30px', fontSize: '10px' }}>ملاحظات</th>
+                            <th className="border border-gray-800 p-1 text-center" style={{ width: '20px', fontSize: '10px' }}>الاستلام</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {leftData.map((client, index) => (
+                            <tr key={client.uuid} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                              <td className="border border-gray-800 p-1 text-center font-bold" style={{ fontSize: '10px' }}>{client.daily_id}</td>
+                              <td className="border border-gray-800 p-1 text-center font-bold" style={{ fontSize: '10px', maxWidth: '70px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</td>
+                              <td className="border border-gray-800 p-1 text-center font-bold" style={{ fontSize: '10px' }}>{client.notes || ''}</td>
+                              <td className="border border-gray-800 p-1"></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+
+                      {/* Right Table */}
+                      <table className="border-collapse text-black" style={{ fontSize: '8px', width: '48%' }}>
+                        <thead>
+                          <tr className="bg-gray-200">
+                            <th className="border border-gray-800 p-1 text-center" style={{ width: '15px' }}>م</th>
+                            <th className="border border-gray-800 p-1 text-center" style={{ width: '80px', fontSize: '10px' }}>الاسم</th>
+                            <th className="border border-gray-800 p-1 text-center" style={{ width: '30px', fontSize: '10px' }}>ملاحظات</th>
+                            <th className="border border-gray-800 p-1 text-center" style={{ width: '20px', fontSize: '10px' }}>الاستلام</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rightData.map((client, index) => (
+                            <tr key={client.uuid} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                              <td className="border border-gray-800 p-1 text-center font-bold" style={{ fontSize: '10px' }}>{client.daily_id}</td>
+                              <td className="border border-gray-800 p-1 text-center font-bold" style={{ fontSize: '10px', maxWidth: '70px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</td>
+                              <td className="border border-gray-800 p-1 text-center font-bold" style={{ fontSize: '10px' }}>{client.notes || ''}</td>
+                              <td className="border border-gray-800 p-1"></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </>
+                  );
+                })()}
+              </div>
+
+              {/* Footer */}
+              <div className="footer mt-4 pt-2 border-t border-gray-300 text-center text-gray-500" style={{ fontSize: '8px' }}>
+                تم الطباعة في {format(new Date(), "d/M/yyyy - h:mm a", { locale: ar })}
+              </div>
             </div>
           </div>
         </DialogContent>
