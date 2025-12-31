@@ -1056,51 +1056,31 @@ export default function Home() {
                 طباعة
               </Button>
               <Button
-                onClick={() => {
+                onClick={async () => {
                   const printContent = document.getElementById('print-content');
                   if (printContent) {
-                    const printWindow = window.open('', '_blank');
-                    if (printWindow) {
-                      printWindow.document.write(`
-                        <!DOCTYPE html>
-                        <html dir="rtl" lang="ar">
-                        <head>
-                          <meta charset="UTF-8">
-                          <title>حالات المعمل - PDF</title>
-                          <style>
-                            @font-face {
-                              font-family: 'Cairo';
-                              src: url('/assets/Cairo.ttf') format('truetype');
-                              font-weight: 400;
-                              font-style: normal;
-                            }
-                            @page { size: 210mm 297mm; margin: 10mm; }
-                            * { box-sizing: border-box; margin: 0; padding: 0; }
-                            body { font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 12px; line-height: 1.2; color: #000; direction: rtl; }
-                            .header { text-align: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #333; }
-                            .header h1 { font-size: 16px; margin-bottom: 3px; }
-                            .header p { font-size: 12px; color: #666; }
-                            div[style*="display: flex"] { display: flex !important; gap: 4mm; }
-                            table { width: 48%; border-collapse: collapse; font-size: 12px; }
-                            th, td { border: 1px solid #333; padding: 6px 4px; text-align: center; font-size: 12px; }
-                            th { background-color: #e5e5e5; font-weight: bold; }
-                            td { font-weight: normal; }
-                            tr:nth-child(even) { background-color: #fafafa; }
-                            .footer { margin-top: 15px; text-align: center; font-size: 8px; color: #666; border-top: 1px solid #ccc; padding-top: 8px; }
-                            @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
-                          </style>
-                        </head>
-                        <body>${printContent.innerHTML}</body>
-                        </html>
-                      `);
-                      printWindow.document.close();
-                      printWindow.focus();
-                      // Show alert to save as PDF
-                      setTimeout(() => {
-                        alert('لحفظ كـ PDF: اختر "حفظ كـ PDF" أو "Save as PDF" في خيارات الطابعة');
-                        printWindow.print();
-                      }, 300);
-                    }
+                    // Dynamic import html2pdf
+                    const html2pdf = (await import('html2pdf.js')).default;
+                    
+                    const filename = `حالات_المعمل_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+                    
+                    const opt = {
+                      margin: 10,
+                      filename: filename,
+                      image: { type: 'jpeg' as const, quality: 0.98 },
+                      html2canvas: { 
+                        scale: 2,
+                        useCORS: true,
+                        letterRendering: true
+                      },
+                      jsPDF: { 
+                        unit: 'mm' as const, 
+                        format: 'a4' as const, 
+                        orientation: 'portrait' as const
+                      }
+                    };
+                    
+                    html2pdf().set(opt).from(printContent).save();
                   }
                 }}
                 className="gap-2"
