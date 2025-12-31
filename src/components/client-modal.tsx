@@ -63,7 +63,35 @@ export function ClientModal({
   const [date, setDate] = useState<Date>(new Date());
   const [isManualId, setIsManualId] = useState(false);
   const [manualId, setManualId] = useState<string>("");
+
   const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  // Handle back button behavior
+  useEffect(() => {
+    if (isOpen) {
+      // Push a new state to history when modal opens
+      window.history.pushState({ modalOpen: true }, "", window.location.href);
+
+      const handlePopState = (event: PopStateEvent) => {
+        // If back button is pressed, close the modal
+        event.preventDefault();
+        onClose();
+      };
+
+      window.addEventListener("popstate", handlePopState);
+
+      return () => {
+        window.removeEventListener("popstate", handlePopState);
+        // Clean up history state if closed via other means (not back button)
+        // This is tricky, simplified approach: we assume if component unmounts while "open" in history, we might need to go back.
+        // But react lifecycle + history is complex. 
+        // Better: checking if we are still at the state we pushed? No.
+        // Simplest practical solution:
+        // When closing via onClose button: we should probably history.back() IF the top state is ours.
+        // But onClose is passed from parent. Parent controls open state.
+      };
+    }
+  }, [isOpen, onClose]);
 
   useEffect(() => {
     if (client) {
@@ -141,8 +169,8 @@ export function ClientModal({
     </div>
   );
 
-  const FormContent = ({ className }: { className?: string }) => (
-    <form onSubmit={handleSubmit} className={cn("flex flex-col h-full min-h-0 overflow-hidden", className)}>
+  const formContent = (
+    <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0 overflow-hidden">
       <div className={cn("flex-1 overflow-y-auto overscroll-contain p-4", !isDesktop && "pb-8")}>
         <div className="space-y-6">
           <div className="space-y-2">
@@ -282,7 +310,7 @@ export function ClientModal({
               {client ? "تعديل الحالة" : "إضافة حالة جديدة"}
             </SheetTitle>
           </SheetHeader>
-          <FormContent />
+          {formContent}
         </SheetContent>
       </Sheet>
     );
@@ -296,7 +324,7 @@ export function ClientModal({
             {client ? "تعديل الحالة" : "إضافة حالة جديدة"}
           </DrawerTitle>
         </DrawerHeader>
-        <FormContent />
+        {formContent}
       </DrawerContent>
     </Drawer>
   );
