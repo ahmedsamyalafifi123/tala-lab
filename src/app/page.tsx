@@ -238,7 +238,7 @@ export default function Home() {
 
   const hasFilters = nameFilter || categoryFilter !== "all" || dateFrom || dateTo;
 
-  const handleSave = async (data: { name: string; notes: string; category: string | null; client_date: string }) => {
+  const handleSave = async (data: { name: string; notes: string; category: string | null; client_date: string; daily_id?: number | null }) => {
     setIsSaving(true);
     try {
       if (editingClient) {
@@ -295,17 +295,47 @@ export default function Home() {
             user_email: user?.email,
           });
         }
+// Logic for handling new client with potentially manual daily_id
       } else {
+        let finalDailyId = null;
+
+        if (data.daily_id) {
+          // Check for conflicts and shift if necessary
+          const { data: existingClients } = await supabase
+            .from("clients")
+            .select("uuid, daily_id")
+            .eq("client_date", data.client_date)
+            .gte("daily_id", data.daily_id)
+            .order("daily_id", { ascending: false });
+
+          if (existingClients && existingClients.length > 0) {
+            // Shift IDs up by 1, starting from the highest to avoid unique constraint violations
+            for (const client of existingClients) {
+              await supabase
+                .from("clients")
+                .update({ daily_id: client.daily_id + 1 })
+                .eq("uuid", client.uuid);
+            }
+          }
+          finalDailyId = data.daily_id;
+        }
+
+        const insertData: any = {
+          name: data.name,
+          notes: data.notes || null,
+          category: data.category,
+          client_date: data.client_date,
+          created_by: user?.id,
+          updated_by: user?.id,
+        };
+
+        if (finalDailyId !== null) {
+          insertData.daily_id = finalDailyId;
+        }
+
         const { data: newClient, error } = await supabase
           .from("clients")
-          .insert({
-            name: data.name,
-            notes: data.notes || null,
-            category: data.category,
-            client_date: data.client_date,
-            created_by: user?.id,
-            updated_by: user?.id,
-          })
+          .insert(insertData)
           .select()
           .single();
 

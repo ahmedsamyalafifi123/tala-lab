@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
+import { Switch } from "@/components/ui/switch";
 import {
   Popover,
   PopoverContent,
@@ -34,7 +35,7 @@ import { cn } from "@/lib/utils";
 interface ClientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { name: string; notes: string; category: string | null; client_date: string }) => Promise<void>;
+  onSave: (data: { name: string; notes: string; category: string | null; client_date: string; daily_id?: number | null }) => Promise<void>;
   client?: Client | null;
   categories: Category[];
   isLoading?: boolean;
@@ -52,6 +53,8 @@ export function ClientModal({
   const [notes, setNotes] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [date, setDate] = useState<Date>(new Date());
+  const [isManualId, setIsManualId] = useState(false);
+  const [manualId, setManualId] = useState<string>("");
 
   useEffect(() => {
     if (client) {
@@ -59,11 +62,15 @@ export function ClientModal({
       setNotes(client.notes || "");
       setCategory(client.category);
       setDate(new Date(client.client_date));
+      setIsManualId(false);
+      setManualId("");
     } else {
       setName("");
       setNotes("");
       setCategory(null);
       setDate(new Date());
+      setIsManualId(false);
+      setManualId("");
     }
   }, [client, isOpen]);
 
@@ -76,6 +83,7 @@ export function ClientModal({
       notes: notes.trim(),
       category: category === "none" ? null : category,
       client_date: format(date, "yyyy-MM-dd"),
+      daily_id: isManualId && manualId ? parseInt(manualId) : null,
     });
 
     // If we are adding a new client (not editing), reset the form to allow adding another
@@ -83,6 +91,8 @@ export function ClientModal({
       setName("");
       setNotes("");
       setCategory(null);
+      setIsManualId(false);
+      setManualId("");
       // We keep the date as is, assuming the user might want to add multiple entries for the same date
       // Reset focus to name input
       const nameInput = document.getElementById("name");
@@ -147,6 +157,39 @@ export function ClientModal({
                   />
                 </PopoverContent>
               </Popover>
+            </div>
+
+            <div className="space-y-4 rounded-lg border p-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="manual-id-mode" className="text-base cursor-pointer">
+                  تحديد رقم الحالة يدوياً
+                </Label>
+                <Switch
+                  id="manual-id-mode"
+                  checked={isManualId}
+                  onCheckedChange={setIsManualId}
+                />
+              </div>
+              
+              {isManualId && (
+                <div className="space-y-2 pt-2 animate-in slide-in-from-top-2 fade-in duration-200">
+                  <Label htmlFor="manual-id" className="text-base">
+                    رقم الحالة
+                  </Label>
+                  <Input
+                    id="manual-id"
+                    type="number"
+                    min="1"
+                    value={manualId}
+                    onChange={(e) => setManualId(e.target.value)}
+                    placeholder="أدخل رقم الحالة"
+                    className="h-12 text-lg"
+                  />
+                  <p className="text-sm text-yellow-600/90 dark:text-yellow-500/90 bg-yellow-50 dark:bg-yellow-950/30 p-2 rounded border border-yellow-200 dark:border-yellow-900">
+                    تنبيه: سيتم إزاحة الحالات التالية تلقائياً إذا كان الرقم مستخدماً
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
