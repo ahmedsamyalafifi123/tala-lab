@@ -238,97 +238,40 @@ export default function Home() {
 
   const hasFilters = nameFilter || categoryFilter !== "all" || dateFrom || dateTo;
 
+
   const handleSave = async (data: { name: string; notes: string; category: string | null; client_date: string; daily_id?: number | null }) => {
     setIsSaving(true);
     try {
-      if (editingClient) {
-        const dateChanged = editingClient.client_date !== data.client_date;
-        
-        if (dateChanged) {
-          await supabase.from("clients").delete().eq("uuid", editingClient.uuid);
-          
-          const { data: newClient, error } = await supabase
-            .from("clients")
-            .insert({
-              name: data.name,
-              notes: data.notes || null,
-              category: data.category,
-              client_date: data.client_date,
-              created_by: editingClient.created_by,
-              updated_by: user?.id,
-            })
-            .select()
-            .single();
-
-          if (error) throw error;
-
-          await supabase.from("audit_log").insert({
-            table_name: "clients",
-            record_id: newClient?.uuid || editingClient.uuid,
-            action: "UPDATE",
-            old_data: editingClient,
-            new_data: newClient,
-            user_id: user?.id,
-            user_email: user?.email,
-          });
-        } else {
-          const { error } = await supabase
-            .from("clients")
-            .update({
-              name: data.name,
-              notes: data.notes || null,
-              category: data.category,
-              updated_at: new Date().toISOString(),
-              updated_by: user?.id,
-            })
-            .eq("uuid", editingClient.uuid);
-
-          if (error) throw error;
-
-          await supabase.from("audit_log").insert({
-            table_name: "clients",
-            record_id: editingClient.uuid,
-            action: "UPDATE",
-            old_data: editingClient,
-            new_data: { ...editingClient, ...data },
-            user_id: user?.id,
-            user_email: user?.email,
-          });
-        }
-// Logic for handling new client with potentially manual daily_id
-      } else {
+      // Helper to handle insertion with manual ID
+      const insertWithManualId = async (clientData: any) => {
         let finalDailyId = null;
 
-        if (data.daily_id) {
+        if (clientData.daily_id) {
+          console.log("Attempting to set manual daily_id:", clientData.daily_id);
           // Check for conflicts and shift if necessary
           const { data: existingClients } = await supabase
             .from("clients")
             .select("uuid, daily_id")
-            .eq("client_date", data.client_date)
-            .gte("daily_id", data.daily_id)
+            .eq("client_date", clientData.client_date)
+            .gte("daily_id", clientData.daily_id)
             .order("daily_id", { ascending: false });
 
           if (existingClients && existingClients.length > 0) {
-            // Shift IDs up by 1, starting from the highest to avoid unique constraint violations
+            console.log("Found conflicts, shifting:", existingClients.length);
+            // Shift IDs up by 1, starting from the highest
             for (const client of existingClients) {
-              await supabase
+              const { error: shiftError } = await supabase
                 .from("clients")
                 .update({ daily_id: client.daily_id + 1 })
                 .eq("uuid", client.uuid);
+                
+              if (shiftError) console.error("Error shifting client:", client.uuid, shiftError);
             }
           }
-          finalDailyId = data.daily_id;
+          finalDailyId = clientData.daily_id;
         }
 
-        const insertData: any = {
-          name: data.name,
-          notes: data.notes || null,
-          category: data.category,
-          client_date: data.client_date,
-          created_by: user?.id,
-          updated_by: user?.id,
-        };
-
+        const insertData = { ...clientData };
         if (finalDailyId !== null) {
           insertData.daily_id = finalDailyId;
         }
@@ -340,6 +283,121 @@ export default function Home() {
           .single();
 
         if (error) throw error;
+        
+        // Check if the DB respected our daily_id, if not, force update it
+        if (newClient && finalDailyId !== null && newClient.daily_id !== finalDailyId) {
+          console.log(`DB override detected. Wanted ${finalDailyId}, got ${newClient.daily_id}. Forcing update...`);
+          const { error: updateError } = await supabase
+            .from("clients")
+            .update({ daily_id: finalDailyId })
+            .eq("uuid", newClient.uuid);
+            
+          if (updateError) {
+             console.error("Failed to force update daily_id:", updateError);
+             alert("تم الحفظ ولكن فشل تعيين رقم الحالة المخصص بسبب قيود النظام");
+          } else {
+             newClient.daily_id = finalDailyId; 
+          }
+        }
+        
+        return newClient;
+      };
+
+      if (editingClient) {
+        const dateChanged = editingClient.client_date !== data.client_date;
+        
+        // If date changed, delete and re-insert (treating as new)
+        if (dateChanged) {
+          await supabase.from("clients").delete().eq("uuid", editingClient.uuid);
+          
+          const newClient = await insertWithManualId({
+            name: data.name,
+            notes: data.notes || null,
+            category: data.category,
+            client_date: data.client_date,
+            created_by: editingClient.created_by,
+            updated_by: user?.id,
+            daily_id: data.daily_id, // Pass manual ID if provided
+          });
+
+          await supabase.from("audit_log").insert({
+            table_name: "clients",
+            record_id: newClient?.uuid || editingClient.uuid,
+            action: "UPDATE",
+            old_data: editingClient,
+            new_data: newClient,
+            user_id: user?.id,
+            user_email: user?.email,
+          });
+        } else {
+          // Same date update
+          let finalDailyId = editingClient.daily_id;
+          
+          // Check if manual ID is provided and different from current
+          if (data.daily_id && data.daily_id !== editingClient.daily_id) {
+             console.log("Updating manual daily_id from", editingClient.daily_id, "to", data.daily_id);
+             
+             // Check for conflicts on SAME date
+             const { data: existingClients } = await supabase
+                .from("clients")
+                .select("uuid, daily_id")
+                .eq("client_date", editingClient.client_date)
+                .gte("daily_id", data.daily_id)
+                .neq("uuid", editingClient.uuid) // Exclude self
+                .order("daily_id", { ascending: false });
+
+             if (existingClients && existingClients.length > 0) {
+                console.log("Found edit conflicts, shifting:", existingClients.length);
+                for (const client of existingClients) {
+                  const { error: shiftError } = await supabase
+                    .from("clients")
+                    .update({ daily_id: client.daily_id + 1 })
+                    .eq("uuid", client.uuid);
+                  if (shiftError) console.error("Error shifting client:", client.uuid, shiftError);
+                }
+             }
+             finalDailyId = data.daily_id;
+          }
+
+          const updatePayload: any = {
+              name: data.name,
+              notes: data.notes || null,
+              category: data.category,
+              updated_at: new Date().toISOString(),
+              updated_by: user?.id,
+          };
+          
+          if (finalDailyId !== editingClient.daily_id) {
+             updatePayload.daily_id = finalDailyId;
+          }
+
+          const { error } = await supabase
+            .from("clients")
+            .update(updatePayload)
+            .eq("uuid", editingClient.uuid);
+
+          if (error) throw error;
+
+          await supabase.from("audit_log").insert({
+            table_name: "clients",
+            record_id: editingClient.uuid,
+            action: "UPDATE",
+            old_data: editingClient,
+            new_data: { ...editingClient, ...data, daily_id: finalDailyId },
+            user_id: user?.id,
+            user_email: user?.email,
+          });
+        }
+      } else {
+        const newClient = await insertWithManualId({
+            name: data.name,
+            notes: data.notes || null,
+            category: data.category,
+            client_date: data.client_date,
+            created_by: user?.id,
+            updated_by: user?.id,
+            daily_id: data.daily_id,
+        });
 
         if (newClient) {
           await supabase.from("audit_log").insert({
@@ -375,6 +433,9 @@ export default function Home() {
     
     setIsDeleting(true);
     try {
+      const deletedDate = deleteClient.client_date;
+      const deletedDailyId = deleteClient.daily_id;
+
       await supabase.from("audit_log").insert({
         table_name: "clients",
         record_id: deleteClient.uuid,
@@ -390,6 +451,26 @@ export default function Home() {
         .eq("uuid", deleteClient.uuid);
 
       if (error) throw error;
+
+      // Shift down subsequent IDs
+      const { data: subsequentClients } = await supabase
+        .from("clients")
+        .select("uuid, daily_id")
+        .eq("client_date", deletedDate)
+        .gt("daily_id", deletedDailyId)
+        .order("daily_id", { ascending: true }); // Process in order 3->2, 4->3 etc
+
+      if (subsequentClients && subsequentClients.length > 0) {
+        console.log(`Shifting down ${subsequentClients.length} clients after deletion of ${deletedDailyId}`);
+        for (const client of subsequentClients) {
+           const { error: shiftError } = await supabase
+             .from("clients")
+             .update({ daily_id: client.daily_id - 1 })
+             .eq("uuid", client.uuid);
+             
+           if (shiftError) console.error("Error shifting down client:", client.uuid, shiftError);
+        }
+      }
 
       await fetchClients();
       setDeleteClient(null);
