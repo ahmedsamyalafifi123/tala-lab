@@ -30,6 +30,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerFooter,
+} from "@/components/ui/drawer";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 
 interface ClientModalProps {
@@ -55,6 +63,7 @@ export function ClientModal({
   const [date, setDate] = useState<Date>(new Date());
   const [isManualId, setIsManualId] = useState(false);
   const [manualId, setManualId] = useState<string>("");
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   useEffect(() => {
     if (client) {
@@ -132,140 +141,163 @@ export function ClientModal({
     </div>
   );
 
-  return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent 
-        side="bottom" 
-        className="h-auto max-h-[85dvh] rounded-t-3xl sm:max-w-lg sm:mx-auto sm:rounded-t-2xl flex flex-col overflow-hidden"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0 overflow-hidden">
-          <SheetHeader className="border-b pb-4 flex-shrink-0">
+  const FormContent = ({ className }: { className?: string }) => (
+    <form onSubmit={handleSubmit} className={cn("flex flex-col h-full min-h-0 overflow-hidden", className)}>
+      <div className={cn("flex-1 overflow-y-auto overscroll-contain p-4", !isDesktop && "pb-8")}>
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="name" className="text-base">
+              الاسم <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="أدخل اسم العميل"
+              className="h-12 text-lg"
+              required
+              autoFocus
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-base">التاريخ</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full h-12 justify-start text-lg font-normal",
+                    !date && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="me-2 h-5 w-5" />
+                  {date ? format(date, "PPP", { locale: ar }) : "اختر التاريخ"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={(d) => d && setDate(d)}
+                  initialFocus
+                  locale={ar}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="space-y-4 rounded-lg border p-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="manual-id-mode" className="text-base cursor-pointer">
+                تحديد رقم الحالة يدوياً
+              </Label>
+              <Switch
+                id="manual-id-mode"
+                checked={isManualId}
+                onCheckedChange={setIsManualId}
+              />
+            </div>
+            
+            {isManualId && (
+              <div className="space-y-2 pt-2 animate-in slide-in-from-top-2 fade-in duration-200">
+                <Label htmlFor="manual-id" className="text-base">
+                  رقم الحالة
+                </Label>
+                <Input
+                  id="manual-id"
+                  type="number"
+                  min="1"
+                  value={manualId}
+                  onChange={(e) => setManualId(e.target.value)}
+                  placeholder="أدخل رقم الحالة"
+                  className="h-12 text-lg"
+                />
+                <p className="text-sm text-yellow-600/90 dark:text-yellow-500/90 bg-yellow-50 dark:bg-yellow-950/30 p-2 rounded border border-yellow-200 dark:border-yellow-900">
+                  تنبيه: سيتم إزاحة الحالات التالية تلقائياً إذا كان الرقم مستخدماً
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="category" className="text-base">
+              التصنيف
+            </Label>
+            <Select
+              value={category || "none"}
+              onValueChange={(value) => setCategory(value === "none" ? null : value)}
+            >
+              <SelectTrigger className="h-12 text-lg">
+                <SelectValue placeholder="اختر التصنيف (اختياري)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">بدون تصنيف</SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes" className="text-base">
+              الملاحظات
+            </Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="أدخل الملاحظات (اختياري)"
+              className="min-h-[100px] text-lg resize-none"
+            />
+          </div>
+
+          {!isDesktop && (
+            <div className="pt-4 pb-4">
+              {renderFooterButtons()}
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {isDesktop && (
+        <SheetFooter className="border-t pt-4 flex-shrink-0 px-4">
+          {renderFooterButtons()}
+        </SheetFooter>
+      )}
+    </form>
+  );
+
+  if (isDesktop) {
+    return (
+      <Sheet open={isOpen} onOpenChange={onClose}>
+        <SheetContent 
+          side="bottom" 
+          className="h-auto max-h-[85dvh] rounded-t-3xl sm:max-w-lg sm:mx-auto sm:rounded-t-2xl flex flex-col overflow-hidden p-0"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          <SheetHeader className="border-b p-4 flex-shrink-0">
             <SheetTitle className="text-xl">
               {client ? "تعديل الحالة" : "إضافة حالة جديدة"}
             </SheetTitle>
           </SheetHeader>
+          <FormContent />
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
-          <div className="flex-1 overflow-y-auto overscroll-contain p-4">
-            <div className="space-y-6">
-              <Label htmlFor="name" className="text-base">
-                الاسم <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="أدخل اسم العميل"
-                className="h-12 text-lg"
-                required
-                autoFocus
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-base">التاريخ</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full h-12 justify-start text-lg font-normal",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="me-2 h-5 w-5" />
-                    {date ? format(date, "PPP", { locale: ar }) : "اختر التاريخ"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={(d) => d && setDate(d)}
-                    initialFocus
-                    locale={ar}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="space-y-4 rounded-lg border p-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="manual-id-mode" className="text-base cursor-pointer">
-                  تحديد رقم الحالة يدوياً
-                </Label>
-                <Switch
-                  id="manual-id-mode"
-                  checked={isManualId}
-                  onCheckedChange={setIsManualId}
-                />
-              </div>
-              
-              {isManualId && (
-                <div className="space-y-2 pt-2 animate-in slide-in-from-top-2 fade-in duration-200">
-                  <Label htmlFor="manual-id" className="text-base">
-                    رقم الحالة
-                  </Label>
-                  <Input
-                    id="manual-id"
-                    type="number"
-                    min="1"
-                    value={manualId}
-                    onChange={(e) => setManualId(e.target.value)}
-                    placeholder="أدخل رقم الحالة"
-                    className="h-12 text-lg"
-                  />
-                  <p className="text-sm text-yellow-600/90 dark:text-yellow-500/90 bg-yellow-50 dark:bg-yellow-950/30 p-2 rounded border border-yellow-200 dark:border-yellow-900">
-                    تنبيه: سيتم إزاحة الحالات التالية تلقائياً إذا كان الرقم مستخدماً
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="category" className="text-base">
-                التصنيف
-              </Label>
-              <Select
-                value={category || "none"}
-                onValueChange={(value) => setCategory(value === "none" ? null : value)}
-              >
-                <SelectTrigger className="h-12 text-lg">
-                  <SelectValue placeholder="اختر التصنيف (اختياري)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">بدون تصنيف</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes" className="text-base">
-                الملاحظات
-              </Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="أدخل الملاحظات (اختياري)"
-                className="min-h-[100px] text-lg resize-none"
-              />
-            </div>
-            {/* Mobile Footer (Inside scroll) */}
-            <div className="pt-8 pb-4 sm:hidden">
-              {renderFooterButtons()}
-            </div>
-          </div>
-
-          {/* Desktop Footer (Fixed outside scroll) */}
-          <SheetFooter className="hidden sm:flex border-t pt-4 flex-shrink-0">
-            {renderFooterButtons()}
-          </SheetFooter>
-        </form>
-      </SheetContent>
-    </Sheet>
+  return (
+    <Drawer open={isOpen} onOpenChange={onClose}>
+      <DrawerContent className="h-[90vh] flex flex-col fixed bottom-0 inset-x-0 outline-none">
+        <DrawerHeader className="border-b p-4 flex-shrink-0 text-right">
+          <DrawerTitle className="text-xl">
+            {client ? "تعديل الحالة" : "إضافة حالة جديدة"}
+          </DrawerTitle>
+        </DrawerHeader>
+        <FormContent />
+      </DrawerContent>
+    </Drawer>
   );
 }
