@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_Arabic } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ExitConfirmation } from "@/components/exit-confirmation";
 import "./globals.css";
 
 const notoSansArabic = Noto_Sans_Arabic({
@@ -48,7 +47,6 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
-          <ExitConfirmation />
         </ThemeProvider>
       </body>
     </html>
