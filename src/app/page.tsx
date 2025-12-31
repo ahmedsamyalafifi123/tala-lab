@@ -60,6 +60,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 export default function Home() {
@@ -79,6 +86,7 @@ export default function Home() {
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [deleteClient, setDeleteClient] = useState<Client | null>(null);
   
@@ -645,7 +653,7 @@ export default function Home() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => setShowImportModal(true)}
               disabled={isImporting}
             >
               {isImporting ? (
@@ -823,6 +831,93 @@ export default function Home() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Import Modal */}
+      <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-right">استيراد البيانات</DialogTitle>
+            <DialogDescription className="text-right">
+              يرجى التأكد من أن ملف Excel يتبع الصيغة المطلوبة
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Format explanation */}
+            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+              <h4 className="font-semibold text-sm">صيغة الملف المطلوبة:</h4>
+              <div className="border rounded-md overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="py-2 px-3 text-right border-b">اسم العمود</th>
+                      <th className="py-2 px-3 text-right border-b">مطلوب</th>
+                      <th className="py-2 px-3 text-right border-b">مثال</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    <tr>
+                      <td className="py-2 px-3 font-mono text-xs">الاسم / name</td>
+                      <td className="py-2 px-3"><Badge variant="destructive" className="text-[10px]">مطلوب</Badge></td>
+                      <td className="py-2 px-3 text-muted-foreground">محمد أحمد</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 px-3 font-mono text-xs">التاريخ / date</td>
+                      <td className="py-2 px-3"><Badge variant="secondary" className="text-[10px]">اختياري</Badge></td>
+                      <td className="py-2 px-3 text-muted-foreground">2024-12-31</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 px-3 font-mono text-xs">التصنيف / category</td>
+                      <td className="py-2 px-3"><Badge variant="secondary" className="text-[10px]">اختياري</Badge></td>
+                      <td className="py-2 px-3 text-muted-foreground">أشعة</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 px-3 font-mono text-xs">الملاحظات / notes</td>
+                      <td className="py-2 px-3"><Badge variant="secondary" className="text-[10px]">اختياري</Badge></td>
+                      <td className="py-2 px-3 text-muted-foreground">ملاحظة...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                • يمكن استخدام أسماء الأعمدة بالعربية أو الإنجليزية<br/>
+                • التاريخ يجب أن يكون بصيغة YYYY-MM-DD أو تاريخ Excel<br/>
+                • الملفات المدعومة: .xlsx, .xls, .csv
+              </p>
+            </div>
+
+            {/* File picker button */}
+            <div className="flex flex-col gap-2">
+              <Button
+                onClick={() => {
+                  fileInputRef.current?.click();
+                  setShowImportModal(false);
+                }}
+                disabled={isImporting}
+                className="w-full"
+              >
+                {isImporting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin me-2" />
+                    جاري الاستيراد...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 me-2" />
+                    اختر ملف للاستيراد
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowImportModal(false)}
+              >
+                إلغاء
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Settings Modal */}
       <SettingsModal
