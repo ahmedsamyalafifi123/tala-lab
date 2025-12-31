@@ -63,6 +63,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { PullToRefresh } from "@/components/pull-to-refresh";
 import {
   Dialog,
   DialogContent,
@@ -685,6 +686,7 @@ export default function Home() {
   }
 
   return (
+    <PullToRefresh onRefresh={fetchClients}>
     <main className="min-h-screen pb-24">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
@@ -1466,5 +1468,6 @@ export default function Home() {
         }}
       />
     </main>
+    </PullToRefresh>
   );
 }
