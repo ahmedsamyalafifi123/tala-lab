@@ -102,6 +102,36 @@ export function ClientModal({
     }
   };
 
+  const renderFooterButtons = () => (
+    <div className="flex gap-3 w-full">
+      <Button
+        type="button"
+        variant="outline"
+        className="flex-1 h-12 text-lg"
+        onClick={onClose}
+        disabled={isLoading}
+      >
+        إلغاء
+      </Button>
+      <Button
+        type="submit"
+        className="flex-1 h-12 text-lg"
+        disabled={isLoading || !name.trim()}
+      >
+        {isLoading ? (
+          <span className="flex items-center gap-2">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            جاري الحفظ...
+          </span>
+        ) : client ? (
+          "تحديث"
+        ) : (
+          "حفظ"
+        )}
+      </Button>
+    </div>
+  );
+
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent 
@@ -116,8 +146,8 @@ export function ClientModal({
             </SheetTitle>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-6">
-            <div className="space-y-2">
+          <div className="flex-1 overflow-y-auto overscroll-contain p-4">
+            <div className="space-y-6">
               <Label htmlFor="name" className="text-base">
                 الاسم <span className="text-destructive">*</span>
               </Label>
@@ -224,36 +254,15 @@ export function ClientModal({
                 className="min-h-[100px] text-lg resize-none"
               />
             </div>
+            {/* Mobile Footer (Inside scroll) */}
+            <div className="pt-8 pb-4 sm:hidden">
+              {renderFooterButtons()}
+            </div>
           </div>
 
-          <SheetFooter className="border-t pt-4 flex-shrink-0">
-            <div className="flex gap-3 w-full">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1 h-12 text-lg"
-                onClick={onClose}
-                disabled={isLoading}
-              >
-                إلغاء
-              </Button>
-              <Button
-                type="submit"
-                className="flex-1 h-12 text-lg"
-                disabled={isLoading || !name.trim()}
-              >
-                {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    جاري الحفظ...
-                  </span>
-                ) : client ? (
-                  "تحديث"
-                ) : (
-                  "حفظ"
-                )}
-              </Button>
-            </div>
+          {/* Desktop Footer (Fixed outside scroll) */}
+          <SheetFooter className="hidden sm:flex border-t pt-4 flex-shrink-0">
+            {renderFooterButtons()}
           </SheetFooter>
         </form>
       </SheetContent>

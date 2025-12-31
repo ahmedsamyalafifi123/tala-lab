@@ -12,6 +12,10 @@ const notoSansArabic = Noto_Sans_Arabic({
 export const metadata: Metadata = {
   title: "حالات معمل عيادة تلا",
   description: "نظام إدارة حالات المعمل",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export const viewport: Viewport = {
