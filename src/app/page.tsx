@@ -89,6 +89,7 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printReversed, setPrintReversed] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [deleteClient, setDeleteClient] = useState<Client | null>(null);
   
@@ -641,6 +642,14 @@ export default function Home() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Badge variant="secondary">{filteredClients.length} نتيجة</Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setPrintReversed(!printReversed)}
+              className="h-7 px-2 text-xs"
+            >
+              {printReversed ? '↑ تصاعدي' : '↓ تنازلي'}
+            </Button>
             {(isLoading || isFiltering) && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </div>
           <div className="flex items-center gap-2">
@@ -714,7 +723,7 @@ export default function Home() {
                     </TableRow>
                   ) : (
                     <>
-                      {filteredClients.slice(0, 100).map((client) => (
+                      {(printReversed ? [...filteredClients].reverse() : filteredClients).slice(0, 100).map((client) => (
                         <TableRow key={client.uuid}>
                           <TableCell className="text-center">
                             <Badge variant="outline" className="font-mono">{client.daily_id}</Badge>
@@ -1045,6 +1054,14 @@ export default function Home() {
                 <Printer className="h-4 w-4" />
                 طباعة
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPrintReversed(!printReversed)}
+                className="gap-2"
+              >
+                {printReversed ? '↑ تصاعدي' : '↓ تنازلي'}
+              </Button>
             </div>
             <DialogDescription>
               عدد الحالات: {filteredClients.length} | {dateFrom ? format(dateFrom, "d/M/yyyy") : ''} {dateFrom && dateTo ? '-' : ''} {dateTo ? format(dateTo, "d/M/yyyy") : ''}
@@ -1078,9 +1095,10 @@ export default function Home() {
               <div style={{ display: 'flex', gap: '4mm' }}>
                 {/* Split data into two halves */}
                 {(() => {
-                  const half = Math.ceil(filteredClients.length / 2);
-                  const leftData = filteredClients.slice(0, half);
-                  const rightData = filteredClients.slice(half);
+                  const sortedData = printReversed ? [...filteredClients].reverse() : filteredClients;
+                  const half = Math.ceil(sortedData.length / 2);
+                  const leftData = sortedData.slice(0, half);
+                  const rightData = sortedData.slice(half);
                   
                   return (
                     <>
