@@ -666,35 +666,38 @@ export default function Home() {
               size="sm"
               onClick={() => setShowImportModal(true)}
               disabled={isImporting}
+              className="px-2 sm:px-3"
             >
               {isImporting ? (
-                <Loader2 className="h-4 w-4 animate-spin me-1" />
+                <Loader2 className="h-4 w-4 animate-spin sm:me-1" />
               ) : (
-                <Upload className="h-4 w-4 me-1" />
+                <Upload className="h-4 w-4 sm:me-1" />
               )}
-              استيراد
+              <span className="hidden sm:inline">استيراد</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={exportToExcel}
               disabled={isExporting || filteredClients.length === 0}
+              className="px-2 sm:px-3"
             >
               {isExporting ? (
-                <Loader2 className="h-4 w-4 animate-spin me-1" />
+                <Loader2 className="h-4 w-4 animate-spin sm:me-1" />
               ) : (
-                <Download className="h-4 w-4 me-1" />
+                <Download className="h-4 w-4 sm:me-1" />
               )}
-              تصدير
+              <span className="hidden sm:inline">تصدير</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowPrintModal(true)}
               disabled={filteredClients.length === 0}
+              className="px-2 sm:px-3"
             >
-              <Printer className="h-4 w-4 me-1" />
-              طباعة
+              <Printer className="h-4 w-4 sm:me-1" />
+              <span className="hidden sm:inline">طباعة</span>
             </Button>
           </div>
         </div>
