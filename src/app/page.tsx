@@ -16,7 +16,8 @@ import {
   Pencil,
   Trash2,
   Settings,
-  Printer
+  Printer,
+  FileDown
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase";
@@ -972,66 +973,57 @@ export default function Home() {
                             }
                             body {
                               font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
-                              font-size: 12px;
-                              line-height: 1.4;
+                              font-size: 10px;
+                              line-height: 1.2;
                               color: #000;
                               direction: rtl;
                             }
                             .header {
                               text-align: center;
-                              margin-bottom: 20px;
-                              padding-bottom: 10px;
+                              margin-bottom: 10px;
+                              padding-bottom: 8px;
                               border-bottom: 2px solid #333;
                             }
                             .header h1 {
-                              font-size: 18px;
-                              margin-bottom: 5px;
+                              font-size: 16px;
+                              margin-bottom: 3px;
                             }
                             .header p {
-                              font-size: 11px;
+                              font-size: 10px;
                               color: #666;
                             }
+                            div[style*="display: flex"] {
+                              display: flex !important;
+                              gap: 4mm;
+                            }
                             table {
-                              width: 100%;
+                              width: 48%;
                               border-collapse: collapse;
-                              margin-top: 10px;
+                              font-size: 10px;
                             }
                             th, td {
                               border: 1px solid #333;
-                              padding: 6px 8px;
-                              text-align: right;
+                              padding: 6px 4px;
+                              text-align: center;
+                              font-size: 10px;
                             }
                             th {
-                              background-color: #f0f0f0;
+                              background-color: #e5e5e5;
                               font-weight: bold;
-                              font-size: 11px;
                             }
                             td {
-                              font-size: 11px;
+                              font-weight: bold;
                             }
                             tr:nth-child(even) {
                               background-color: #fafafa;
                             }
-                            .row-number {
-                              text-align: center;
-                              width: 40px;
-                              font-weight: bold;
-                            }
-                            .date-col {
-                              width: 80px;
-                              text-align: center;
-                            }
-                            .category-col {
-                              width: 80px;
-                              text-align: center;
-                            }
                             .footer {
-                              margin-top: 20px;
+                              margin-top: 15px;
                               text-align: center;
-                              font-size: 10px;
+                              font-size: 8px;
                               color: #666;
                               border-top: 1px solid #ccc;
-                              padding-top: 10px;
+                              padding-top: 8px;
                             }
                             @media print {
                               body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
@@ -1058,12 +1050,52 @@ export default function Home() {
                 طباعة
               </Button>
               <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPrintReversed(!printReversed)}
+                onClick={() => {
+                  const printContent = document.getElementById('print-content');
+                  if (printContent) {
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                      printWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html dir="rtl" lang="ar">
+                        <head>
+                          <meta charset="UTF-8">
+                          <title>حالات المعمل - PDF</title>
+                          <style>
+                            @page { size: A4; margin: 8mm; }
+                            * { box-sizing: border-box; margin: 0; padding: 0; }
+                            body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 10px; line-height: 1.2; color: #000; direction: rtl; }
+                            .header { text-align: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #333; }
+                            .header h1 { font-size: 16px; margin-bottom: 3px; }
+                            .header p { font-size: 10px; color: #666; }
+                            div[style*="display: flex"] { display: flex !important; gap: 4mm; }
+                            table { width: 48%; border-collapse: collapse; font-size: 10px; }
+                            th, td { border: 1px solid #333; padding: 6px 4px; text-align: center; font-size: 10px; }
+                            th { background-color: #e5e5e5; font-weight: bold; }
+                            td { font-weight: bold; }
+                            tr:nth-child(even) { background-color: #fafafa; }
+                            .footer { margin-top: 15px; text-align: center; font-size: 8px; color: #666; border-top: 1px solid #ccc; padding-top: 8px; }
+                            @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
+                          </style>
+                        </head>
+                        <body>${printContent.innerHTML}</body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      printWindow.focus();
+                      // Show alert to save as PDF
+                      setTimeout(() => {
+                        alert('لحفظ كـ PDF: اختر "حفظ كـ PDF" أو "Save as PDF" في خيارات الطابعة');
+                        printWindow.print();
+                      }, 300);
+                    }
+                  }
+                }}
                 className="gap-2"
+                variant="outline"
               >
-                {printReversed ? '↑ تصاعدي' : '↓ تنازلي'}
+                <FileDown className="h-4 w-4" />
+                PDF
               </Button>
             </div>
             <DialogDescription>
@@ -1118,10 +1150,10 @@ export default function Home() {
                         <tbody>
                           {leftData.map((client, index) => (
                             <tr key={client.uuid} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                              <td className="border border-gray-800 p-1 text-center font-bold" style={{ fontSize: '10px' }}>{client.daily_id}</td>
-                              <td className="border border-gray-800 p-1 text-center font-bold" style={{ fontSize: '10px', maxWidth: '70px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</td>
-                              <td className="border border-gray-800 p-1 text-center font-bold" style={{ fontSize: '10px' }}>{client.notes || ''}</td>
-                              <td className="border border-gray-800 p-1"></td>
+                              <td className="border border-gray-800 py-2 px-1 text-center font-bold" style={{ fontSize: '10px' }}>{client.daily_id}</td>
+                              <td className="border border-gray-800 py-2 px-1 text-center font-bold" style={{ fontSize: '10px', maxWidth: '70px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</td>
+                              <td className="border border-gray-800 py-2 px-1 text-center font-bold" style={{ fontSize: '10px' }}>{client.notes || ''}</td>
+                              <td className="border border-gray-800 py-2 px-1"></td>
                             </tr>
                           ))}
                         </tbody>
@@ -1140,10 +1172,10 @@ export default function Home() {
                         <tbody>
                           {rightData.map((client, index) => (
                             <tr key={client.uuid} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                              <td className="border border-gray-800 p-1 text-center font-bold" style={{ fontSize: '10px' }}>{client.daily_id}</td>
-                              <td className="border border-gray-800 p-1 text-center font-bold" style={{ fontSize: '10px', maxWidth: '70px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</td>
-                              <td className="border border-gray-800 p-1 text-center font-bold" style={{ fontSize: '10px' }}>{client.notes || ''}</td>
-                              <td className="border border-gray-800 p-1"></td>
+                              <td className="border border-gray-800 py-2 px-1 text-center font-bold" style={{ fontSize: '10px' }}>{client.daily_id}</td>
+                              <td className="border border-gray-800 py-2 px-1 text-center font-bold" style={{ fontSize: '10px', maxWidth: '70px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</td>
+                              <td className="border border-gray-800 py-2 px-1 text-center font-bold" style={{ fontSize: '10px' }}>{client.notes || ''}</td>
+                              <td className="border border-gray-800 py-2 px-1"></td>
                             </tr>
                           ))}
                         </tbody>
