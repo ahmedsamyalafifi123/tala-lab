@@ -342,28 +342,71 @@ export default function Home() {
           
           // Check if manual ID is provided and different from current
           if (data.daily_id && data.daily_id !== editingClient.daily_id) {
-             console.log("Updating manual daily_id from", editingClient.daily_id, "to", data.daily_id);
-             
-             // Check for conflicts on SAME date
-             const { data: existingClients } = await supabase
-                .from("clients")
-                .select("uuid, daily_id")
-                .eq("client_date", editingClient.client_date)
-                .gte("daily_id", data.daily_id)
-                .neq("uuid", editingClient.uuid) // Exclude self
-                .order("daily_id", { ascending: false });
+             const oldId = editingClient.daily_id;
+             const newId = data.daily_id;
+             console.log("Updating manual daily_id from", oldId, "to", newId, "Date:", editingClient.client_date);
 
-             if (existingClients && existingClients.length > 0) {
-                console.log("Found edit conflicts, shifting:", existingClients.length);
-                for (const client of existingClients) {
-                  const { error: shiftError } = await supabase
-                    .from("clients")
-                    .update({ daily_id: client.daily_id + 1 })
-                    .eq("uuid", client.uuid);
-                  if (shiftError) console.error("Error shifting client:", client.uuid, shiftError);
+             // CRITICAL FIX: Temporarily move the current client out of the way (e.g. to -1)
+             const { error: vacateError } = await supabase
+               .from("clients")
+               .update({ daily_id: -1 * oldId }) 
+               .eq("uuid", editingClient.uuid);
+
+             if (vacateError) throw vacateError;
+
+             if (newId > oldId) {
+                // CASE 1: Moving DOWN (e.g. 57 -> 59)
+                // We need to shift items in range (57, 59] UP (decrement ID) to fill the gap left by 57
+                // 58 -> 57, 59 -> 58
+                // Then place our client at 59
+                
+                const { data: shiftCandidates } = await supabase
+                   .from("clients")
+                   .select("uuid, daily_id")
+                   .eq("client_date", editingClient.client_date)
+                   .gt("daily_id", oldId)
+                   .lte("daily_id", newId)
+                   .neq("uuid", editingClient.uuid)
+                   .order("daily_id", { ascending: true }); // Process 58, then 59 (safe to decrement)
+
+                if (shiftCandidates && shiftCandidates.length > 0) {
+                   console.log("Shifting items BACK due to move down:", shiftCandidates.length);
+                   for (const client of shiftCandidates) {
+                      const { error: shiftError } = await supabase
+                        .from("clients")
+                        .update({ daily_id: client.daily_id - 1 })
+                        .eq("uuid", client.uuid);
+                      if (shiftError) console.error("Error shifting client back:", client.uuid, shiftError);
+                   }
+                }
+             } else {
+                // CASE 2: Moving UP (e.g. 59 -> 57)
+                // We need to shift items in range [57, 59) DOWN (increment ID) to make room at 57
+                // 58 -> 59, 57 -> 58
+                // Then place our client at 57
+                
+                const { data: shiftCandidates } = await supabase
+                   .from("clients")
+                   .select("uuid, daily_id")
+                   .eq("client_date", editingClient.client_date)
+                   .gte("daily_id", newId)
+                   .lt("daily_id", oldId)
+                   .neq("uuid", editingClient.uuid)
+                   .order("daily_id", { ascending: false }); // Process 58, then 57 (safe to increment)
+
+                if (shiftCandidates && shiftCandidates.length > 0) {
+                   console.log("Shifting items FORWARD due to move up:", shiftCandidates.length);
+                   for (const client of shiftCandidates) {
+                      const { error: shiftError } = await supabase
+                        .from("clients")
+                        .update({ daily_id: client.daily_id + 1 })
+                        .eq("uuid", client.uuid);
+                      if (shiftError) console.error("Error shifting client forward:", client.uuid, shiftError);
+                   }
                 }
              }
-             finalDailyId = data.daily_id;
+             
+             finalDailyId = newId;
           }
 
           const updatePayload: any = {
