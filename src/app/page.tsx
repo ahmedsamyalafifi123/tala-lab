@@ -145,7 +145,7 @@ export default function Home() {
   const fetchClients = async () => {
     setIsLoading(true);
     try {
-      let allClients: Client[] = [];
+      let allClients: any[] = [];
       let from = 0;
       const batchSize = 1000;
       let hasMore = true;
@@ -181,7 +181,23 @@ export default function Home() {
         }
       }
 
-      setClients(allClients);
+      setClients(allClients.map((c: any) => {
+         // Parse category on load to ensure it's an array in state
+         let catArray: string[] | null = null;
+         if (c.category) {
+            try {
+               const parsed = JSON.parse(c.category);
+               if (Array.isArray(parsed)) catArray = parsed;
+               else catArray = [c.category];
+            } catch {
+               catArray = [c.category];
+            }
+         }
+         return {
+            ...c,
+            category: catArray 
+         } as Client;
+      }));
     } catch (error) {
       console.error("Error fetching clients:", error);
     } finally {
@@ -217,8 +233,29 @@ export default function Home() {
         }
         // Category filter
         if (categoryFilter !== "all") {
-          if (categoryFilter === "none" && client.category !== null) return false;
-          if (categoryFilter !== "none" && client.category !== categoryFilter) return false;
+          // New logic: Check if client.category (string[]) contains the filter
+          if (categoryFilter === "none") {
+             // 'none' means empty array or null
+             const cats = Array.isArray(client.category) ? client.category : [];
+             if (cats.length > 0) return false;
+          } else {
+             // Check if array includes the selected category
+             let cats: string[] = [];
+             if (Array.isArray(client.category)) {
+                cats = client.category;
+             } else if (typeof client.category === "string") {
+                // Handle legacy string data
+                 try {
+                     const parsed = JSON.parse(client.category);
+                     if (Array.isArray(parsed)) cats = parsed;
+                     else cats = [client.category];
+                 } catch {
+                     cats = [client.category];
+                 }
+             }
+             
+             if (!cats.includes(categoryFilter)) return false;
+          }
         }
         // Date filtering is done at database level for performance
         return true;
@@ -246,7 +283,7 @@ export default function Home() {
   const hasFilters = nameFilter || categoryFilter !== "all" || dateFrom || dateTo;
 
 
-  const handleSave = async (data: { name: string; notes: string; category: string | null; client_date: string; daily_id?: number | null }) => {
+  const handleSave = async (data: { name: string; notes: string; category: string[] | null; client_date: string; daily_id?: number | null }) => {
     setIsSaving(true);
     try {
       // Helper to handle insertion with manual ID
@@ -320,7 +357,8 @@ export default function Home() {
           const newClient = await insertWithManualId({
             name: data.name,
             notes: data.notes || null,
-            category: data.category,
+            // Serialize category array to JSON string
+            category: data.category && data.category.length > 0 ? JSON.stringify(data.category) : null,
             client_date: data.client_date,
             created_by: editingClient.created_by,
             updated_by: user?.id,
@@ -412,7 +450,7 @@ export default function Home() {
           const updatePayload: any = {
               name: data.name,
               notes: data.notes || null,
-              category: data.category,
+              category: data.category && data.category.length > 0 ? JSON.stringify(data.category) : null,
               updated_at: new Date().toISOString(),
               updated_by: user?.id,
           };
@@ -442,7 +480,7 @@ export default function Home() {
         const newClient = await insertWithManualId({
             name: data.name,
             notes: data.notes || null,
-            category: data.category,
+            category: data.category && data.category.length > 0 ? JSON.stringify(data.category) : null,
             client_date: data.client_date,
             created_by: user?.id,
             updated_by: user?.id,
@@ -610,7 +648,7 @@ export default function Home() {
         "الرقم اليومي": client.daily_id,
         "التاريخ": client.client_date,
         "الاسم": client.name,
-        "التصنيف": client.category || "-",
+        "التصنيف": Array.isArray(client.category) ? client.category.join(", ") : (client.category || "-"),
         "الملاحظات": client.notes || "-",
       }));
 
@@ -652,7 +690,14 @@ export default function Home() {
         const dateValue = row["date"] || row["client_date"] || row["التاريخ"] || row["تاريخ"];
         const name = row["name"] || row["الاسم"] || row["اسم"];
         const notes = row["notes"] || row["الملاحظات"] || row["ملاحظات"] || "";
-        const category = row["category"] || row["التصنيف"] || null;
+        const categoryRaw = row["category"] || row["التصنيف"] || null;
+        
+        let categoryVal: string[] | null = null;
+        if (categoryRaw) {
+           const catStr = String(categoryRaw).trim();
+           // Split by comma for multiple imports
+           categoryVal = catStr.split(/,|،/).map(s => s.trim()).filter(Boolean);
+        }
 
         // Parse date - handle different formats
         let clientDate: string;
@@ -675,7 +720,7 @@ export default function Home() {
         return {
           name: String(name || "").trim(),
           notes: notes ? String(notes).trim() : null,
-          category: category ? String(category).trim() : null,
+          category: categoryVal && categoryVal.length > 0 ? JSON.stringify(categoryVal) : null,
           client_date: clientDate,
           created_by: user?.id,
           updated_by: user?.id,
@@ -998,18 +1043,32 @@ export default function Home() {
                           <TableCell>
                             <div className="font-medium">{client.name}</div>
                             <div className="sm:hidden text-xs text-muted-foreground">
-                              {client.category && (
-                                <Badge variant="secondary" className="text-xs mt-1">
-                                  {client.category}
-                                </Badge>
+                              {client.category && Array.isArray(client.category) && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {client.category.map((cat, idx) => (
+                                    <Badge key={idx} variant="secondary" className="text-[10px] px-1 h-5">
+                                      {cat}
+                                    </Badge>
+                                  ))}
+                                </div>
                               )}
                             </div>
                           </TableCell>
                           <TableCell className="hidden sm:table-cell">
                             {client.category ? (
-                              <Badge variant="secondary">
-                                {client.category}
-                              </Badge>
+                              <div className="flex flex-wrap gap-1">
+                                {Array.isArray(client.category) ? (
+                                  client.category.map((cat, idx) => (
+                                    <Badge key={idx} variant="secondary">
+                                      {cat}
+                                    </Badge>
+                                  ))
+                                ) : (
+                                  <Badge variant="secondary">
+                                    {client.category}
+                                  </Badge>
+                                )}
+                              </div>
                             ) : (
                               <span className="text-muted-foreground">-</span>
                             )}

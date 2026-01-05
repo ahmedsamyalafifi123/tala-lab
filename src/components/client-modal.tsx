@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2, Check } from "lucide-react";
 import { Client, Category } from "@/types";
 import {
   Sheet,
@@ -43,7 +43,7 @@ import { cn } from "@/lib/utils";
 interface ClientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { name: string; notes: string; category: string | null; client_date: string; daily_id?: number | null }) => Promise<void>;
+  onSave: (data: { name: string; notes: string; category: string[] | null; client_date: string; daily_id?: number | null }) => Promise<void>;
   client?: Client | null;
   categories: Category[];
   isLoading?: boolean;
@@ -59,10 +59,11 @@ export function ClientModal({
 }: ClientModalProps) {
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
-  const [category, setCategory] = useState<string | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [date, setDate] = useState<Date>(new Date());
   const [isManualId, setIsManualId] = useState(false);
   const [manualId, setManualId] = useState<string>("");
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
 
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
@@ -97,14 +98,29 @@ export function ClientModal({
     if (client) {
       setName(client.name);
       setNotes(client.notes || "");
-      setCategory(client.category);
+      // Handle legacy single string or new array
+      if (Array.isArray(client.category)) {
+        setSelectedCategories(client.category);
+      } else if (typeof client.category === "string") {
+        // Try parsing JSON if it looks like array, otherwise treat as single item
+        try {
+           const parsed = JSON.parse(client.category);
+           if (Array.isArray(parsed)) setSelectedCategories(parsed);
+           else setSelectedCategories([client.category]);
+        } catch {
+           setSelectedCategories([client.category]);
+        }
+      } else {
+        setSelectedCategories([]);
+      }
+      
       setDate(new Date(client.client_date));
       setIsManualId(false);
       setManualId("");
     } else {
       setName("");
       setNotes("");
-      setCategory(null);
+      setSelectedCategories([]);
       setDate(new Date());
       setIsManualId(false);
       setManualId("");
@@ -118,7 +134,7 @@ export function ClientModal({
     await onSave({
       name: name.trim(),
       notes: notes.trim(),
-      category: category === "none" ? null : category,
+      category: selectedCategories.length > 0 ? selectedCategories : null,
       client_date: format(date, "yyyy-MM-dd"),
       daily_id: isManualId && manualId ? parseInt(manualId) : null,
     });
@@ -249,23 +265,64 @@ export function ClientModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="category" className="text-base">
+            <Label className="text-base">
               التصنيف
             </Label>
-            <Select
-              value={category || "none"}
-              onValueChange={(value) => setCategory(value === "none" ? null : value)}
-            >
-              <SelectTrigger className="h-12 text-lg">
-                <SelectValue placeholder="اختر التصنيف (اختياري)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">بدون تصنيف</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={isCategoryOpen} onOpenChange={setIsCategoryOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={isCategoryOpen}
+                  className="w-full h-12 justify-between text-lg font-normal"
+                >
+                  <span className="truncate">
+                    {selectedCategories.length > 0
+                      ? selectedCategories.join(", ")
+                      : "اختر التصنيف (اختياري)"}
+                  </span>
+                  <div className="flex items-center gap-2 opacity-50">
+                    <span className="text-xs bg-muted px-1.5 py-0.5 rounded-full">
+                      {selectedCategories.length}
+                    </span>
+                    <CalendarIcon className="h-4 w-4 rotate-90" />
+                  </div>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-2" align="start">
+                 <div className="grid gap-2">
+                    {categories.map((cat) => {
+                       const isSelected = selectedCategories.includes(cat.name);
+                       return (
+                          <div
+                             key={cat.id}
+                             className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors"
+                             onClick={() => {
+                                if (isSelected) {
+                                   setSelectedCategories(prev => prev.filter(c => c !== cat.name));
+                                } else {
+                                   setSelectedCategories(prev => [...prev, cat.name]);
+                                }
+                             }}
+                          >
+                             <div className={cn(
+                                "h-4 w-4 rounded-sm border border-primary flex items-center justify-center",
+                                isSelected ? "bg-primary text-primary-foreground" : "opacity-50"
+                             )}>
+                                {isSelected && <Check className="h-3 w-3" />}
+                             </div>
+                             <span className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                {cat.name}
+                             </span>
+                          </div>
+                       );
+                    })}
+                    {categories.length === 0 && (
+                       <p className="text-sm text-muted-foreground p-2 text-center">لا يوجد تصنيفات</p>
+                    )}
+                 </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-2">

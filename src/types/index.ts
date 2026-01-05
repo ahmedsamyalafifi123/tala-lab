@@ -4,7 +4,7 @@ export interface Client {
   client_date: string;
   name: string;
   notes: string | null;
-  category: string | null;
+  category: string[] | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;
