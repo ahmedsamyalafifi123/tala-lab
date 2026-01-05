@@ -88,9 +88,19 @@ export function ClientDetails({
                   </div>
                 </div>
                 {client.category && (
-                  <Badge variant={client.category === "صحة مدرسية" ? "default" : "secondary"}>
-                    {client.category}
-                  </Badge>
+                   <div className="flex gap-1">
+                      {Array.isArray(client.category) ? (
+                         client.category.map((cat, idx) => (
+                            <Badge key={idx} variant={cat === "صحة مدرسية" ? "default" : "secondary"}>
+                               {cat === "صحة مدرسية" ? "صحة" : (cat === "CBC" ? "CBC" : cat)}
+                            </Badge>
+                         ))
+                      ) : (
+                         <Badge variant={client.category === "صحة مدرسية" ? "default" : "secondary"}>
+                            {client.category === "صحة مدرسية" ? "صحة" : "CBC"}
+                         </Badge>
+                      )}
+                   </div>
                 )}
               </div>
             </SheetHeader>
