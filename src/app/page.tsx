@@ -686,6 +686,7 @@ export default function Home() {
   }
 
   return (
+    <>
     <PullToRefresh onRefresh={fetchClients}>
     <main className="min-h-screen pb-24">
       {/* Header */}
@@ -1013,6 +1014,8 @@ export default function Home() {
           </CardContent>
         </Card>
       </div>
+      </main>
+    </PullToRefresh>
 
       {/* Floating Action Button */}
       <div className="fixed bottom-6 inset-x-0 flex justify-center z-50">
@@ -1467,7 +1470,6 @@ export default function Home() {
           fetchClients();
         }}
       />
-    </main>
-    </PullToRefresh>
+    </>
   );
 }

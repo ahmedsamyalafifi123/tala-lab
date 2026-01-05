@@ -127,7 +127,7 @@ export function ClientModal({
     if (!client) {
       setName("");
       setNotes("");
-      setCategory(null);
+      // Keep category as is
       setIsManualId(false);
       setManualId("");
       // We keep the date as is, assuming the user might want to add multiple entries for the same date
