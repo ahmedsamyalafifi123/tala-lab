@@ -35,34 +35,38 @@ export default function LoginPage() {
 
       // Check user role/lab and redirect accordingly
       
-      // 1. Check if manager
-      const { data: manager } = await supabase
+      // 1. Check if manager (check if ANY row sets is_manager=true)
+      const { data: managers } = await supabase
         .from("lab_users")
         .select("is_manager")
         .eq("user_id", authData.user.id)
         .eq("is_manager", true)
-        .eq("status", "active")
-        .single();
+        .eq("status", "active");
 
-      if (manager) {
+      if (managers && managers.length > 0) {
         router.push("/manager/dashboard");
         return;
       }
 
-      // 2. If not manager, get their lab
-      const { data: labUser } = await supabase
+      // 2. If not manager, get their labs
+      const { data: labUsers } = await supabase
         .from("lab_users")
         .select("lab_id, labs(slug)")
         .eq("user_id", authData.user.id)
-        .eq("status", "active")
-        .single();
+        .eq("status", "active");
 
-      if (labUser && labUser.labs) {
+      if (labUsers && labUsers.length > 0) {
+        // Pick the first one
+        const firstLab = labUsers[0];
         // @ts-ignore
-        router.push(`/${labUser.labs.slug}`);
-      } else {
-        throw new Error("لا يوجد معمل نشط مرتبط بهذا الحساب");
-      }
+        if (firstLab.labs && firstLab.labs.slug) {
+            // @ts-ignore
+            router.push(`/${firstLab.labs.slug}`);
+            return;
+        }
+      } 
+      
+      throw new Error("لا يوجد معمل نشط مرتبط بهذا الحساب");
 
     } catch (err) {
       console.error(err);

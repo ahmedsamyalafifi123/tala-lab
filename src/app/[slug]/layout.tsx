@@ -1,5 +1,5 @@
 import { LabProvider } from '@/contexts/LabContext'
-import { createClient } from '@/lib/supabase'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 
 export default async function LabLayout({
@@ -10,7 +10,7 @@ export default async function LabLayout({
   params: Promise<{ slug: string }>
 }) {
   const resolvedParams = await params;
-  const supabase = createClient()
+  const supabase = await createServerSupabaseClient()
 
   // Get lab details
   const { data: lab } = await supabase
@@ -31,7 +31,7 @@ export default async function LabLayout({
   }
 
   return (
-    <LabProvider>
+    <LabProvider initialLabId={lab.uuid} initialLabSlug={lab.slug}>
       <div data-lab-id={lab.uuid} data-lab-slug={lab.slug} className="min-h-screen bg-background">
         {children}
       </div>

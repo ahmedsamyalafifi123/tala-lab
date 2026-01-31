@@ -51,7 +51,8 @@ export async function getUserLabContext(userId: string) {
     )
     .eq("user_id", userId)
     .eq("status", "active")
-    .single();
+    .limit(1)
+    .maybeSingle();
 
   if (error || !data) {
     return null;
@@ -97,7 +98,7 @@ export async function isManagerUser(userId: string): Promise<boolean> {
     .eq("user_id", userId)
     .eq("is_manager", true)
     .eq("status", "active")
-    .single();
+    .limit(1);
 
-  return !!data;
+  return !!(data && data.length > 0);
 }

@@ -51,7 +51,9 @@ export async function middleware(req: NextRequest) {
       .eq("user_id", user.id)
       .eq("is_manager", true)
       .eq("status", "active")
-      .single();
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
 
     if (!labUser) {
       return NextResponse.redirect(
@@ -92,12 +94,19 @@ export async function middleware(req: NextRequest) {
       return response;
     }
 
+    console.log("Middleware: Checking lab slug:", labSlug);
     // For non-login pages in the lab portal
     const { data: lab, error } = await supabase
       .from("labs")
       .select("uuid, slug, status")
       .eq("slug", labSlug)
-      .single();
+      .limit(1)
+      .maybeSingle(); // Use maybeSingle to prevent PGRST116 error noise
+
+    console.log(`Middleware: Lab result for ${labSlug}:`, lab ? "Found" : "Not Found", error ? error.message : "No Error");
+    
+    if (lab) console.log("Middleware: Lab status:", lab.status);
+    if (user) console.log("Middleware: User ID:", user.id);
 
     // If it's not a valid lab, we might just let it 404 naturally if we aren't strict,
     // but the plan says "return to login?error=invalid_lab"
@@ -122,7 +131,9 @@ export async function middleware(req: NextRequest) {
       .eq("user_id", user.id)
       .eq("lab_id", lab.uuid)
       .eq("status", "active")
-      .single();
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
 
     if (!labUser) {
       return NextResponse.redirect(
