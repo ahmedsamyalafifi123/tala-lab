@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
@@ -11,27 +12,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState("");
 
   const supabase = createClient();
-
-  // Check if user is already logged in
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        window.location.href = "/";
-      } else {
-        setIsCheckingAuth(false);
-      }
-    };
-    checkAuth();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,39 +26,50 @@ export default function LoginPage() {
     setError("");
 
     try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-        if (error) throw error;
-        setError("تم إنشاء الحساب بنجاح ✨!");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-        window.location.href = "/";
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) throw authError;
+
+      // Check user role/lab and redirect accordingly
+      
+      // 1. Check if manager
+      const { data: manager } = await supabase
+        .from("lab_users")
+        .select("is_manager")
+        .eq("user_id", authData.user.id)
+        .eq("is_manager", true)
+        .eq("status", "active")
+        .single();
+
+      if (manager) {
+        router.push("/manager/dashboard");
+        return;
       }
+
+      // 2. If not manager, get their lab
+      const { data: labUser } = await supabase
+        .from("lab_users")
+        .select("lab_id, labs(slug)")
+        .eq("user_id", authData.user.id)
+        .eq("status", "active")
+        .single();
+
+      if (labUser && labUser.labs) {
+        // @ts-ignore
+        router.push(`/${labUser.labs.slug}`);
+      } else {
+        throw new Error("لا يوجد معمل نشط مرتبط بهذا الحساب");
+      }
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : "حدث خطأ");
-    } finally {
+      console.error(err);
+      setError("البريد الإلكتروني أو كلمة المرور غير صحيحة");
       setIsLoading(false);
     }
   };
-
-  // Show loading while checking auth
-  if (isCheckingAuth) {
-    return (
-      <main className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary animate-pulse" />
-          <p className="text-muted-foreground">جاري التحميل...</p>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
@@ -82,18 +80,23 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto">
+             {/* Use a placeholder request if image is missing, or keep current. current is /logo.png */}
             <Image
               src="/logo.png"
               alt="Logo"
               width={80}
               height={80}
               className="rounded-2xl mx-auto"
+              onError={(e) => {
+                // Fallback if logo doesn't exist
+                e.currentTarget.style.display = 'none';
+              }}
             />
           </div>
           <div>
-            <CardTitle className="text-2xl">حالات معمل عيادة تلا</CardTitle>
+            <CardTitle className="text-2xl">منصة إدارة المعامل</CardTitle>
             <CardDescription className="mt-2">
-              {isSignUp ? "إنشاء حساب جديد" : "تسجيل الدخول"}
+              تسجيل الدخول للمدراء
             </CardDescription>
           </div>
         </CardHeader>
@@ -106,7 +109,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="example@email.com"
+                placeholder="admin@example.com"
                 className="h-12"
                 required
                 dir="ltr"
@@ -128,7 +131,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className={`p-3 rounded-xl text-sm ${error.includes("تم إنشاء") ? "bg-green-500/20 text-green-600 dark:text-green-400" : "bg-destructive/20 text-destructive"}`}>
+              <div className="p-3 rounded-xl text-sm bg-destructive/20 text-destructive">
                 {error}
               </div>
             )}
@@ -143,25 +146,10 @@ export default function LoginPage() {
                   <Loader2 className="h-5 w-5 animate-spin" />
                   جاري التحميل...
                 </span>
-              ) : isSignUp ? (
-                "إنشاء حساب"
               ) : (
                 "تسجيل الدخول"
               )}
             </Button>
-
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSignUp(!isSignUp);
-                  setError("");
-                }}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                {isSignUp ? "لديك حساب؟ تسجيل الدخول" : "ليس لديك حساب؟ إنشاء حساب جديد"}
-              </button>
-            </div>
           </form>
         </CardContent>
       </Card>

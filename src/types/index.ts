@@ -1,37 +1,57 @@
-export interface Client {
-  uuid: string;
-  daily_id: number;
-  client_date: string;
-  name: string;
-  notes: string | null;
-  category: string[] | null;
-  created_at: string;
-  updated_at: string;
-  created_by: string | null;
-  updated_by: string | null;
-}
-
-export interface Category {
-  id: string;
-  name: string;
-  color: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface AuditLog {
-  id: string;
-  table_name: string;
-  record_id: string;
-  action: 'INSERT' | 'UPDATE' | 'DELETE';
-  old_data: Record<string, unknown> | null;
-  new_data: Record<string, unknown> | null;
-  user_id: string | null;
-  user_email: string | null;
-  created_at: string;
-}
+import { UserRole } from "./roles";
 
 export interface User {
   id: string;
   email: string;
+  role?: UserRole;
+  labId?: string;
+  labSlug?: string;
+  isManager?: boolean;
+}
+
+export interface Lab {
+  uuid: string;
+  slug: string;
+  name: string;
+  name_en?: string;
+  logo_url?: string;
+  status: "active" | "suspended" | "inactive";
+  created_at: string;
+  settings?: Record<string, any>;
+}
+
+export interface LabUser {
+  uuid: string;
+  lab_id: string;
+  user_id: string;
+  role: UserRole;
+  is_manager: boolean;
+  status: string;
+  lab?: Lab;
+}
+
+export interface Client {
+  uuid: string;
+  lab_id: string;
+  patient_name: string;
+  patient_phone?: string;
+  patient_age?: number;
+  patient_gender?: "male" | "female";
+  daily_id: number;
+  daily_date: Date;
+  results: Record<string, any>;
+  categories: string[];
+  created_at: string;
+  updated_at: string;
+  notes?: string; // Kept for compatibility if needed, though not in strict plan schema but was in old one
+}
+
+export interface Category {
+  uuid: string;
+  lab_id: string;
+  name: string;
+  name_en?: string;
+  tests: any[];
+  display_order: number;
+  is_active: boolean;
 }

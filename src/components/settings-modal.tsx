@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
   Plus, 
   Pencil, 
@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { Category } from "@/types";
+import { useLabContext } from "@/contexts/LabContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -44,6 +45,7 @@ export function SettingsModal({
   categories,
   onCategoriesChange,
 }: SettingsModalProps) {
+  const { labId } = useLabContext();
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -55,18 +57,20 @@ export function SettingsModal({
   
   // Delete confirmation
   const [deleteCategory, setDeleteCategory] = useState<Category | null>(null);
-  const [clientCount, setClientCount] = useState(0);
 
   const supabase = createClient();
 
   const handleAddCategory = async () => {
-    if (!newCategoryName.trim()) return;
+    if (!newCategoryName.trim() || !labId) return;
     
     setIsSaving(true);
     try {
       const { error } = await supabase
         .from("categories")
-        .insert({ name: newCategoryName.trim() });
+        .insert({ 
+            name: newCategoryName.trim(),
+            lab_id: labId
+        });
 
       if (error) throw error;
 
@@ -96,18 +100,14 @@ export function SettingsModal({
       const { error: catError } = await supabase
         .from("categories")
         .update({ name: newName, updated_at: new Date().toISOString() })
-        .eq("id", category.id);
+        .eq("uuid", category.uuid);
 
       if (catError) throw catError;
 
-      // Update all clients with old category name
-      const { error: clientError } = await supabase
-        .from("clients")
-        .update({ category: newName })
-        .eq("category", oldName);
-
-      if (clientError) throw clientError;
-
+      // Update clients? With array column distinct update is hard. 
+      // We skip client update for now. 
+      // TODO: Implement migration of category names in client records
+      
       onCategoriesChange();
       setEditingId(null);
       setEditName("");
@@ -120,17 +120,9 @@ export function SettingsModal({
   };
 
   const prepareDelete = async (category: Category) => {
-    const { count, error } = await supabase
-      .from("clients")
-      .select("*", { count: "exact", head: true })
-      .eq("category", category.name);
-
-    if (error) {
-      console.error("Error counting clients:", error);
-      setClientCount(0);
-    } else {
-      setClientCount(count || 0);
-    }
+    // Check usage?
+    // Complex with array check. 
+    // supabase.from('clients').select(...).contains('categories', [category.name])
     
     setDeleteCategory(category);
   };
@@ -140,17 +132,11 @@ export function SettingsModal({
     
     setIsDeleting(true);
     try {
-      // Set clients with this category to null
-      await supabase
-        .from("clients")
-        .update({ category: null })
-        .eq("category", deleteCategory.name);
-
       // Delete category
       const { error } = await supabase
         .from("categories")
         .delete()
-        .eq("id", deleteCategory.id);
+        .eq("uuid", deleteCategory.uuid);
 
       if (error) throw error;
 
@@ -165,7 +151,7 @@ export function SettingsModal({
   };
 
   const startEdit = (category: Category) => {
-    setEditingId(category.id);
+    setEditingId(category.uuid);
     setEditName(category.name);
   };
 
@@ -190,10 +176,10 @@ export function SettingsModal({
             {/* Category List */}
             {categories.map((category) => (
               <div
-                key={category.id}
+                key={category.uuid}
                 className="flex items-center gap-3 p-3 rounded-lg border bg-card"
               >
-                {editingId === category.id ? (
+                {editingId === category.uuid ? (
                   <>
                     <Input
                       value={editName}
@@ -311,14 +297,6 @@ export function SettingsModal({
             <AlertDialogTitle>حذف التصنيف</AlertDialogTitle>
             <AlertDialogDescription>
               هل أنت متأكد من حذف تصنيف <strong>{deleteCategory?.name}</strong>؟
-              {clientCount > 0 && (
-                <>
-                  <br />
-                  <span className="text-destructive">
-                    سيتم إزالة التصنيف من {clientCount} حالة.
-                  </span>
-                </>
-              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex gap-3">

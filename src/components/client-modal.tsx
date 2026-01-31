@@ -43,7 +43,7 @@ import { cn } from "@/lib/utils";
 interface ClientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { name: string; notes: string; category: string[] | null; client_date: string; daily_id?: number | null }) => Promise<void>;
+  onSave: (data: { patient_name: string; notes: string; category: string[] | null; client_date: string; daily_id?: number | null }) => Promise<void>;
   client?: Client | null;
   categories: Category[];
   isLoading?: boolean;
@@ -96,25 +96,19 @@ export function ClientModal({
 
   useEffect(() => {
     if (client) {
-      setName(client.name);
-      setNotes(client.notes || "");
-      // Handle legacy single string or new array
-      if (Array.isArray(client.category)) {
-        setSelectedCategories(client.category);
-      } else if (typeof client.category === "string") {
-        // Try parsing JSON if it looks like array, otherwise treat as single item
-        try {
-           const parsed = JSON.parse(client.category);
-           if (Array.isArray(parsed)) setSelectedCategories(parsed);
-           else setSelectedCategories([client.category]);
-        } catch {
-           setSelectedCategories([client.category]);
-        }
+      setName(client.patient_name);
+      setNotes(client.notes || ""); // Optional notes not in interface but in page logic? 
+      // Wait, interface I created HAS notes.
+      // "notes?: string; // Kept for compatibility..."
+      
+      // Handle categories
+      if (Array.isArray(client.categories)) {
+        setSelectedCategories(client.categories);
       } else {
         setSelectedCategories([]);
       }
       
-      setDate(new Date(client.client_date));
+      setDate(new Date(client.daily_date));
       setIsManualId(false);
       setManualId("");
     } else {
@@ -132,22 +126,19 @@ export function ClientModal({
     if (!name.trim()) return;
 
     await onSave({
-      name: name.trim(),
+      patient_name: name.trim(),
       notes: notes.trim(),
-      category: selectedCategories.length > 0 ? selectedCategories : null,
+      category: selectedCategories.length > 0 ? selectedCategories : [], // return string[]
       client_date: format(date, "yyyy-MM-dd"),
       daily_id: isManualId && manualId ? parseInt(manualId) : null,
     });
 
-    // If we are adding a new client (not editing), reset the form to allow adding another
+    // If we are adding a new client (not editing), reset the form
     if (!client) {
       setName("");
       setNotes("");
-      // Keep category as is
       setIsManualId(false);
       setManualId("");
-      // We keep the date as is, assuming the user might want to add multiple entries for the same date
-      // Reset focus to name input
       const nameInput = document.getElementById("name");
       if (nameInput) {
         nameInput.focus();
@@ -295,7 +286,7 @@ export function ClientModal({
                        const isSelected = selectedCategories.includes(cat.name);
                        return (
                           <div
-                             key={cat.id}
+                             key={cat.uuid}
                              className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors"
                              onClick={() => {
                                 if (isSelected) {
