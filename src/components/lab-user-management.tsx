@@ -31,6 +31,7 @@ export function LabUserManagement({ labId }: LabUserManagementProps) {
 
   // User creation form state
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [role, setRole] = useState<'lab_admin' | 'lab_staff' | 'lab_viewer'>('lab_staff')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -40,16 +41,21 @@ export function LabUserManagement({ labId }: LabUserManagementProps) {
 
   const fetchData = async () => {
     if (!labId) return;
-    const supabase = createClient()
-    const { data: usersData, error } = await supabase
-      .from('lab_users')
-      .select('*, auth:user_id(email)') 
-      .eq('lab_id', labId)
-    
-    if (error) console.error(error)
-    
-    setUsers(usersData as any || [])
-    setIsLoading(false)
+    try {
+        const res = await fetch(`/api/lab/users?labId=${labId}`);
+        const result = await res.json();
+        
+        if (!res.ok) {
+            console.error(result.error);
+            return;
+        }
+        
+        setUsers(result.users || []);
+    } catch (e) {
+        console.error("Failed to fetch users", e);
+    } finally {
+        setIsLoading(false)
+    }
   }
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -57,20 +63,41 @@ export function LabUserManagement({ labId }: LabUserManagementProps) {
     if (!labId) return;
 
     setIsSubmitting(true)
+    const trimmedEmail = email.trim();
 
     try {
       const supabase = createClient();
       
       const { data, error } = await supabase.rpc('add_lab_user_by_email', {
           p_lab_id: labId,
-          p_email: email,
+          p_email: trimmedEmail,
           p_role: role
       });
 
-      if (error) throw error;
+      if (error) {
+        // If user not found, try to create them via API
+        if (error.message && (error.message.includes('not found') || error.message.includes('User with email'))) {
+            if (!password) {
+                const pass = prompt('المستخدم غير موجود. الرجاء إدخال كلمة المرور لإنشاء حساب جديد:', '');
+                if (!pass) {
+                    throw new Error('كلمة المرور مطلوبة لإنشاء مستخدم جديد');
+                }
+                setPassword(pass);
+                // Recursive call? No, better to continue here with the captured pass
+                // But prompt is blocking, so we can use 'pass' variable.
+                await createUserViaApi(trimmedEmail, pass);
+            } else {
+                await createUserViaApi(trimmedEmail, password);
+            }
+        } else {
+            throw error;
+        }
+      } else {
+          alert('تم إضافة المستخدم بنجاح')
+      }
 
-      alert('تم إضافة المستخدم بنجاح')
       setEmail('')
+      setPassword('')
       fetchData()
     } catch (error: any) {
       console.error('Error creating user:', error)
@@ -78,6 +105,22 @@ export function LabUserManagement({ labId }: LabUserManagementProps) {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const createUserViaApi = async (email: string, pass: string) => {
+        const res = await fetch('/api/lab/users/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password: pass, role, labId })
+        });
+
+        const apiData = await res.json();
+
+        if (!res.ok) {
+            throw new Error(apiData.error || 'Failed to create user');
+        }
+
+        alert('تم إنشاء المستخدم وإضافته بنجاح');
   }
 
   const handleRemoveUser = async (userId: string) => {
@@ -121,6 +164,13 @@ export function LabUserManagement({ labId }: LabUserManagementProps) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="البريد الإلكتروني"
+                    dir="ltr"
+                />
+                <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="كلمة المرور (اختياري، للمستخدمين الجدد)"
                     dir="ltr"
                 />
                 <Select value={role} onValueChange={(val: any) => setRole(val)}>
