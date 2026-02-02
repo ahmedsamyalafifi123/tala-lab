@@ -51,7 +51,6 @@ export async function middleware(req: NextRequest) {
       .eq("user_id", user.id)
       .eq("is_manager", true)
       .eq("status", "active")
-      .eq("status", "active")
       .limit(1)
       .maybeSingle();
 
@@ -101,19 +100,14 @@ export async function middleware(req: NextRequest) {
       .select("uuid, slug, status")
       .eq("slug", labSlug)
       .limit(1)
-      .maybeSingle(); // Use maybeSingle to prevent PGRST116 error noise
+      .maybeSingle();
 
     console.log(`Middleware: Lab result for ${labSlug}:`, lab ? "Found" : "Not Found", error ? error.message : "No Error");
     
     if (lab) console.log("Middleware: Lab status:", lab.status);
     if (user) console.log("Middleware: User ID:", user.id);
 
-    // If it's not a valid lab, we might just let it 404 naturally if we aren't strict,
-    // but the plan says "return to login?error=invalid_lab"
-    if (error || !lab || lab.status !== "active") {
-        // Only redirect if it really looks like a lab path we want to protect
-        // If it's just a random 404 url, maybe we shouldn't redirect to login? 
-        // But adhering to the plan:
+    if (error || !lab) {
         return NextResponse.redirect(
             new URL("/login?error=invalid_lab", req.url),
         );
@@ -121,16 +115,19 @@ export async function middleware(req: NextRequest) {
 
     // Check authentication
     if (!user) {
+      // If lab is not active, prevent visiting login page (looks like it doesn't exist)
+      if (lab.status !== "active") {
+         return NextResponse.redirect(new URL("/login?error=invalid_lab", req.url));
+      }
       return NextResponse.redirect(new URL(`/${labSlug}/login`, req.url));
     }
 
     // Check if user has access to this lab (via RLS, but also check here)
     const { data: labUser } = await supabase
       .from("lab_users")
-      .select("role, status")
+      .select("role, status, is_manager")
       .eq("user_id", user.id)
       .eq("lab_id", lab.uuid)
-      .eq("status", "active")
       .eq("status", "active")
       .limit(1)
       .maybeSingle();
@@ -139,6 +136,17 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(
         new URL("/login?error=unauthorized", req.url),
       );
+    }
+
+    // If lab is suspended, ONLY allow managers
+    if (lab.status !== "active") {
+        if (!labUser.is_manager) {
+            return NextResponse.redirect(
+                new URL("/login?error=invalid_lab", req.url),
+            );
+        }
+        // If manager, allow access (proceed)
+        console.log("Middleware: Allowing manager access to suspended lab");
     }
 
     // Store lab context in headers

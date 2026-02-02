@@ -7,13 +7,17 @@ import {
   Trash2, 
   Loader2,
   Save,
-  X
+  X,
+  Users,
+  Tags
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { Category } from "@/types";
 import { useLabContext } from "@/contexts/LabContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { LabUserManagement } from "@/components/lab-user-management";
 import {
   Sheet,
   SheetContent,
@@ -46,6 +50,7 @@ export function SettingsModal({
   onCategoriesChange,
 }: SettingsModalProps) {
   const { labId } = useLabContext();
+  const [activeTab, setActiveTab] = useState<'categories' | 'users'>('categories');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -165,37 +170,132 @@ export function SettingsModal({
       <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent 
           side="bottom" 
-          className="h-[70vh] sm:h-[60vh] rounded-t-3xl sm:max-w-lg sm:mx-auto sm:rounded-t-2xl"
+          className="h-[80vh] sm:h-[70vh] rounded-t-3xl sm:max-w-lg sm:mx-auto sm:rounded-t-2xl flex flex-col p-0"
         >
-          <SheetHeader className="border-b pb-4">
-            <SheetTitle className="text-xl">الإعدادات</SheetTitle>
-            <SheetDescription>إدارة تصنيفات الحالات</SheetDescription>
+          <SheetHeader className="p-4 border-b">
+            <SheetTitle className="text-xl">إعدادات المعمل</SheetTitle>
+            <SheetDescription className="hidden">إعدادات</SheetDescription>
           </SheetHeader>
 
+          {/* Custom Tabs */}
+          <div className="flex border-b px-4 mt-2">
+            <button
+              onClick={() => setActiveTab('categories')}
+              className={cn(
+                "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px",
+                activeTab === 'categories' 
+                  ? "border-primary text-primary" 
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Tags className="h-4 w-4" />
+              التصنيفات
+            </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              className={cn(
+                "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px",
+                activeTab === 'users' 
+                  ? "border-primary text-primary" 
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Users className="h-4 w-4" />
+              المستخدمين
+            </button>
+          </div>
+
           <div className="flex-1 overflow-auto p-4 space-y-3">
-            {/* Category List */}
-            {categories.map((category) => (
-              <div
-                key={category.uuid}
-                className="flex items-center gap-3 p-3 rounded-lg border bg-card"
-              >
-                {editingId === category.uuid ? (
-                  <>
+            {activeTab === 'categories' ? (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                   <h3 className="text-sm font-semibold text-muted-foreground">قائمة التصنيفات</h3>
+                </div>
+                
+                {/* Category List */}
+                {categories.map((category) => (
+                  <div
+                    key={category.uuid}
+                    className="flex items-center gap-3 p-3 rounded-lg border bg-card"
+                  >
+                    {editingId === category.uuid ? (
+                      <>
+                        <Input
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="flex-1"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleUpdateCategory(category);
+                            if (e.key === "Escape") cancelEdit();
+                          }}
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleUpdateCategory(category)}
+                          disabled={isSaving}
+                        >
+                          {isSaving ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={cancelEdit}
+                          disabled={isSaving}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="flex-1 font-medium">{category.name}</span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => startEdit(category)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => prepareDelete(category)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                ))}
+
+                {/* Add New Category */}
+                {isAddingNew ? (
+                  <div className="flex items-center gap-3 p-3 rounded-lg border border-dashed bg-muted/50">
                     <Input
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="اسم التصنيف الجديد"
                       className="flex-1"
                       autoFocus
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") handleUpdateCategory(category);
-                        if (e.key === "Escape") cancelEdit();
+                        if (e.key === "Enter") handleAddCategory();
+                        if (e.key === "Escape") {
+                          setIsAddingNew(false);
+                          setNewCategoryName("");
+                        }
                       }}
                     />
                     <Button
                       size="icon"
                       variant="ghost"
-                      onClick={() => handleUpdateCategory(category)}
-                      disabled={isSaving}
+                      onClick={handleAddCategory}
+                      disabled={isSaving || !newCategoryName.trim()}
                     >
                       {isSaving ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -206,85 +306,40 @@ export function SettingsModal({
                     <Button
                       size="icon"
                       variant="ghost"
-                      onClick={cancelEdit}
+                      onClick={() => {
+                        setIsAddingNew(false);
+                        setNewCategoryName("");
+                      }}
                       disabled={isSaving}
                     >
                       <X className="h-4 w-4" />
                     </Button>
-                  </>
+                  </div>
                 ) : (
-                  <>
-                    <span className="flex-1 font-medium">{category.name}</span>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => startEdit(category)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => prepareDelete(category)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </>
+                  <Button
+                    variant="outline"
+                    className="w-full border-dashed"
+                    onClick={() => setIsAddingNew(true)}
+                  >
+                    <Plus className="h-4 w-4 me-2" />
+                    إضافة تصنيف جديد
+                  </Button>
                 )}
-              </div>
-            ))}
-
-            {/* Add New Category */}
-            {isAddingNew ? (
-              <div className="flex items-center gap-3 p-3 rounded-lg border border-dashed bg-muted/50">
-                <Input
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  placeholder="اسم التصنيف الجديد"
-                  className="flex-1"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleAddCategory();
-                    if (e.key === "Escape") {
-                      setIsAddingNew(false);
-                      setNewCategoryName("");
-                    }
-                  }}
-                />
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={handleAddCategory}
-                  disabled={isSaving || !newCategoryName.trim()}
-                >
-                  {isSaving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => {
-                    setIsAddingNew(false);
-                    setNewCategoryName("");
-                  }}
-                  disabled={isSaving}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+              </>
             ) : (
-              <Button
-                variant="outline"
-                className="w-full border-dashed"
-                onClick={() => setIsAddingNew(true)}
-              >
-                <Plus className="h-4 w-4 me-2" />
-                إضافة تصنيف جديد
-              </Button>
+              // Users Tab
+              <>
+                 <div className="flex items-center justify-between mb-2">
+                   <h3 className="text-sm font-semibold text-muted-foreground">إدارة المستخدمين</h3>
+                 </div>
+                 {labId ? (
+                   <LabUserManagement labId={labId} />
+                 ) : (
+                   <div className="text-center py-8 text-muted-foreground">
+                     لا يوجد معمل محدد
+                   </div>
+                 )}
+              </>
             )}
           </div>
         </SheetContent>

@@ -7,12 +7,12 @@ import { Lab } from '@/types'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, ArrowRight } from "lucide-react"
+import { LabUserManagement } from "@/components/lab-user-management"
 
 export default function LabDetailPage() {
   const params = useParams()
   const router = useRouter()
   const [lab, setLab] = useState<Lab | null>(null)
-  const [users, setUsers] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -30,14 +30,6 @@ export default function LabDetailPage() {
       .single()
 
     setLab(labData)
-
-    // Fetch lab users
-    const { data: usersData } = await supabase
-      .from('lab_users')
-      .select('*, auth.users(id, email)')
-      .eq('lab_id', params.id)
-
-    setUsers(usersData || [])
     setIsLoading(false)
   }
 
@@ -126,33 +118,9 @@ export default function LabDetailPage() {
           </CardContent>
         </Card>
 
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-lg">المستخدمون</CardTitle>
-            </CardHeader>
-          <CardContent>
-            <div className="space-y-2 mb-4">
-              {users.map((user) => (
-                <div key={user.uuid} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg border">
-                  {/* @ts-ignore */}
-                  <span className="font-medium" dir="ltr">{user.auth?.users?.email || 'Unknown'}</span>
-                  <div className="flex gap-2 items-center">
-                      <span className="text-xs px-2 py-1 bg-background border rounded">
-                        {user.role}
-                      </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* User Management Section */}
+        <LabUserManagement labId={lab.uuid} />
 
-            <Button variant="secondary" className="w-full">
-              + إضافة مستخدم (قريباً)
-            </Button>
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-                يمكنك إضافة مستخدمين من داخل لوحة تحكم المعمل
-            </p>
-          </CardContent>
-        </Card>
       </div>
     </main>
   )

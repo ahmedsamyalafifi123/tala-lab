@@ -19,15 +19,35 @@ export default async function LabLayout({
     .eq('slug', resolvedParams.slug)
     .single()
 
-  if (!lab || lab.status !== 'active') {
-    // If it's a 404-like URL, strict mode redirects to login invalid lab
-    // But if it's the login page itself inside the lab layout, we might handle it differently?
-    // Wait, the layout wraps the login page too (/[slug]/login/page.tsx).
-    // So we need to allow access if it's the login page, BUT we definitely need the LabProvider.
-    // However, if the LAB doesn't exist, we can't provide a context.
-    
-    // So if lab doesn't exist, we must error out.
+  if (!lab) {
     redirect('/login?error=invalid_lab')
+  }
+
+  // If lab is not active, check if user is a manager of this lab
+  if (lab.status !== 'active') {
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    let isAllowed = false;
+    
+    if (user) {
+      // Check for manager status specifically for this lab
+      const { data: labUser } = await supabase
+        .from('lab_users')
+        .select('is_manager, status')
+        .eq('user_id', user.id)
+        .eq('lab_id', lab.uuid)
+        .eq('status', 'active')
+        .single()
+        
+      if (labUser && labUser.is_manager) {
+        isAllowed = true;
+      }
+    }
+    
+    // If not allowed (not a manager or not logged in), redirect
+    if (!isAllowed) {
+      redirect('/login?error=invalid_lab')
+    }
   }
 
   return (
