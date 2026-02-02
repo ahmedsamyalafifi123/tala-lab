@@ -23,17 +23,39 @@ export default async function LabLayout({
     redirect('/login?error=invalid_lab')
   }
 
-  // If lab is not active, check if user is a manager of this lab
-  if (lab.status !== 'active') {
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    let isAllowed = false;
-    
-    if (user) {
-      // Check for manager status specifically for this lab
+  // Fetch current user's role regardless of lab status
+  const { data: { user } } = await supabase.auth.getUser()
+  let userRole = null;
+  
+  if (user) {
       const { data: labUser } = await supabase
         .from('lab_users')
-        .select('is_manager, status')
+        .select('role, is_manager, status')
+        .eq('user_id', user.id)
+        .eq('lab_id', lab.uuid)
+        .eq('status', 'active')
+        .single()
+        
+      if (labUser) {
+          userRole = labUser.role;
+          if (labUser.is_manager) {
+              userRole = 'lab_admin';
+          }
+      }
+  }
+
+  // If lab is not active, check if user is a manager of this lab
+  if (lab.status !== 'active') {
+    let isAllowed = false;
+    
+    if (user && userRole) {
+      // Check for manager status specifically for this lab
+      // We already fetched labUser above.
+      // Re-fetch logic or reuse? Reuse.
+      // We need is_manager specifically which we fetched.
+       const { data: labUser } = await supabase
+        .from('lab_users')
+        .select('is_manager')
         .eq('user_id', user.id)
         .eq('lab_id', lab.uuid)
         .eq('status', 'active')
@@ -51,7 +73,7 @@ export default async function LabLayout({
   }
 
   return (
-    <LabProvider initialLabId={lab.uuid} initialLabSlug={lab.slug}>
+    <LabProvider initialLabId={lab.uuid} initialLabSlug={lab.slug} initialUserRole={userRole || undefined}>
       <div data-lab-id={lab.uuid} data-lab-slug={lab.slug} className="min-h-screen bg-background">
         {children}
       </div>

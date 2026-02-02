@@ -82,7 +82,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function LabDashboard() {
-  const { labId, labSlug } = useLabContext();
+  const { labId, labSlug, userRole } = useLabContext();
   const [clients, setClients] = useState<Client[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -607,14 +607,16 @@ export default function LabDashboard() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button
-                variant="outline"
-                size="icon"
-                className="rounded-xl"
-                onClick={() => setShowSettings(true)}
-              >
-                 <Settings className="h-4 w-4" />
-              </Button>
+               {(userRole === 'lab_admin') && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-xl"
+                  onClick={() => setShowSettings(true)}
+                >
+                   <Settings className="h-4 w-4" />
+                </Button>
+               )}
               <ThemeToggle />
             </div>
           </div>
