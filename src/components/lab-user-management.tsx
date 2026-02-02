@@ -13,6 +13,7 @@ interface LabUser {
   user_id: string
   role: string
   status: string
+  is_manager?: boolean
   // @ts-ignore
   auth: {
       users: {
@@ -219,9 +220,11 @@ export function LabUserManagement({ labId }: LabUserManagementProps) {
                     </span>
                     </p>
                 </div>
-                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleRemoveUser(user.user_id)}>
-                    <Trash2 className="h-4 w-4" />
-                </Button>
+                {!user.is_manager && (
+                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleRemoveUser(user.user_id)}>
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                )}
                 </div>
             ))}
             {users.length === 0 && <p className="text-center text-muted-foreground">لا يوجد مستخدمين</p>}
