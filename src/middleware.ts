@@ -159,7 +159,26 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL(`/${labSlug}/login`, req.url));
     }
 
-    // Check if user has access to this lab (via RLS, but also check here)
+    // Check if user has access (Manager OR Member)
+    // 1. Check if manager (global)
+    const { data: managerCheck } = await supabase
+      .from("lab_users")
+      .select("is_manager")
+      .eq("user_id", user.id)
+      .eq("is_manager", true)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
+
+    if (managerCheck) {
+        // User is a manager, allow access
+        response.headers.set("x-lab-id", lab.uuid);
+        response.headers.set("x-lab-slug", lab.slug);
+        response.headers.set("x-user-role", "manager");
+        return response;
+    }
+
+    // 2. If not manager, must be a member of this lab
     const { data: labUser } = await supabase
       .from("lab_users")
       .select("role, status, is_manager")
