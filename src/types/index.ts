@@ -41,6 +41,7 @@ export interface Client {
   daily_date: Date;
   results: Record<string, any>;
   categories: string[];
+  primary_category?: string; // The primary category used for numbering
   created_at: string;
   updated_at: string;
   notes?: string; // Kept for compatibility if needed, though not in strict plan schema but was in old one

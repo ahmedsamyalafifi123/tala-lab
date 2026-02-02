@@ -101,7 +101,14 @@ export default function LabDashboard() {
   const [showSettings, setShowSettings] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
-  const [printReversed, setPrintReversed] = useState(false);
+  const [printReversed, setPrintReversed] = useState(() => {
+    // Load from localStorage on mount
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('printReversed');
+      return saved ? JSON.parse(saved) : false;
+    }
+    return false;
+  });
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [deleteClient, setDeleteClient] = useState<Client | null>(null);
   
@@ -126,6 +133,13 @@ export default function LabDashboard() {
     }, 300);
     return () => clearTimeout(timer);
   }, [nameFilter]);
+
+  // Save printReversed to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('printReversed', JSON.stringify(printReversed));
+    }
+  }, [printReversed]);
 
   useEffect(() => {
     // Get current user id
@@ -166,7 +180,8 @@ export default function LabDashboard() {
           .select("*")
           .eq("lab_id", labId)
           .order("daily_date", { ascending: false })
-          .order("daily_id", { ascending: false })
+          .order("primary_category", { ascending: true })
+          .order("daily_id", { ascending: true })
           .range(from, from + batchSize - 1);
 
         // Skip date filters if user is searching by name (search all clients)
@@ -220,7 +235,7 @@ export default function LabDashboard() {
   // Async filtering to prevent UI freeze
   useEffect(() => {
     setIsFiltering(true);
-    
+
     // Use setTimeout to allow UI to update (show loading spinner) before heavy filtering
     const timer = setTimeout(() => {
       const results = clients.filter((client) => {
@@ -241,11 +256,23 @@ export default function LabDashboard() {
         // But for display purposes, we might filter loaded list if needed (redundant if DB filter active)
         return true;
       });
-      
+
+      // Sort by: date DESC, primary_category ASC, daily_id ASC (to group categories together)
+      results.sort((a, b) => {
+        const dateCompare = new Date(b.daily_date).getTime() - new Date(a.daily_date).getTime();
+        if (dateCompare !== 0) return dateCompare;
+
+        const catA = (a.primary_category || (a.categories?.[0]) || '_default').toLowerCase();
+        const catB = (b.primary_category || (b.categories?.[0]) || '_default').toLowerCase();
+        if (catA !== catB) return catA.localeCompare(catB, 'ar');
+
+        return a.daily_id - b.daily_id;
+      });
+
       setFilteredClients(results);
       setIsFiltering(false);
     }, 10);
-    
+
     return () => clearTimeout(timer);
   }, [clients, debouncedNameFilter, categoryFilter]);
 
@@ -272,15 +299,18 @@ export default function LabDashboard() {
     setIsSaving(true);
     try {
       const insertWithManualId = async (clientData: any) => {
-        // Manual ID logic from old version, simplified for new schema
+        // Get primary category from the first category in the array
+        const primaryCat = (clientData.category && clientData.category.length > 0) ? clientData.category[0] : '_default';
+
+        // Manual ID logic - check if ID exists in this category
         let finalDailyId = null;
         if (clientData.daily_id) {
-           // Basic conflict check and shift (simplified)
            const { data: existing } = await supabase
              .from("clients")
              .select("uuid, daily_id")
              .eq("lab_id", labId)
              .eq("daily_date", clientData.daily_date)
+             .eq("primary_category", primaryCat)
              .gte("daily_id", clientData.daily_id)
              .order("daily_id", { ascending: false });
 
@@ -297,13 +327,13 @@ export default function LabDashboard() {
             patient_name: clientData.patient_name,
             notes: clientData.notes || "",
             categories: clientData.category || [],
+            primary_category: primaryCat,
             daily_date: clientData.daily_date,
             created_by: currentUserId,
-            // If trigger overrides, we fix it after
         };
-        
+
       console.log('Sending payload:', insertPayload);
-        
+
         const { data: newClient, error } = await supabase
           .from("clients")
           .insert(insertPayload)
@@ -314,19 +344,21 @@ export default function LabDashboard() {
             console.error('Supabase Insert Error:', JSON.stringify(error, null, 2));
             throw error;
         }
-        
+
         if (finalDailyId !== null && newClient.daily_id !== finalDailyId) {
              await supabase.from("clients").update({ daily_id: finalDailyId }).eq("uuid", newClient.uuid);
              newClient.daily_id = finalDailyId;
         }
-        
+
         return newClient;
       };
 
       if (editingClient) {
         // Edit logic
         const dateChanged = format(new Date(editingClient.daily_date), 'yyyy-MM-dd') !== data.daily_date;
-        
+        const newPrimaryCategory = (data.category && data.category.length > 0) ? data.category[0] : '_default';
+        const categoryChanged = editingClient.primary_category !== newPrimaryCategory;
+
         if (dateChanged) {
              await supabase.from("clients").delete().eq("uuid", editingClient.uuid);
              await insertWithManualId({
@@ -335,18 +367,43 @@ export default function LabDashboard() {
                  daily_date: data.daily_date,
                  daily_id: data.daily_id
              });
+        } else if (categoryChanged) {
+             // Category changed - use RPC to handle resequencing
+             const { data: updatedClient, error } = await supabase.rpc('insert_with_manual_id', {
+                 p_lab_id: labId,
+                 p_patient_name: data.patient_name,
+                 p_notes: data.notes || '',
+                 p_categories: data.category || [],
+                 p_daily_date: data.daily_date,
+                 p_daily_id: data.daily_id || null,
+                 p_created_by: currentUserId
+             });
+
+             if (error) throw error;
+
+             // Delete the old record (the RPC created a new one)
+             await supabase.from("clients").delete().eq("uuid", editingClient.uuid);
+
+             // Update the new client's created_at to match the old one
+             if (editingClient.created_at) {
+                 await supabase.from("clients").update({
+                     created_at: editingClient.created_at,
+                     updated_at: new Date().toISOString()
+                 }).eq("uuid", updatedClient.uuid);
+             }
         } else {
-             // Update
+             // Simple update - no category or date change
              let finalDailyId = editingClient.daily_id;
              if (data.daily_id && data.daily_id !== editingClient.daily_id) {
                  finalDailyId = data.daily_id;
                  await supabase.from("clients").update({ daily_id: finalDailyId }).eq("uuid", editingClient.uuid);
              }
-             
+
              await supabase.from("clients").update({
                  patient_name: data.patient_name,
                  notes: data.notes,
                  categories: data.category || [],
+                 primary_category: newPrimaryCategory,
                  updated_at: new Date().toISOString()
              }).eq("uuid", editingClient.uuid);
         }
