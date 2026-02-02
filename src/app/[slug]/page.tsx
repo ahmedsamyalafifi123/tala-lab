@@ -267,7 +267,7 @@ export default function LabDashboard() {
 
   const hasFilters = nameFilter || categoryFilter !== "all" || dateFrom || dateTo;
 
-  const handleSave = async (data: { patient_name: string; notes: string; category: string[] | null; client_date: string; daily_id?: number | null }) => {
+  const handleSave = async (data: { patient_name: string; notes: string; category: string[] | null; daily_date: string; daily_id?: number | null }) => {
     if (!labId) return;
     setIsSaving(true);
     try {
@@ -302,13 +302,18 @@ export default function LabDashboard() {
             // If trigger overrides, we fix it after
         };
         
+      console.log('Sending payload:', insertPayload);
+        
         const { data: newClient, error } = await supabase
           .from("clients")
           .insert(insertPayload)
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Supabase Insert Error:', JSON.stringify(error, null, 2));
+            throw error;
+        }
         
         if (finalDailyId !== null && newClient.daily_id !== finalDailyId) {
              await supabase.from("clients").update({ daily_id: finalDailyId }).eq("uuid", newClient.uuid);
@@ -320,14 +325,14 @@ export default function LabDashboard() {
 
       if (editingClient) {
         // Edit logic
-        const dateChanged = format(new Date(editingClient.daily_date), 'yyyy-MM-dd') !== data.client_date;
+        const dateChanged = format(new Date(editingClient.daily_date), 'yyyy-MM-dd') !== data.daily_date;
         
         if (dateChanged) {
              await supabase.from("clients").delete().eq("uuid", editingClient.uuid);
              await insertWithManualId({
                  ...data,
                  category: data.category,
-                 daily_date: data.client_date,
+                 daily_date: data.daily_date,
                  daily_id: data.daily_id
              });
         } else {
@@ -350,7 +355,7 @@ export default function LabDashboard() {
             patient_name: data.patient_name,
             notes: data.notes,
             category: data.category,
-            daily_date: data.client_date,
+            daily_date: data.daily_date,
             daily_id: data.daily_id
         });
       }

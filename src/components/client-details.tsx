@@ -45,7 +45,7 @@ export function ClientDetails({
 
   if (!client) return null;
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr: string | Date) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString("ar-EG", {
       weekday: "long",
@@ -83,23 +83,17 @@ export function ClientDetails({
                     {client.daily_id}
                   </div>
                   <div>
-                    <SheetTitle className="text-xl text-start">{client.name}</SheetTitle>
-                    <p className="text-sm text-muted-foreground">{formatDate(client.client_date)}</p>
+                    <SheetTitle className="text-xl text-start">{client.patient_name}</SheetTitle>
+                    <p className="text-sm text-muted-foreground">{formatDate(client.daily_date)}</p>
                   </div>
                 </div>
-                {client.category && (
+                {client.categories && client.categories.length > 0 && (
                    <div className="flex gap-1">
-                      {Array.isArray(client.category) ? (
-                         client.category.map((cat, idx) => (
-                            <Badge key={idx} variant={cat === "صحة مدرسية" ? "default" : "secondary"}>
-                               {cat === "صحة مدرسية" ? "صحة" : (cat === "CBC" ? "CBC" : cat)}
-                            </Badge>
-                         ))
-                      ) : (
-                         <Badge variant={client.category === "صحة مدرسية" ? "default" : "secondary"}>
-                            {client.category === "صحة مدرسية" ? "صحة" : "CBC"}
-                         </Badge>
-                      )}
+                      {client.categories.map((cat, idx) => (
+                        <Badge key={idx} variant={cat === "صحة مدرسية" ? "default" : "secondary"}>
+                            {cat === "صحة مدرسية" ? "صحة" : (cat === "CBC" ? "CBC" : cat)}
+                        </Badge>
+                      ))}
                    </div>
                 )}
               </div>
@@ -166,7 +160,7 @@ export function ClientDetails({
           <AlertDialogHeader>
             <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
             <AlertDialogDescription>
-              هل أنت متأكد من حذف حالة <strong>{client.name}</strong>؟
+              هل أنت متأكد من حذف حالة <strong>{client.patient_name}</strong>؟
               <br />
               لا يمكن التراجع عن هذا الإجراء.
             </AlertDialogDescription>

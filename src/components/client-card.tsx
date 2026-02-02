@@ -10,7 +10,7 @@ interface ClientCardProps {
 }
 
 export function ClientCard({ client, onClick }: ClientCardProps) {
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr: string | Date) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString("ar-EG", {
       month: "short",
@@ -29,25 +29,19 @@ export function ClientCard({ client, onClick }: ClientCardProps) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-medium truncate">{client.name}</h3>
-            {client.category && (
+            <h3 className="font-medium truncate">{client.patient_name}</h3>
+            {client.categories && client.categories.length > 0 && (
                <div className="flex gap-1">
-                  {Array.isArray(client.category) ? (
-                     client.category.map((cat, idx) => (
-                        <Badge key={idx} variant={cat === "صحة مدرسية" ? "default" : "secondary"} className="text-[10px] px-1 h-5 shrink-0">
-                           {cat === "صحة مدرسية" ? "صحة" : (cat === "CBC" ? "CBC" : cat)}
-                        </Badge>
-                     ))
-                  ) : (
-                     <Badge variant={client.category === "صحة مدرسية" ? "default" : "secondary"} className="text-[10px] px-1 h-5 shrink-0">
-                        {client.category === "صحة مدرسية" ? "صحة" : "CBC"}
-                     </Badge>
-                  )}
+                  {client.categories.map((cat, idx) => (
+                    <Badge key={idx} variant={cat === "صحة مدرسية" ? "default" : "secondary"} className="text-[10px] px-1 h-5 shrink-0">
+                        {cat === "صحة مدرسية" ? "صحة" : (cat === "CBC" ? "CBC" : cat)}
+                    </Badge>
+                  ))}
                </div>
             )}
           </div>
           <p className="text-xs text-muted-foreground truncate">
-            {formatDate(client.client_date)}
+            {formatDate(client.daily_date)}
             {client.notes && ` • ${client.notes}`}
           </p>
         </div>

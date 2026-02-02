@@ -43,7 +43,7 @@ import { cn } from "@/lib/utils";
 interface ClientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { patient_name: string; notes: string; category: string[] | null; client_date: string; daily_id?: number | null }) => Promise<void>;
+  onSave: (data: { patient_name: string; notes: string; category: string[] | null; daily_date: string; daily_id?: number | null }) => Promise<void>;
   client?: Client | null;
   categories: Category[];
   isLoading?: boolean;
@@ -129,7 +129,7 @@ export function ClientModal({
       patient_name: name.trim(),
       notes: notes.trim(),
       category: selectedCategories.length > 0 ? selectedCategories : [], // return string[]
-      client_date: format(date, "yyyy-MM-dd"),
+      daily_date: format(date, "yyyy-MM-dd"),
       daily_id: isManualId && manualId ? parseInt(manualId) : null,
     });
 
