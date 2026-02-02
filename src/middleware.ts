@@ -38,6 +38,28 @@ export async function middleware(req: NextRequest) {
 
   const path = req.nextUrl.pathname;
 
+  // Redirect logged-in users away from login page
+  if (path === "/login" && user) {
+    const { data: labUser } = await supabase
+      .from("lab_users")
+      .select("is_manager, labs(slug)")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle();
+
+    if (labUser) {
+      if (labUser.is_manager) {
+        return NextResponse.redirect(new URL("/manager/dashboard", req.url));
+      }
+      // @ts-ignore
+      if (labUser.labs?.slug) {
+        // @ts-ignore
+        return NextResponse.redirect(new URL(`/${labUser.labs.slug}`, req.url));
+      }
+    }
+  }
+
   // Manager portal protection
   if (path.startsWith("/manager")) {
     if (!user) {
@@ -85,6 +107,21 @@ export async function middleware(req: NextRequest) {
         return NextResponse.redirect(
           new URL("/login?error=invalid_lab", req.url),
         );
+      }
+
+      // If user is logged in and member of this lab, redirect to dashboard
+      if (user) {
+        const { data: member } = await supabase
+          .from("lab_users")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("lab_id", lab.uuid)
+          .eq("status", "active")
+          .maybeSingle();
+
+        if (member) {
+          return NextResponse.redirect(new URL(`/${labSlug}`, req.url));
+        }
       }
 
       // Store lab context in headers for the page to use
