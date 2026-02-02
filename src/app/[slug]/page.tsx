@@ -361,8 +361,15 @@ export default function LabDashboard() {
       }
 
       await fetchClients();
-      setShowAddModal(false);
-      setEditingClient(null);
+      
+      // Only close modal if we were editing
+      if (editingClient) {
+        setShowAddModal(false);
+        setEditingClient(null);
+      } else {
+        // If adding new, keep modal open for rapid entry
+        // The modal component handles form reset internally
+      }
     } catch (error) {
       console.error("Error saving client:", error);
       alert("حدث خطأ أثناء الحفظ");
