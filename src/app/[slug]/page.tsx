@@ -934,6 +934,23 @@ export default function LabDashboard() {
         </AlertDialogContent>
     </AlertDialog>
 
+    <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>هل أنت متأكد من حذف الحالات المحددة؟</AlertDialogTitle>
+                <AlertDialogDescription>
+                    سيتم حذف {selectedIds.length} حالة نهائياً. لا يمكن التراجع عن هذا الإجراء.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive hover:bg-destructive/90">
+                    {isBulkDeleting ? "جاري الحذف..." : "حذف المحدد"}
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+
     <SettingsModal 
          isOpen={showSettings}
          onClose={() => setShowSettings(false)}
