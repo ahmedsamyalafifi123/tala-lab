@@ -4,11 +4,11 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { 
-  CalendarIcon, 
-  Download, 
+import {
+  CalendarIcon,
+  Download,
   Upload,
-  Search, 
+  Search,
   X,
   Loader2,
   LogOut,
@@ -17,7 +17,8 @@ import {
   Trash2,
   Settings,
   Printer,
-  FileDown
+  FileDown,
+  User
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase";
@@ -38,6 +39,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -538,6 +545,15 @@ export default function LabDashboard() {
     });
   };
 
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      window.location.href = `/${labSlug}/login`;
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
   if (isInitialLoad) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -574,9 +590,26 @@ export default function LabDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-xl"
+                  >
+                    <User className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleLogout} className="gap-2 cursor-pointer">
+                    <LogOut className="h-4 w-4" />
+                    <span>تسجيل الخروج</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                variant="outline"
+                size="icon"
                 className="rounded-xl"
                 onClick={() => setShowSettings(true)}
               >
