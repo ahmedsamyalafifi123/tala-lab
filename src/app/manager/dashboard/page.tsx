@@ -19,6 +19,7 @@ import {
 import { DashboardStats } from './components/DashboardStats'
 import { OverviewChart } from './components/OverviewChart'
 import { LabsList } from './components/LabsList'
+import { CreateLabDialog } from '@/components/create-lab-dialog'
 
 
 export default function ManagerDashboard() {
@@ -176,12 +177,9 @@ export default function ManagerDashboard() {
             <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">نظرة عامة</h1>
             <p className="text-muted-foreground mt-1">لوحة تحكم المدير - نظرة شاملة على أداء النظام</p>
         </div>
-        <Link href="/manager/labs/new">
-            <Button className="shadow-lg hover:shadow-primary/20 transition-all">
-                <Plus className="ml-2 h-4 w-4" />
-                إنشاء معمل جديد
-            </Button>
-        </Link>
+        <CreateLabDialog 
+            onLabCreated={fetchData} 
+        />
       </div>
 
       <DashboardStats 

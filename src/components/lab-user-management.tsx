@@ -171,7 +171,7 @@ export function LabUserManagement({ labId }: LabUserManagementProps) {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="كلمة المرور (اختياري، للمستخدمين الجدد)"
+                    placeholder="كلمة المرور"
                     dir="ltr"
                 />
                 <Select value={role} onValueChange={(val: any) => setRole(val)}>

@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 
+import { CreateLabDialog } from '@/components/create-lab-dialog'
+
 export default function LabsPage() {
   const [labs, setLabs] = useState<Lab[]>([])
   const [filteredLabs, setFilteredLabs] = useState<Lab[]>([])
@@ -95,10 +97,9 @@ export default function LabsPage() {
             <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">إدارة المعامل</h1>
             <p className="text-muted-foreground mt-1 text-sm">إدارة كافة المعامل ({filteredLabs.length})</p>
         </div>
-        <Link href="/manager/labs/new" className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2 shadow-sm">
-            <Plus className="h-4 w-4" />
-            معمل جديد
-        </Link>
+        <CreateLabDialog 
+            onLabCreated={fetchLabs} 
+        />
       </div>
 
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-4 -my-4 mb-2 border-b">
