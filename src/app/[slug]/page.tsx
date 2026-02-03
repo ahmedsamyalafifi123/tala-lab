@@ -226,7 +226,13 @@ export default function LabDashboard() {
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      setCategories(data || []);
+      
+      // Deduplicate categories by uuid to avoid React key warnings
+      const uniqueCategories = data?.filter((c, index, self) => 
+        c.uuid && index === self.findIndex((t) => t.uuid === c.uuid)
+      ) || [];
+      
+      setCategories(uniqueCategories);
     } catch (error) {
       console.error("Error fetching categories:", error);
     }
