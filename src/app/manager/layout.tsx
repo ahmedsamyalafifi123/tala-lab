@@ -13,7 +13,7 @@ import {
   Users
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { ThemeToggle } from "@/components/theme-toggle"
 import Image from "next/image"
 
@@ -126,6 +126,7 @@ export default function ManagerLayout({
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="p-0 border-l">
+              <SheetTitle className="sr-only">قائمة التنقل</SheetTitle>
               <SidebarContent />
             </SheetContent>
           </Sheet>
