@@ -227,9 +227,9 @@ export default function LabDashboard() {
 
       if (error) throw error;
       
-      // Deduplicate categories by uuid to avoid React key warnings
-      const uniqueCategories = data?.filter((c, index, self) => 
-        c.uuid && index === self.findIndex((t) => t.uuid === c.uuid)
+      // Deduplicate categories by id to avoid React key warnings
+      const uniqueCategories = data?.filter((c, index, self) =>
+        c.id && index === self.findIndex((t) => t.id === c.id)
       ) || [];
       
       setCategories(uniqueCategories);
@@ -304,135 +304,42 @@ export default function LabDashboard() {
     if (!labId) return;
     setIsSaving(true);
     try {
-      const insertWithManualId = async (clientData: any) => {
-        // Get primary category from the first category in the array
-        const primaryCat = (clientData.category && clientData.category.length > 0) ? clientData.category[0] : '_default';
-
-        // Manual ID logic - check if ID exists in this category
-        let finalDailyId = null;
-        if (clientData.daily_id) {
-           const { data: existing } = await supabase
-             .from("clients")
-             .select("uuid, daily_id")
-             .eq("lab_id", labId)
-             .eq("daily_date", clientData.daily_date)
-             .eq("primary_category", primaryCat)
-             .gte("daily_id", clientData.daily_id)
-             .order("daily_id", { ascending: false });
-
-           if (existing && existing.length > 0) {
-             for (const client of existing) {
-                await supabase.from("clients").update({ daily_id: client.daily_id + 1 }).eq("uuid", client.uuid);
-             }
-           }
-           finalDailyId = clientData.daily_id;
-        }
-
-        const insertPayload: any = {
-            lab_id: labId,
-            patient_name: clientData.patient_name,
-            notes: clientData.notes || "",
-            categories: clientData.category || [],
-            primary_category: primaryCat,
-            daily_date: clientData.daily_date,
-            created_by: currentUserId,
-        };
-
-      console.log('Sending payload:', insertPayload);
-
-        const { data: newClient, error } = await supabase
-          .from("clients")
-          .insert(insertPayload)
-          .select()
-          .single();
-
-        if (error) {
-            console.error('Supabase Insert Error:', JSON.stringify(error, null, 2));
-            throw error;
-        }
-
-        if (finalDailyId !== null && newClient.daily_id !== finalDailyId) {
-             await supabase.from("clients").update({ daily_id: finalDailyId }).eq("uuid", newClient.uuid);
-             newClient.daily_id = finalDailyId;
-        }
-
-        return newClient;
-      };
-
       if (editingClient) {
-        // Edit logic
-        const dateChanged = format(new Date(editingClient.daily_date), 'yyyy-MM-dd') !== data.daily_date;
-        const newPrimaryCategory = (data.category && data.category.length > 0) ? data.category[0] : '_default';
-        const categoryChanged = editingClient.primary_category !== newPrimaryCategory;
-
-        if (dateChanged) {
-             await supabase.from("clients").delete().eq("uuid", editingClient.uuid);
-             await insertWithManualId({
-                 ...data,
-                 category: data.category,
-                 daily_date: data.daily_date,
-                 daily_id: data.daily_id
-             });
-        } else if (categoryChanged) {
-             // Category changed - use RPC to handle resequencing
-             const { data: updatedClient, error } = await supabase.rpc('insert_with_manual_id', {
-                 p_lab_id: labId,
-                 p_patient_name: data.patient_name,
-                 p_notes: data.notes || '',
-                 p_categories: data.category || [],
-                 p_daily_date: data.daily_date,
-                 p_daily_id: data.daily_id || null,
-                 p_created_by: currentUserId
-             });
-
-             if (error) throw error;
-
-             // Delete the old record (the RPC created a new one)
-             await supabase.from("clients").delete().eq("uuid", editingClient.uuid);
-
-             // Update the new client's created_at to match the old one
-             if (editingClient.created_at) {
-                 await supabase.from("clients").update({
-                     created_at: editingClient.created_at,
-                     updated_at: new Date().toISOString()
-                 }).eq("uuid", updatedClient.uuid);
-             }
-        } else {
-             // Simple update - no category or date change
-             let finalDailyId = editingClient.daily_id;
-             if (data.daily_id && data.daily_id !== editingClient.daily_id) {
-                 finalDailyId = data.daily_id;
-                 await supabase.from("clients").update({ daily_id: finalDailyId }).eq("uuid", editingClient.uuid);
-             }
-
-             await supabase.from("clients").update({
-                 patient_name: data.patient_name,
-                 notes: data.notes,
-                 categories: data.category || [],
-                 primary_category: newPrimaryCategory,
-                 updated_at: new Date().toISOString()
-             }).eq("uuid", editingClient.uuid);
-        }
-      } else {
-        await insertWithManualId({
-            patient_name: data.patient_name,
-            notes: data.notes,
-            category: data.category,
-            daily_date: data.daily_date,
-            daily_id: data.daily_id
+        // EDIT: Use new update_client_group function
+        // This syncs all copies in the client group and handles category changes
+        const { data: result, error } = await supabase.rpc('update_client_group', {
+          p_client_group_id: editingClient.client_group_id || editingClient.uuid,
+          p_patient_name: data.patient_name,
+          p_notes: data.notes || '',
+          p_categories: data.category || [],
+          p_daily_date: data.daily_date,
+          p_manual_id: data.daily_id || null
         });
+
+        if (error) throw error;
+      } else {
+        // ADD: Use new insert_client_multi_category function
+        // This creates one record per category, all sharing the same client_group_id
+        const { data: result, error } = await supabase.rpc('insert_client_multi_category', {
+          p_lab_id: labId,
+          p_patient_name: data.patient_name,
+          p_notes: data.notes || '',
+          p_categories: data.category || [],
+          p_daily_date: data.daily_date,
+          p_manual_id: data.daily_id || null,
+          p_created_by: currentUserId
+        });
+
+        if (error) throw error;
       }
 
       await fetchClients();
-      
-      // Only close modal if we were editing
+
       if (editingClient) {
         setShowAddModal(false);
         setEditingClient(null);
-      } else {
-        // If adding new, keep modal open for rapid entry
-        // The modal component handles form reset internally
       }
+      // If adding new, keep modal open for rapid entry
     } catch (error) {
       console.error("Error saving client:", error);
       alert("حدث خطأ أثناء الحفظ");
@@ -443,26 +350,21 @@ export default function LabDashboard() {
 
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
-    
+
     setIsBulkDeleting(true);
     try {
-      const selectedClients = clients.filter(c => c.uuid && selectedIds.includes(c.uuid));
-      const affectedDates = new Set(selectedClients.map(c => format(new Date(c.daily_date), 'yyyy-MM-dd')));
-
-      const { error } = await supabase
-        .from("clients")
-        .delete()
-        .in("uuid", selectedIds);
-
-      if (error) throw error;
-
-      // Resequence ID logic (simplified for now)
-      // Ideally we should call a database function or handle complex shifting here like the old code
+      // Delete each client using the RPC function to handle resequencing
+      for (const uuid of selectedIds) {
+        const { error } = await supabase.rpc('delete_client_single_category', {
+          p_uuid: uuid
+        });
+        if (error) throw error;
+      }
 
       await fetchClients();
       setSelectedIds([]);
       setShowBulkDeleteDialog(false);
-      
+
     } catch (error) {
       console.error("Error deleting clients:", error);
       alert("حدث خطأ أثناء الحذف الجماعي");
@@ -475,14 +377,21 @@ export default function LabDashboard() {
     if (!deleteClient) return;
     setIsDeleting(true);
     try {
-        await supabase.from("clients").delete().eq("uuid", deleteClient.uuid);
-        await fetchClients();
-        setDeleteClient(null);
+      // Use new delete_client_single_category function
+      // This deletes only the current category copy and resequences
+      const { error } = await supabase.rpc('delete_client_single_category', {
+        p_uuid: deleteClient.uuid
+      });
+
+      if (error) throw error;
+
+      await fetchClients();
+      setDeleteClient(null);
     } catch (e) {
-        console.error(e);
-        alert("Error deleting");
+      console.error(e);
+      alert("Error deleting");
     } finally {
-        setIsDeleting(false);
+      setIsDeleting(false);
     }
   };
   
@@ -552,11 +461,26 @@ export default function LabDashboard() {
         const name = row["name"] || row["patient_name"] || row["الاسم"] || row["اسم"];
         const notes = row["notes"] || row["الملاحظات"] || row["ملاحظات"] || "";
         const categoryRaw = row["category"] || row["categories"] || row["التصنيف"] || null;
-        
+
+        // Get valid category names from the lab
+        const validCategoryNames = new Set(categories.map(c => c.name));
+
         let categoryVal: string[] = [];
         if (categoryRaw) {
            const catStr = String(categoryRaw).trim();
            categoryVal = catStr.split(/,|،/).map(s => s.trim()).filter(Boolean);
+        }
+
+        // Filter out invalid/dummy category values and replace with "عام"
+        // Invalid values: -, ص.م, _, null, empty strings, or any category not in the lab
+        const dummyCategories = ['-', 'ص.م', '_', '.', 'null', 'N/A', 'NA'];
+        categoryVal = categoryVal.filter(cat =>
+          cat && !dummyCategories.includes(cat) && validCategoryNames.has(cat)
+        );
+
+        // Default to "عام" if no valid categories remain
+        if (categoryVal.length === 0) {
+          categoryVal = ['عام'];
         }
 
         let clientDate: string;
@@ -592,14 +516,20 @@ export default function LabDashboard() {
         return;
       }
 
+      // For imports, use the direct insert method (much faster)
+      // We'll let the database trigger handle daily_id assignment
+      // The trigger already handles conflicts by shifting IDs
       const { error } = await supabase
         .from("clients")
         .insert(importedClients);
 
-      if (error) throw error;
-
-      await fetchClients();
-      alert(`تم استيراد ${importedClients.length} حالة بنجاح`);
+      if (error) {
+        console.error("Error importing:", error);
+        alert(`حدث خطأ أثناء الاستيراد: ${error.message || 'Unknown error'}`);
+      } else {
+        await fetchClients();
+        alert(`تم استيراد ${importedClients.length} حالة بنجاح`);
+      }
     } catch (error) {
       console.error("Error importing:", error);
       alert("حدث خطأ أثناء الاستيراد");
@@ -726,7 +656,7 @@ export default function LabDashboard() {
                     <SelectContent>
                       <SelectItem value="all">الكل</SelectItem>
                       {categories.map((cat) => (
-                        <SelectItem key={cat.uuid} value={cat.name}>{cat.name}</SelectItem>
+                        <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
                       ))}
                       <SelectItem value="none">بدون تصنيف</SelectItem>
                     </SelectContent>

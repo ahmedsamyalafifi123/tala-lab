@@ -105,7 +105,7 @@ export function SettingsModal({
       const { error: catError } = await supabase
         .from("categories")
         .update({ name: newName, updated_at: new Date().toISOString() })
-        .eq("uuid", category.uuid);
+        .eq("id", category.id);
 
       if (catError) throw catError;
 
@@ -141,7 +141,7 @@ export function SettingsModal({
       const { error } = await supabase
         .from("categories")
         .delete()
-        .eq("uuid", deleteCategory.uuid);
+        .eq("id", deleteCategory.id);
 
       if (error) throw error;
 
@@ -156,7 +156,7 @@ export function SettingsModal({
   };
 
   const startEdit = (category: Category) => {
-    setEditingId(category.uuid);
+    setEditingId(category.id);
     setEditName(category.name);
   };
 
@@ -215,10 +215,10 @@ export function SettingsModal({
                 {/* Category List */}
                 {categories.map((category) => (
                   <div
-                    key={category.uuid}
+                    key={category.id}
                     className="flex items-center gap-3 p-3 rounded-lg border bg-card"
                   >
-                    {editingId === category.uuid ? (
+                    {editingId === category.id ? (
                       <>
                         <Input
                           value={editName}

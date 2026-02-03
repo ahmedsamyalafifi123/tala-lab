@@ -97,24 +97,24 @@ export function ClientModal({
   useEffect(() => {
     if (client) {
       setName(client.patient_name);
-      setNotes(client.notes || ""); // Optional notes not in interface but in page logic? 
-      // Wait, interface I created HAS notes.
-      // "notes?: string; // Kept for compatibility..."
-      
-      // Handle categories
-      if (Array.isArray(client.categories)) {
+      setNotes(client.notes || "");
+
+      // Handle categories - if empty, use "عام" (General) as default
+      if (Array.isArray(client.categories) && client.categories.length > 0) {
         setSelectedCategories(client.categories);
       } else {
-        setSelectedCategories([]);
+        // Empty categories - default to "عام"
+        setSelectedCategories(['عام']);
       }
-      
+
       setDate(new Date(client.daily_date));
       setIsManualId(false);
       setManualId("");
     } else {
       setName("");
       setNotes("");
-      setSelectedCategories([]);
+      // Default to "عام" for new clients
+      setSelectedCategories(['عام']);
       setDate(new Date());
       setIsManualId(false);
       setManualId("");
@@ -125,10 +125,13 @@ export function ClientModal({
     e.preventDefault();
     if (!name.trim()) return;
 
+    // Always ensure at least "عام" is selected if no categories
+    const categoriesToSend = selectedCategories.length > 0 ? selectedCategories : ['عام'];
+
     await onSave({
       patient_name: name.trim(),
       notes: notes.trim(),
-      category: selectedCategories.length > 0 ? selectedCategories : [], // return string[]
+      category: categoriesToSend,
       daily_date: format(date, "yyyy-MM-dd"),
       daily_id: isManualId && manualId ? parseInt(manualId) : null,
     });
@@ -137,6 +140,8 @@ export function ClientModal({
     if (!client) {
       setName("");
       setNotes("");
+      setSelectedCategories(['عام']); // Reset to "عام" default
+      setDate(new Date());
       setIsManualId(false);
       setManualId("");
       const nameInput = document.getElementById("name");
@@ -286,7 +291,7 @@ export function ClientModal({
                        const isSelected = selectedCategories.includes(cat.name);
                        return (
                           <div
-                             key={cat.uuid}
+                             key={cat.id}
                              className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors"
                              onClick={() => {
                                 if (isSelected) {

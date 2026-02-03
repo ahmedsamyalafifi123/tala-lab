@@ -42,13 +42,14 @@ export interface Client {
   results: Record<string, any>;
   categories: string[];
   primary_category?: string; // The primary category used for numbering
+  client_group_id?: string; // Links multiple category copies together
   created_at: string;
   updated_at: string;
   notes?: string; // Kept for compatibility if needed, though not in strict plan schema but was in old one
 }
 
 export interface Category {
-  uuid: string;
+  id: string;  // Database uses 'id' not 'uuid'
   lab_id: string;
   name: string;
   name_en?: string;
