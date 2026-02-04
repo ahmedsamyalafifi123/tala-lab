@@ -188,7 +188,7 @@ export function LabUserManagement({ labId }: LabUserManagementProps) {
             <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full md:w-auto"
+                className="w-full md:w-auto cursor-pointer"
             >
                 {isSubmitting ? (
                     <>
@@ -221,7 +221,7 @@ export function LabUserManagement({ labId }: LabUserManagementProps) {
                     </p>
                 </div>
                 {!user.is_manager && (
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleRemoveUser(user.user_id)}>
+                    <Button variant="ghost" size="icon" className="text-destructive cursor-pointer" onClick={() => handleRemoveUser(user.user_id)}>
                         <Trash2 className="h-4 w-4" />
                     </Button>
                 )}

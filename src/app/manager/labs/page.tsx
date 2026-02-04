@@ -161,7 +161,7 @@ export default function LabsPage() {
                              
                              <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7 -mt-1 -ml-2 opacity-50 group-hover:opacity-100">
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 -mt-1 -ml-2 opacity-50 group-hover:opacity-100 cursor-pointer">
                                         <MoreVertical className="h-3.5 w-3.5" />
                                     </Button>
                                 </DropdownMenuTrigger>
@@ -189,7 +189,7 @@ export default function LabsPage() {
                                 target="_blank" 
                                 className="flex-1"
                             >
-                                <Button variant="outline" size="sm" className="w-full h-8 text-xs bg-muted/30 hover:bg-primary hover:text-primary-foreground border-muted transition-colors">
+                                <Button variant="outline" size="sm" className="w-full h-8 text-xs bg-muted/30 hover:bg-primary hover:text-primary-foreground border-muted transition-colors cursor-pointer">
                                     <ExternalLink className="h-3 w-3 mr-1.5" />
                                     زيارة
                                 </Button>
@@ -197,7 +197,7 @@ export default function LabsPage() {
                              <Link 
                                 href={`/manager/labs/${lab.uuid}`}
                             >
-                                <Button variant="secondary" size="icon" className="h-8 w-8">
+                                <Button variant="secondary" size="icon" className="h-8 w-8 cursor-pointer">
                                     <Settings className="h-3.5 w-3.5" />
                                 </Button>
                             </Link>

@@ -136,7 +136,7 @@ export function CreateLabDialog({ onLabCreated, trigger }: CreateLabDialogProps)
       {trigger ? (
           <div onClick={() => setIsOpen(true)}>{trigger}</div>
       ) : (
-        <Button onClick={() => setIsOpen(true)} className="shadow-lg hover:shadow-primary/20 transition-all">
+        <Button onClick={() => setIsOpen(true)} className="shadow-lg hover:shadow-primary/20 transition-all cursor-pointer">
             <Plus className="ml-2 h-4 w-4" />
             إنشاء معمل جديد
         </Button>
@@ -191,10 +191,10 @@ export function CreateLabDialog({ onLabCreated, trigger }: CreateLabDialogProps)
             </div>
 
             <DialogFooter className="gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isLoading}>
+                <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isLoading} className="cursor-pointer">
                     إلغاء
                 </Button>
-                <Button type="submit" disabled={isLoading || !formData.name || !formData.slug}>
+                <Button type="submit" disabled={isLoading || !formData.name || !formData.slug} className="cursor-pointer">
                     {isLoading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -50,7 +50,7 @@ export function LabsList({ labs }: LabsListProps) {
                             {item.clientCount} <span className="text-muted-foreground font-normal text-xs">مريض</span>
                         </div>
                         <Link href={`/${item.lab.slug}`} target="_blank">
-                             <Button variant="ghost" size="icon" className="h-8 w-8">
+                             <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
                                 <ArrowUpRight className="h-4 w-4" />
                             </Button>
                         </Link>
@@ -65,7 +65,7 @@ export function LabsList({ labs }: LabsListProps) {
             )}
 
             <Link href="/manager/labs" className="block w-full">
-                <Button variant="outline" className="w-full mt-2">
+                <Button variant="outline" className="w-full mt-2 cursor-pointer">
                     عرض جميع المعامل
                 </Button>
             </Link>

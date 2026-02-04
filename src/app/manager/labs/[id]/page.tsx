@@ -153,7 +153,7 @@ export default function LabDetailPage() {
             <Button
                 variant="ghost"
                 onClick={() => router.push('/manager/labs')}
-                className="gap-2 mb-2 p-0 h-auto hover:bg-transparent text-muted-foreground hover:text-foreground"
+                className="gap-2 mb-2 p-0 h-auto hover:bg-transparent text-muted-foreground hover:text-foreground cursor-pointer"
             >
                 <ArrowRight className="h-4 w-4" />
                 العودة للمعامل
@@ -162,7 +162,7 @@ export default function LabDetailPage() {
             <p className="text-muted-foreground">إدارة إعدادات المعمل والمستخدمين</p>
         </div>
         
-        <Button variant="outline" onClick={() => window.open(`/${lab.slug}`, '_blank')} className="gap-2">
+        <Button variant="outline" onClick={() => window.open(`/${lab.slug}`, '_blank')} className="gap-2 cursor-pointer">
             <ExternalLink className="h-4 w-4" />
             فتح المعمل
         </Button>
@@ -243,7 +243,7 @@ export default function LabDetailPage() {
                     </div>
                 </CardContent>
                 <CardFooter className="border-t px-6 py-4 bg-muted/5 flex justify-end">
-                    <Button onClick={handleUpdate} disabled={isSaving || !formData.name || !formData.slug}>
+                    <Button onClick={handleUpdate} disabled={isSaving || !formData.name || !formData.slug} className="cursor-pointer">
                         {isSaving ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -280,7 +280,7 @@ export default function LabDetailPage() {
                         </div>
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <Button variant="destructive">
+                                <Button variant="destructive" className="cursor-pointer">
                                     حذف المعمل
                                 </Button>
                             </AlertDialogTrigger>
