@@ -1,6 +1,6 @@
--- Function to add a lab user by email
--- This allows adding users without knowing their UUID, only email
--- It requires the user to already exist in auth.users
+-- Fix for add_lab_user_by_email function
+-- Removes reference to non-existent 'updated_at' column in lab_users table
+
 CREATE OR REPLACE FUNCTION add_lab_user_by_email(
   p_lab_id UUID, 
   p_email TEXT, 
@@ -8,8 +8,8 @@ CREATE OR REPLACE FUNCTION add_lab_user_by_email(
 )
 RETURNS JSONB
 LANGUAGE plpgsql
-SECURITY DEFINER -- Runs with privileges of the creator (postgres) to access auth.users
-SET search_path = public, auth -- Set search path to include auth schema
+SECURITY DEFINER
+SET search_path = public, auth
 AS $$
 DECLARE
   v_user_id UUID;
@@ -19,7 +19,7 @@ DECLARE
 BEGIN
   v_caller_id := auth.uid();
   
-  -- 1. Check permissions: Caller must be a manager OR a lab_admin for this lab
+  -- 1. Check permissions
   SELECT EXISTS (
     SELECT 1 FROM lab_users 
     WHERE user_id = v_caller_id 
@@ -50,6 +50,7 @@ BEGIN
   DO UPDATE SET 
     role = EXCLUDED.role,
     status = 'active'
+    -- updated_at removed as column does not exist
   RETURNING to_jsonb(lab_users.*) INTO v_new_record;
 
   RETURN v_new_record;
