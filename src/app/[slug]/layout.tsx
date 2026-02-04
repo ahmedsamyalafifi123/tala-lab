@@ -1,6 +1,28 @@
 import { LabProvider } from '@/contexts/LabContext'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
+import { Metadata } from 'next'
+
+
+export async function generateMetadata(
+  { params }: { params: Promise<{ slug: string }> }
+): Promise<Metadata> {
+  const { slug } = await params
+  const supabase = await createServerSupabaseClient()
+  
+  const { data: lab } = await supabase
+    .from('labs')
+    .select('name')
+    .eq('slug', slug)
+    .single()
+
+  return {
+    title: lab?.name || 'Lab System',
+    openGraph: {
+      title: lab?.name || 'Lab System',
+    }
+  }
+}
 
 export default async function LabLayout({
   children,
