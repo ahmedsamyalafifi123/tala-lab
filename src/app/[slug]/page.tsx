@@ -252,11 +252,7 @@ export default function LabDashboard() {
         // Category filter
         if (categoryFilter !== "all") {
              const cats = client.categories || [];
-             if (categoryFilter === "none") {
-                 if (cats.length > 0) return false;
-             } else {
-                 if (!cats.includes(categoryFilter)) return false;
-             }
+             if (!cats.includes(categoryFilter)) return false;
         }
         // Date filtering is done at database level for performance
         // But for display purposes, we might filter loaded list if needed (redundant if DB filter active)
@@ -658,7 +654,6 @@ export default function LabDashboard() {
                       {categories.map((cat) => (
                         <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
                       ))}
-                      <SelectItem value="none">بدون تصنيف</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -848,7 +843,7 @@ export default function LabDashboard() {
                           <TableCell>
                             <div className="font-medium">{client.patient_name}</div>
                              <div className="sm:hidden text-xs text-muted-foreground">
-                               {client.categories && client.categories.map((cat, i) => (
+                               {client.categories && client.categories.filter(c => c !== 'عام').map((cat, i) => (
                                   <Badge key={i} variant="secondary" className="text-[10px] px-1 h-5 ms-1">
                                     {cat}
                                   </Badge>
@@ -857,7 +852,7 @@ export default function LabDashboard() {
                           </TableCell>
                           <TableCell className="hidden sm:table-cell">
                               <div className="flex flex-wrap gap-1 justify-center">
-                                {client.categories?.map((cat, i) => (
+                                {client.categories?.filter(c => c !== 'عام').map((cat, i) => (
                                     <Badge key={i} variant="secondary" className="text-xs">
                                         {cat}
                                     </Badge>

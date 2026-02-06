@@ -261,14 +261,26 @@ export function SettingsModal({
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => prepareDelete(category)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {category.name === 'عام' ? (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            disabled
+                            className="text-muted-foreground opacity-50 cursor-not-allowed"
+                            title="لا يمكن حذف تصنيف عام"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => prepareDelete(category)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </>
                     )}
                   </div>
