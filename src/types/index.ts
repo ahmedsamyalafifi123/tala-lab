@@ -40,6 +40,7 @@ export interface Client {
   daily_id: number;
   daily_date: Date;
   results: Record<string, any>;
+  selected_tests?: string[]; // Test codes selected during client creation
   categories: string[];
   primary_category?: string; // The primary category used for numbering
   client_group_id?: string; // Links multiple category copies together
@@ -57,3 +58,6 @@ export interface Category {
   display_order: number;
   is_active: boolean;
 }
+
+// Re-export result types
+export * from './results';

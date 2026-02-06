@@ -40,8 +40,13 @@ export default function ManagerLayout({
     },
     {
         title: "المعامل",
-        href: "/manager/labs", // Assuming this exists or will be created/redirects
+        href: "/manager/labs",
         icon: FlaskConical
+    },
+    {
+        title: "التحاليل والفحوصات",
+        href: "/manager/tests",
+        icon: Settings
     }
   ]
 

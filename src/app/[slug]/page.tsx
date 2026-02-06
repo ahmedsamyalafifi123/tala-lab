@@ -18,7 +18,8 @@ import {
   Settings,
   Printer,
   FileDown,
-  User
+  User,
+  FlaskConical
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase";
@@ -28,6 +29,7 @@ import { fuzzyMatchArabic } from "@/lib/arabic-utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ClientModal } from "@/components/client-modal";
 import { SettingsModal } from "@/components/settings-modal";
+import { TestResultsModal } from "@/components/results/test-results-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -98,6 +100,8 @@ export default function LabDashboard() {
   
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showResultsModal, setShowResultsModal] = useState(false);
+  const [resultsClient, setResultsClient] = useState<Client | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
@@ -207,6 +211,27 @@ export default function LabDashboard() {
         }
       }
 
+      console.log('📊 Fetched clients sample:', allClients.slice(0, 2).map((c: any) => ({
+        name: c.patient_name,
+        uuid: c.uuid,
+        client_group_id: c.client_group_id,
+        has_selected_tests: !!c.selected_tests,
+        selected_tests_count: c.selected_tests?.length || 0,
+        selected_tests_value: c.selected_tests,
+        all_keys: Object.keys(c).filter(k => !k.startsWith('_'))
+      })));
+
+      // Extra debug: Check if ANY client has selected_tests
+      const clientsWithTests = allClients.filter((c: any) => c.selected_tests && c.selected_tests.length > 0);
+      console.log(`🔍 Found ${clientsWithTests.length} clients with selected_tests out of ${allClients.length} total`);
+
+      if (clientsWithTests.length > 0) {
+        console.log('✅ Clients with tests:', clientsWithTests.map((c: any) => ({
+          name: c.patient_name,
+          tests: c.selected_tests
+        })));
+      }
+
       setClients(allClients as Client[]);
     } catch (error) {
       console.error("Error fetching clients:", error);
@@ -296,8 +321,13 @@ export default function LabDashboard() {
 
   const hasFilters = nameFilter || categoryFilter !== "all" || dateFrom || dateTo;
 
-  const handleSave = async (data: { patient_name: string; notes: string; category: string[] | null; daily_date: string; daily_id?: number | null }) => {
+  const handleSave = async (data: { patient_name: string; notes: string; category: string[] | null; daily_date: string; daily_id?: number | null; selected_tests?: string[] }) => {
     if (!labId) return;
+    console.log('💾 handleSave called with:', {
+      name: data.patient_name,
+      selected_tests: data.selected_tests,
+      isEdit: !!editingClient
+    });
     setIsSaving(true);
     try {
       if (editingClient) {
@@ -309,10 +339,13 @@ export default function LabDashboard() {
           p_notes: data.notes || '',
           p_categories: data.category || [],
           p_daily_date: data.daily_date,
-          p_manual_id: data.daily_id || null
+          p_manual_id: data.daily_id || null,
+          p_selected_tests: data.selected_tests  // Pass selected_tests directly to RPC
         });
 
         if (error) throw error;
+
+        console.log('✅ Client updated with selected_tests:', data.selected_tests?.length || 0, 'tests');
       } else {
         // ADD: Use new insert_client_multi_category function
         // This creates one record per category, all sharing the same client_group_id
@@ -323,10 +356,13 @@ export default function LabDashboard() {
           p_categories: data.category || [],
           p_daily_date: data.daily_date,
           p_manual_id: data.daily_id || null,
-          p_created_by: currentUserId
+          p_created_by: currentUserId,
+          p_selected_tests: data.selected_tests || []  // Pass selected_tests directly to RPC
         });
 
         if (error) throw error;
+
+        console.log('✅ Client created with selected_tests:', data.selected_tests?.length || 0, 'tests');
       }
 
       await fetchClients();
@@ -864,6 +900,38 @@ export default function LabDashboard() {
                           </TableCell>
                           <TableCell>
                               <div className="flex items-center justify-center gap-1">
+                                  {(() => {
+                                    const hasTests = client.selected_tests && client.selected_tests.length > 0;
+
+                                    // Debug: Only log if client has selected_tests field (to reduce noise)
+                                    if (client.selected_tests !== undefined) {
+                                      console.log('🔎 Client with selected_tests field:', {
+                                        name: client.patient_name,
+                                        selected_tests: client.selected_tests,
+                                        hasTests: hasTests,
+                                        isArray: Array.isArray(client.selected_tests),
+                                        length: client.selected_tests?.length
+                                      });
+                                    }
+
+                                    if (hasTests) {
+                                      console.log('✅ FLASK RENDERED for:', client.patient_name);
+                                    }
+                                    return hasTests ? (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-primary"
+                                        onClick={() => {
+                                          setResultsClient(client);
+                                          setShowResultsModal(true);
+                                        }}
+                                        title="إضافة نتائج التحاليل"
+                                      >
+                                        <FlaskConical className="h-4 w-4" />
+                                      </Button>
+                                    ) : null;
+                                  })()}
                                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
                                       setEditingClient(client);
                                       setShowAddModal(true);
@@ -946,12 +1014,27 @@ export default function LabDashboard() {
         </AlertDialogContent>
     </AlertDialog>
 
-    <SettingsModal 
+    <SettingsModal
          isOpen={showSettings}
          onClose={() => setShowSettings(false)}
          categories={categories}
          onCategoriesChange={fetchCategories}
     />
+
+    {/* Test Results Modal */}
+    {resultsClient && (
+      <TestResultsModal
+        isOpen={showResultsModal}
+        onClose={() => {
+          setShowResultsModal(false);
+          setResultsClient(null);
+        }}
+        clientUuid={resultsClient.uuid}
+        clientName={resultsClient.patient_name}
+        clientGender={resultsClient.patient_gender}
+        clientAge={resultsClient.patient_age}
+      />
+    )}
     
     {/* Import Modal */}
       <Dialog open={showImportModal} onOpenChange={setShowImportModal}>

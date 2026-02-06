@@ -38,12 +38,23 @@ import {
   DrawerFooter,
 } from "@/components/ui/drawer";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useLabTests } from "@/hooks/use-lab-tests";
+import { useTestGroups } from "@/hooks/use-test-groups";
+import { groupTestsByCategory } from "@/lib/test-utils";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 interface ClientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { patient_name: string; notes: string; category: string[] | null; daily_date: string; daily_id?: number | null }) => Promise<void>;
+  onSave: (data: { patient_name: string; notes: string; category: string[] | null; daily_date: string; daily_id?: number | null; selected_tests?: string[] }) => Promise<void>;
   client?: Client | null;
   categories: Category[];
   isLoading?: boolean;
@@ -64,8 +75,14 @@ export function ClientModal({
   const [isManualId, setIsManualId] = useState(false);
   const [manualId, setManualId] = useState<string>("");
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [selectedTests, setSelectedTests] = useState<Set<string>>(new Set());
+  const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
 
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  const { tests, loading: testsLoading } = useLabTests();
+  const { groups, loading: groupsLoading } = useTestGroups();
+
+  const groupedTests = groupTestsByCategory(tests);
 
   // Handle back button behavior
   useEffect(() => {
@@ -96,6 +113,12 @@ export function ClientModal({
 
   useEffect(() => {
     if (client) {
+      console.log('🔍 Loading client for edit:', {
+        name: client.patient_name,
+        selected_tests: client.selected_tests,
+        has_tests: client.selected_tests && client.selected_tests.length > 0
+      });
+
       setName(client.patient_name);
       setNotes(client.notes || "");
 
@@ -110,6 +133,21 @@ export function ClientModal({
       setDate(new Date(client.daily_date));
       setIsManualId(false);
       setManualId("");
+
+      const clientTests = new Set(client.selected_tests || []);
+      setSelectedTests(clientTests);
+      console.log('✅ Loaded tests:', Array.from(clientTests));
+
+      // Auto-detect which groups are fully selected
+      const matchedGroups = new Set<string>();
+      groups.forEach((group) => {
+        const allTestsSelected = group.test_codes.every((code) => clientTests.has(code));
+        if (allTestsSelected && group.test_codes.length > 0) {
+          matchedGroups.add(group.group_code);
+        }
+      });
+      setSelectedGroups(matchedGroups);
+      console.log('✅ Loaded groups:', Array.from(matchedGroups));
     } else {
       setName("");
       setNotes("");
@@ -118,8 +156,51 @@ export function ClientModal({
       setDate(new Date());
       setIsManualId(false);
       setManualId("");
+      setSelectedTests(new Set());
+      setSelectedGroups(new Set());
     }
   }, [client, isOpen]);
+
+  const handleTestToggle = (testCode: string) => {
+    setSelectedTests((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(testCode)) {
+        newSet.delete(testCode);
+      } else {
+        newSet.add(testCode);
+      }
+      return newSet;
+    });
+  };
+
+  const handleGroupToggle = (groupCode: string) => {
+    const group = groups.find((g) => g.group_code === groupCode);
+    if (!group) return;
+
+    setSelectedGroups((prev) => {
+      const newSet = new Set(prev);
+      const isSelected = newSet.has(groupCode);
+
+      if (isSelected) {
+        newSet.delete(groupCode);
+        // Remove all tests from this group
+        setSelectedTests((prevTests) => {
+          const newTests = new Set(prevTests);
+          group.test_codes.forEach((code) => newTests.delete(code));
+          return newTests;
+        });
+      } else {
+        newSet.add(groupCode);
+        // Add all tests from this group
+        setSelectedTests((prevTests) => {
+          const newTests = new Set(prevTests);
+          group.test_codes.forEach((code) => newTests.add(code));
+          return newTests;
+        });
+      }
+      return newSet;
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,12 +209,16 @@ export function ClientModal({
     // Always ensure at least "عام" is selected if no categories
     const categoriesToSend = selectedCategories.length > 0 ? selectedCategories : ['عام'];
 
+    const testsToSave = Array.from(selectedTests);
+    console.log('💾 Saving client with tests:', testsToSave);
+
     await onSave({
       patient_name: name.trim(),
       notes: notes.trim(),
       category: categoriesToSend,
       daily_date: format(date, "yyyy-MM-dd"),
       daily_id: isManualId && manualId ? parseInt(manualId) : null,
+      selected_tests: testsToSave,
     });
 
     // If we are adding a new client (not editing), reset the form
@@ -144,6 +229,8 @@ export function ClientModal({
       setDate(new Date());
       setIsManualId(false);
       setManualId("");
+      setSelectedTests(new Set());
+      setSelectedGroups(new Set());
       const nameInput = document.getElementById("name");
       if (nameInput) {
         nameInput.focus();
@@ -319,6 +406,84 @@ export function ClientModal({
                  </div>
               </PopoverContent>
             </Popover>
+          </div>
+
+          <div className="space-y-3 border rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-base font-semibold">التحاليل المطلوبة</Label>
+              <Badge variant="secondary">{selectedTests.size} تحليل</Badge>
+            </div>
+
+            {testsLoading || groupsLoading ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              <>
+                {/* Test Groups */}
+                {groups.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">مجموعات سريعة</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {groups.map((group) => (
+                        <Badge
+                          key={group.group_code}
+                          variant={selectedGroups.has(group.group_code) ? "default" : "outline"}
+                          className="cursor-pointer hover:bg-primary/90 transition-colors"
+                          onClick={() => handleGroupToggle(group.group_code)}
+                        >
+                          {group.group_name_ar}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Individual Tests */}
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">تحاليل فردية</Label>
+                  <Accordion type="multiple" className="w-full">
+                    {Object.entries(groupedTests).map(([category, categoryTests]) => (
+                      <AccordionItem key={category} value={category}>
+                        <AccordionTrigger className="text-sm font-medium hover:no-underline">
+                          <div className="flex items-center gap-2">
+                            <span>{category}</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {categoryTests.filter((t) => selectedTests.has(t.test_code)).length}/
+                              {categoryTests.length}
+                            </Badge>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="space-y-2 pr-4 pt-2">
+                            {categoryTests.map((test) => (
+                              <div key={test.test_code} className="flex items-center space-x-2 space-x-reverse">
+                                <Checkbox
+                                  id={`test-${test.test_code}`}
+                                  checked={selectedTests.has(test.test_code)}
+                                  onCheckedChange={() => handleTestToggle(test.test_code)}
+                                />
+                                <label
+                                  htmlFor={`test-${test.test_code}`}
+                                  className="text-sm cursor-pointer flex-1"
+                                >
+                                  {test.test_name_ar}
+                                  {test.unit && (
+                                    <span className="text-muted-foreground text-xs mr-1">
+                                      ({test.unit})
+                                    </span>
+                                  )}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="space-y-2">
