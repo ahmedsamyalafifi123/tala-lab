@@ -140,15 +140,6 @@ export function TestGroupsManagement() {
   };
 
   const handleDelete = async (group: TestGroup) => {
-    if (group.is_predefined) {
-      toast({
-        title: "غير مسموح",
-        description: "لا يمكن حذف المجموعات المحددة مسبقاً",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!confirm(`هل أنت متأكد من حذف المجموعة "${group.group_name_ar}"؟`)) {
       return;
     }
@@ -199,14 +190,13 @@ export function TestGroupsManagement() {
               <TableHead className="text-right">الاسم بالعربية</TableHead>
               <TableHead className="text-right">الاسم بالإنجليزية</TableHead>
               <TableHead className="text-right">عدد التحاليل</TableHead>
-              <TableHead className="text-right">النوع</TableHead>
               <TableHead className="text-right">الإجراءات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {groups.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                   لا توجد مجموعات. أضف مجموعة جديدة للبدء.
                 </TableCell>
               </TableRow>
@@ -218,23 +208,11 @@ export function TestGroupsManagement() {
                   <TableCell className="text-muted-foreground text-right">{group.group_name_en}</TableCell>
                   <TableCell className="text-right">{group.test_codes.length} تحليل</TableCell>
                   <TableCell className="text-right">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        group.is_predefined
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-green-100 text-green-800"
-                      }`}
-                    >
-                      {group.is_predefined ? "محدد مسبقاً" : "مخصص"}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
                     <div className="flex gap-2 justify-start">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDelete(group)}
-                        disabled={group.is_predefined}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
@@ -242,7 +220,6 @@ export function TestGroupsManagement() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEdit(group)}
-                        disabled={group.is_predefined}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
