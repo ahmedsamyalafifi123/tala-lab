@@ -15,9 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Check, AlertCircle, Pencil } from "lucide-react";
+import { Loader2, Check, AlertCircle, Pencil, Beaker, Calendar, Clock, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { calculateFlag, formatReferenceRange, validateTestValue, getFlagColor, getFlagIcon, groupTestsByCategory } from "@/lib/test-utils";
+import { calculateFlag, formatReferenceRange, validateTestValue, getFlagColor, getFlagIcon, getFlagLabel, groupTestsByCategory } from "@/lib/test-utils";
 import type { TestResult } from "@/types/results";
 import {
   Accordion,
@@ -25,6 +25,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { format } from "date-fns";
+import { ar } from "date-fns/locale";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface TestResultsModalProps {
   isOpen: boolean;
@@ -135,7 +139,7 @@ export function TestResultsModal({
         if (!validation.isValid) {
           toast({
             title: "خطأ في القيمة",
-            description: `${test.test_name_ar}: ${validation.error}`,
+            description: `${test.test_name_en || test.test_name_ar}: ${validation.error}`,
             variant: "destructive",
           });
           return;
@@ -204,7 +208,7 @@ export function TestResultsModal({
             <DialogTitle>جاري التحميل...</DialogTitle>
             <DialogDescription>يرجى الانتظار</DialogDescription>
           </DialogHeader>
-          <div className="flex justify-center items-center py-8">
+          <div className="flex justify-center items-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         </DialogContent>
@@ -232,220 +236,311 @@ export function TestResultsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto text-right" dir="rtl">
-        <DialogHeader className="text-right">
-          <DialogTitle>
-            {viewMode === "history"
-              ? "نتائج التحاليل"
-              : editingEntryId
-                ? "تعديل النتائج"
-                : "إضافة نتائج التحاليل"} - {clientName}
-          </DialogTitle>
-          <DialogDescription>
-            {viewMode === "history"
-              ? "سجل نتائج التحاليل السابقة. اضغط تعديل للتغيير."
-              : "أدخل نتائج التحاليل المطلوبة. سيتم حساب الحالة (طبيعي/مرتفع/منخفض) تلقائياً."
-            }
-          </DialogDescription>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden" aria-describedby="dialog-description">
+        <DialogHeader className="px-6 py-4 border-b bg-muted/20 shrink-0">
+          <div className="flex items-center justify-between">
+            <div>
+               <DialogTitle className="text-xl">
+                 {viewMode === "history"
+                   ? "نتائج التحاليل"
+                   : editingEntryId
+                     ? "تعديل النتائج"
+                     : "إضافة نتائج التحاليل"}
+               </DialogTitle>
+               <DialogDescription id="dialog-description" className="mt-1">
+                 {clientName} • {clientGender === 'male' ? 'ذكر' : 'أنثى'} • {clientAge} سنة
+               </DialogDescription>
+            </div>
+            
+            {viewMode === "history" && (
+                <Button onClick={() => {
+                  setViewMode("add");
+                  setTestValues({});
+                  setOverallNotes("");
+                  setEditingEntryId(null);
+                }}>
+                  + إضافة نتائج جديدة
+                </Button>
+            )}
+            
+            {viewMode === "add" && (editingEntryId || (results.entries && results.entries.length > 0)) && (
+               <Button
+                 variant="ghost"
+                 size="sm"
+                 className="gap-1 opacity-70 hover:opacity-100"
+                 onClick={() => {
+                   setViewMode("history");
+                   setEditingEntryId(null);
+                   setTestValues({});
+                   setOverallNotes("");
+                 }}
+               >
+                 <ArrowRight className="h-4 w-4" />
+                 رجوع للسجل
+               </Button>
+             )}
+          </div>
         </DialogHeader>
 
-        {/* View mode indicator - only show when editing existing entry or when there are results */}
-        {viewMode === "add" && (editingEntryId || (results.entries && results.entries.length > 0)) && (
-          <div className="flex gap-2 border-b pb-3">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setViewMode("history");
-                setEditingEntryId(null);
-                setTestValues({});
-                setOverallNotes("");
-              }}
-              size="sm"
-            >
-              ← رجوع للسجل
-            </Button>
-          </div>
-        )}
-
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 text-right" dir="rtl">
         {/* History View */}
         {viewMode === "history" && results.entries && results.entries.length > 0 && (
-          <div className="space-y-4 py-4">
-            <div className="space-y-4">
-                {results.entries.map((entry) => (
-                  <div key={entry.entry_id} className="border rounded-lg p-4 space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(entry.recorded_at).toLocaleDateString("ar-EG", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          // Load entry data into form
-                          const values: Record<string, { value: string; notes?: string }> = {};
-                          Object.entries(entry.tests).forEach(([testCode, result]) => {
-                            values[testCode] = {
-                              value: result.value.toString(),
-                              notes: result.notes,
-                            };
-                          });
-                          setTestValues(values);
-                          setOverallNotes(entry.notes || "");
-                          setEditingEntryId(entry.entry_id);
-                          setViewMode("add");
-                        }}
-                      >
-                        <Pencil className="h-3 w-3 ml-1" />
-                        تعديل
-                      </Button>
-                    </div>
+          <div className="space-y-6 relative">
+             <div className="absolute right-[19px] top-4 bottom-4 w-0.5 bg-border -z-10 hidden md:block" />
+             
+            {results.entries.map((entry, index) => {
+               // Group tests for display
+               const entryTests = Object.entries(entry.tests).map(([code, result]) => {
+                  const test = tests.find(t => t.test_code === code);
+                  return { code, result, test };
+               });
+               
+               const groupedEntryTests: Record<string, typeof entryTests> = {};
+               entryTests.forEach(item => {
+                  const category = item.test?.category || "عام";
+                  if (!groupedEntryTests[category]) groupedEntryTests[category] = [];
+                  groupedEntryTests[category].push(item);
+               });
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {/* Show all selected tests, even if not filled yet */}
-                      {selectedTests.map((testCode) => {
-                        const test = tests.find((t) => t.test_code === testCode);
-                        const result = entry.tests[testCode];
-                        const flagColor = result?.flag ? getFlagColor(result.flag) : "";
-                        const flagIcon = result?.flag ? getFlagIcon(result.flag) : null;
+               const isLatest = index === 0;
 
-                        return (
-                          <div
-                            key={testCode}
-                            className={`border rounded p-2 ${!result ? 'bg-muted/30 border-dashed' : ''}`}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1">
-                                <p className="text-xs text-muted-foreground">{test?.test_name_ar || testCode}</p>
-                                {result ? (
-                                  <p className="font-semibold">
-                                    {result.value} {result.unit}
-                                  </p>
-                                ) : (
-                                  <p className="text-sm text-muted-foreground italic">
-                                    لم يتم إضافتها
-                                  </p>
-                                )}
-                              </div>
-                              {flagIcon && (
-                                <span className={`text-lg font-bold ${flagColor}`}>
-                                  {flagIcon}
-                                </span>
-                              )}
+               return (
+                  <div key={entry.entry_id} className="relative group">
+                    <div className="flex items-start gap-4">
+                       {/* Timeline dot */}
+                       <div className={cn(
+                          "w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-4 border-background z-10 hidden md:flex",
+                          isLatest ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-muted text-muted-foreground"
+                       )}>
+                          <Calendar className="h-4 w-4" />
+                       </div>
+
+                       <div className={cn(
+                          "flex-1 border rounded-xl overflow-hidden bg-card transition-all duration-200",
+                          isLatest ? "border-primary/50 shadow-md" : "hover:border-primary/30"
+                       )}>
+                         <div className="bg-muted/30 border-b p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                               <div className="space-y-0.5">
+                                  <div className="flex items-center gap-2">
+                                     <h3 className="font-semibold text-base">
+                                        {format(new Date(entry.recorded_at), "PPP", { locale: ar })}
+                                     </h3>
+                                     {isLatest && <Badge className="text-[10px] h-5 px-1.5">الأحدث</Badge>}
+                                  </div>
+                                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                     <span className="flex items-center gap-1">
+                                        <Clock className="h-3 w-3" />
+                                        {format(new Date(entry.recorded_at), "p", { locale: ar })}
+                                     </span>
+                                     <span>•</span>
+                                     <span>{Object.keys(entry.tests).length} تحليل</span>
+                                  </div>
+                               </div>
                             </div>
-                            {result?.notes && (
-                              <p className="text-xs text-muted-foreground mt-1">{result.notes}</p>
-                            )}
-                          </div>
-                        );
-                      })}
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-1 text-muted-foreground hover:text-primary"
+                              onClick={() => {
+                                 const values: Record<string, { value: string; notes?: string }> = {};
+                                 Object.entries(entry.tests).forEach(([testCode, result]) => {
+                                   values[testCode] = {
+                                     value: result.value.toString(),
+                                     notes: result.notes,
+                                   };
+                                 });
+                                 setTestValues(values);
+                                 setOverallNotes(entry.notes || "");
+                                 setEditingEntryId(entry.entry_id);
+                                 setViewMode("add");
+                              }}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                              <span className="text-xs">تعديل</span>
+                            </Button>
+                         </div>
+                         
+                         <div className="divide-y">
+                           {Object.entries(groupedEntryTests).map(([category, items]) => (
+                              <div key={category} className="p-4">
+                                 <div className="flex items-center gap-2 mb-3">
+                                    <div className="h-6 w-6 rounded bg-primary/10 flex items-center justify-center text-primary">
+                                       <Beaker className="h-3.5 w-3.5" />
+                                    </div>
+                                    <h4 className="font-medium text-sm text-foreground/80">{category}</h4>
+                                 </div>
+                                 
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {items.map(({ code, result, test }) => {
+                                       const flagColor = result?.flag ? getFlagColor(result.flag) : "";
+                                       const flagIcon = result?.flag ? getFlagIcon(result.flag) : null;
+                                       
+                                       return (
+                                          <div key={code} className={cn(
+                                             "border rounded-lg p-3 flex flex-col gap-2 relative overflow-hidden",
+                                             result.flag ? "bg-accent/20 border-accent/20" : "bg-card hover:bg-muted/20"
+                                          )}>
+                                             {result.flag && (
+                                                <div className={cn("absolute top-0 right-0 w-1 h-full", flagColor.replace('text-', 'bg-').replace('bg-', ''))} />
+                                             )}
+                                             
+                                             <div className="flex justify-between items-start gap-2">
+                                                <span className="text-xs font-medium text-muted-foreground line-clamp-1 text-left" dir="ltr" title={test?.test_name_en || test?.test_name_ar}>{test?.test_name_en || test?.test_name_ar || code}</span>
+                                                {flagIcon && <span className={cn("text-xs font-bold", flagColor)}>{flagIcon}</span>}
+                                             </div>
+                                             
+                                             <div className="flex items-baseline gap-1 mt-auto">
+                                                <span className="text-lg font-bold font-mono tracking-tight">{result.value}</span>
+                                                <span className="text-xs text-muted-foreground">{result.unit || test?.unit || "-"}</span>
+                                             </div>
+                                             
+                                             {result.notes && (
+                                                <div className="text-[10px] text-muted-foreground bg-muted/50 p-1.5 rounded mt-1 truncate">
+                                                   {result.notes}
+                                                </div>
+                                             )}
+                                          </div>
+                                       );
+                                    })}
+                                 </div>
+                              </div>
+                           ))}
+                         </div>
+                         
+                         {entry.notes && (
+                            <div className="bg-muted/30 p-3 text-sm text-muted-foreground border-t flex gap-2">
+                               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                               <p>{entry.notes}</p>
+                            </div>
+                         )}
+                       </div>
                     </div>
-
-                    {entry.notes && (
-                      <div className="bg-muted p-2 rounded text-sm">
-                        <strong>ملاحظات:</strong> {entry.notes}
-                      </div>
-                    )}
                   </div>
-                ))}
-            </div>
+               );
+            })}
           </div>
         )}
 
         {/* Add New Entry View */}
         {viewMode === "add" && (
-          <div className="space-y-4 py-4">
-            <Accordion type="multiple" className="w-full" dir="rtl">
-            {Object.entries(groupedTests).map(([category, categoryTests]) => (
-              <AccordionItem key={category} value={category}>
-                <AccordionTrigger className="text-sm font-medium text-right">
-                  {category} ({categoryTests.length})
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-4 pe-4">
-                    {categoryTests.map((test) => {
-                      const value = testValues[test.test_code]?.value || "";
-                      const flag = getTestFlag(test.test_code, value);
-                      const refRange = formatReferenceRange(test.reference_ranges, clientGender, clientAge);
-
-                      return (
-                        <div key={test.test_code} className="space-y-2 border rounded-lg p-3">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 text-right">
-                              <Label htmlFor={test.test_code} className="font-medium">
-                                {test.test_name_ar}
-                              </Label>
-                              <p className="text-xs text-muted-foreground mt-1 text-right">
-                                القيم الطبيعية: {refRange} {test.unit}
-                              </p>
-                            </div>
-                            {flag && (
-                              <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border ${getFlagColor(flag)}`}>
-                                <span>{getFlagIcon(flag)}</span>
-                                <span>{flag === 'normal' ? 'طبيعي' : flag === 'high' ? 'مرتفع' : flag === 'low' ? 'منخفض' : flag === 'critical_high' ? 'مرتفع جداً' : 'منخفض جداً'}</span>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <Label htmlFor={test.test_code} className="text-xs text-right">
-                                القيمة {test.unit && `(${test.unit})`}
-                              </Label>
-                              <Input
-                                id={test.test_code}
-                                type="number"
-                                step="0.01"
-                                value={value}
-                                onChange={(e) => handleValueChange(test.test_code, e.target.value)}
-                                placeholder="أدخل القيمة"
-                                className="text-right"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label htmlFor={`${test.test_code}-notes`} className="text-xs text-right">
-                                ملاحظات (اختياري)
-                              </Label>
-                              <Input
-                                id={`${test.test_code}-notes`}
-                                value={testValues[test.test_code]?.notes || ""}
-                                onChange={(e) => handleNotesChange(test.test_code, e.target.value)}
-                                placeholder="ملاحظات"
-                                className="text-right"
-                              />
-                            </div>
-                          </div>
+          <div className="space-y-6 max-w-3xl mx-auto">
+             <div className="bg-primary/5 border border-primary/10 rounded-lg p-4 mb-6">
+                <h3 className="font-semibold text-primary mb-1 flex items-center gap-2">
+                   <Beaker className="h-4 w-4" />
+                   إدخال نتائج التحاليل
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                   يرجى إدخال النتائج بدقة. سيتم تحديد الحالة (طبيعي/مرتفع/منخفض) تلقائياً بناءً على القيم المرجعية.
+                </p>
+             </div>
+             
+             <div className="space-y-8">
+               {Object.entries(groupedTests).map(([category, categoryTests]) => (
+                  <div key={category} className="space-y-4">
+                     <div className="flex items-center gap-2 pb-2 border-b">
+                        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center font-bold text-muted-foreground">
+                           {category.charAt(0)}
                         </div>
-                      );
-                    })}
+                        <h4 className="font-semibold text-lg">{category}</h4>
+                        <Badge variant="outline" className="mr-auto">{categoryTests.length} تحليل</Badge>
+                     </div>
+                     
+                     <div className="grid gap-6">
+                        {categoryTests.map((test) => {
+                           const value = testValues[test.test_code]?.value || "";
+                           const flag = getTestFlag(test.test_code, value);
+                           const refRange = formatReferenceRange(test.reference_ranges, clientGender, clientAge);
+                           
+                           return (
+                              <div key={test.test_code} className={cn(
+                                 "group p-4 rounded-xl border transition-all duration-200",
+                                 value ? (flag ? "bg-accent/5 border-accent/20 shadow-sm" : "bg-card border-border shadow-sm") : "bg-muted/10 border-transparent hover:border-border"
+                              )}>
+                                 <div className="flex flex-col sm:flex-row gap-4 sm:items-start">
+                                    <div className="flex-1 space-y-1">
+                                       <div className="flex items-center justify-between">
+                                          <Label htmlFor={test.test_code} className="font-semibold text-base text-left block" dir="ltr">
+                                             {test.test_name_en || test.test_name_ar}
+                                          </Label>
+                                          {test.unit && <Badge variant="secondary" className="text-xs font-mono">{test.unit}</Badge>}
+                                       </div>
+                                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                          <span>المدى الطبيعي:</span>
+                                          <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{refRange}</span>
+                                       </div>
+                                    </div>
+                                    
+                                    <div className="flex-1 sm:max-w-[200px] space-y-2">
+                                       <div className="relative">
+                                          <Input
+                                             id={test.test_code}
+                                             type="number"
+                                             step="0.01"
+                                             value={value}
+                                             onChange={(e) => handleValueChange(test.test_code, e.target.value)}
+                                             placeholder="النتيجة"
+                                             className={cn(
+                                                "font-mono text-lg h-10 transition-colors",
+                                                flag ? getFlagColor(flag).replace('text-', 'border-').replace('700', '300') : ""
+                                             )}
+                                             dir="ltr"
+                                          />
+                                          {flag && (
+                                             <div className={cn(
+                                                "absolute inset-y-0 right-3 flex items-center pointer-events-none",
+                                                getFlagColor(flag)
+                                             )}>
+                                                {getFlagIcon(flag)}
+                                             </div>
+                                          )}
+                                       </div>
+                                       {flag && (
+                                          <div className={cn("text-xs font-medium flex items-center justify-end gap-1.5", getFlagColor(flag))}>
+                                             <span>{getFlagLabel(flag)}</span>
+                                             <span>•</span>
+                                             <span>{flag === 'high' || flag === 'critical_high' ? 'مرتفع' : 'منخفض'}</span>
+                                          </div>
+                                       )}
+                                    </div>
+                                 </div>
+                                 
+                                 {/* Notes field - shown when value entered or expanding */}
+                                 <div className="mt-3 overflow-hidden transition-all">
+                                    <Input
+                                       id={`${test.test_code}-notes`}
+                                       value={testValues[test.test_code]?.notes || ""}
+                                       onChange={(e) => handleNotesChange(test.test_code, e.target.value)}
+                                       placeholder="ملاحظات توضيحية لهذه النتيجة (اختياري)..."
+                                       className="h-8 text-sm bg-background/50 border-dashed focus:border-solid hover:bg-background"
+                                    />
+                                 </div>
+                              </div>
+                           );
+                        })}
+                     </div>
                   </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+               ))}
+             </div>
 
-          <div className="space-y-2 border-t pt-4">
-            <Label htmlFor="overall-notes" className="text-right">ملاحظات عامة (اختياري)</Label>
-            <Textarea
-              id="overall-notes"
-              value={overallNotes}
-              onChange={(e) => setOverallNotes(e.target.value)}
-              placeholder="أي ملاحظات عامة على الفحص..."
-              rows={3}
-              className="text-right"
-            />
-          </div>
+             <div className="space-y-3 pt-6 border-t">
+               <Label htmlFor="overall-notes" className="text-base font-medium">ملاحظات عامة على التقرير (اختياري)</Label>
+               <Textarea
+                 id="overall-notes"
+                 value={overallNotes}
+                 onChange={(e) => setOverallNotes(e.target.value)}
+                 placeholder="أي ملاحظات عامة تظهر في أسفل التقرير..."
+                 rows={3}
+                 className="resize-none"
+               />
+             </div>
           </div>
         )}
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="border-t bg-muted/20 px-6 py-4 shrink-0 sm:justify-start">
+          <div className="flex w-full gap-2 sm:w-auto sm:mr-auto">
           {viewMode === "add" ? (
             <>
               <Button variant="outline" onClick={() => {
@@ -461,16 +556,17 @@ export function TestResultsModal({
               }} disabled={saving}>
                 إلغاء
               </Button>
-              <Button onClick={handleSubmit} disabled={saving}>
-                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button onClick={handleSubmit} disabled={saving} className="min-w-[120px]">
+                {saving && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                 {editingEntryId ? "تحديث النتائج" : "حفظ النتائج"}
               </Button>
             </>
           ) : (
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
               إغلاق
             </Button>
           )}
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -89,7 +89,7 @@ export function ExportResultsDialog({
           const refRange = test?.reference_ranges.default;
 
           excelData.push({
-            التحليل: test?.test_name_ar || testCode,
+            التحليل: test?.test_name_en || test?.test_name_ar || testCode,
             القيمة: result.value,
             الوحدة: result.unit || test?.unit || "-",
             الحالة:
@@ -262,7 +262,7 @@ export function ExportResultsDialog({
 
         html += `
           <tr>
-            <td>${test?.test_name_ar || testCode}</td>
+            <td>${test?.test_name_en || test?.test_name_ar || testCode}</td>
             <td><strong>${result.value}</strong></td>
             <td>${result.unit || test?.unit || "-"}</td>
             <td class="${flagClass}">

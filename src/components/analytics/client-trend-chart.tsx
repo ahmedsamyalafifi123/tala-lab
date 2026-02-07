@@ -130,7 +130,7 @@ export function ClientTrendChart({ clientUuid, clientGender, clientAge }: Client
               <SelectContent>
                 {availableTests.map((test) => (
                   <SelectItem key={test.test_code} value={test.test_code}>
-                    {test.test_name_ar}
+                    {test.test_name_en || test.test_name_ar}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -235,7 +235,7 @@ export function ClientTrendChart({ clientUuid, clientGender, clientAge }: Client
                   strokeWidth={2}
                   dot={{ fill: "#8b5cf6", r: 5 }}
                   activeDot={{ r: 7 }}
-                  name={selectedTest?.test_name_ar || "القيمة"}
+                  name={selectedTest?.test_name_en || selectedTest?.test_name_ar || "Value"}
                 />
               </LineChart>
             </ResponsiveContainer>

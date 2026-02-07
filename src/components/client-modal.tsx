@@ -496,7 +496,7 @@ export function ClientModal({
                                   htmlFor={`test-${test.test_code}`}
                                   className="text-sm cursor-pointer flex-1"
                                 >
-                                  {test.test_name_ar}
+                                  {test.test_name_en || test.test_name_ar}
                                   {test.unit && (
                                     <span className="text-muted-foreground text-xs mr-1">
                                       ({test.unit})

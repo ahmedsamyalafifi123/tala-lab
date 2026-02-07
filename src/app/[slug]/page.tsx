@@ -30,6 +30,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { ClientModal } from "@/components/client-modal";
 import { SettingsModal } from "@/components/settings-modal";
 import { TestResultsModal } from "@/components/results/test-results-modal";
+import { ClientDetails } from "@/components/client-details";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -115,6 +116,8 @@ export default function LabDashboard() {
   });
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [deleteClient, setDeleteClient] = useState<Client | null>(null);
+  const [detailsClient, setDetailsClient] = useState<Client | null>(null);
+  const [showDetailsSheet, setShowDetailsSheet] = useState(false);
   
   // Bulk Selection
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -862,7 +865,19 @@ export default function LabDashboard() {
                   ) : (
                     <>
                     {(printReversed ? [...filteredClients].reverse() : filteredClients).slice(0, 100).map((client) => (
-                      <TableRow key={client.uuid} data-state={selectedIds.includes(client.uuid || "") ? "selected" : undefined}>
+                      <TableRow 
+                        key={client.uuid} 
+                        data-state={selectedIds.includes(client.uuid || "") ? "selected" : undefined}
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={(e) => {
+                          // Prevent opening details when clicking checkbox or actions
+                          if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('[role="checkbox"]')) {
+                            return;
+                          }
+                          setDetailsClient(client);
+                          setShowDetailsSheet(true);
+                        }}
+                      >
                           <TableCell className="text-center">
                             <Checkbox 
                               checked={!!client.uuid && selectedIds.includes(client.uuid)}
@@ -1035,6 +1050,20 @@ export default function LabDashboard() {
         clientAge={resultsClient.patient_age}
       />
     )}
+
+    <ClientDetails
+      client={detailsClient}
+      isOpen={showDetailsSheet}
+      onClose={() => {
+        setShowDetailsSheet(false);
+        setDetailsClient(null);
+      }}
+      onEdit={(client) => {
+        setShowDetailsSheet(false);
+        setEditingClient(client);
+        setShowAddModal(true);
+      }}
+    />
     
     {/* Import Modal */}
       <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
