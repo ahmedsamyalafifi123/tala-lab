@@ -180,7 +180,7 @@ export function TestGroupsManagement() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" dir="rtl">
       <div className="flex justify-between items-center">
         <p className="text-sm text-muted-foreground">
           إجمالي المجموعات: {groups.length}
@@ -192,15 +192,15 @@ export function TestGroupsManagement() {
       </div>
 
       <div className="border rounded-lg">
-        <Table>
+        <Table dir="rtl">
           <TableHeader>
             <TableRow>
-              <TableHead>الكود</TableHead>
-              <TableHead>الاسم بالعربية</TableHead>
-              <TableHead>الاسم بالإنجليزية</TableHead>
-              <TableHead>عدد التحاليل</TableHead>
-              <TableHead>النوع</TableHead>
-              <TableHead className="text-left">الإجراءات</TableHead>
+              <TableHead className="text-right">الكود</TableHead>
+              <TableHead className="text-right">الاسم بالعربية</TableHead>
+              <TableHead className="text-right">الاسم بالإنجليزية</TableHead>
+              <TableHead className="text-right">عدد التحاليل</TableHead>
+              <TableHead className="text-right">النوع</TableHead>
+              <TableHead className="text-right">الإجراءات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -213,11 +213,11 @@ export function TestGroupsManagement() {
             ) : (
               groups.map((group) => (
                 <TableRow key={group.uuid}>
-                  <TableCell className="font-mono text-xs">{group.group_code}</TableCell>
-                  <TableCell className="font-medium">{group.group_name_ar}</TableCell>
-                  <TableCell className="text-muted-foreground">{group.group_name_en}</TableCell>
-                  <TableCell>{group.test_codes.length} تحليل</TableCell>
-                  <TableCell>
+                  <TableCell className="font-mono text-xs text-right">{group.group_code}</TableCell>
+                  <TableCell className="font-medium text-right">{group.group_name_ar}</TableCell>
+                  <TableCell className="text-muted-foreground text-right">{group.group_name_en}</TableCell>
+                  <TableCell className="text-right">{group.test_codes.length} تحليل</TableCell>
+                  <TableCell className="text-right">
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         group.is_predefined
@@ -228,16 +228,8 @@ export function TestGroupsManagement() {
                       {group.is_predefined ? "محدد مسبقاً" : "مخصص"}
                     </span>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2 justify-end">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(group)}
-                        disabled={group.is_predefined}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                  <TableCell className="text-right">
+                    <div className="flex gap-2 justify-start">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -245,6 +237,14 @@ export function TestGroupsManagement() {
                         disabled={group.is_predefined}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(group)}
+                        disabled={group.is_predefined}
+                      >
+                        <Pencil className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
@@ -257,8 +257,8 @@ export function TestGroupsManagement() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto text-right" dir="rtl">
+          <DialogHeader className="text-right">
             <DialogTitle>
               {editingGroup ? "تعديل مجموعة" : "إضافة مجموعة جديدة"}
             </DialogTitle>
@@ -281,7 +281,7 @@ export function TestGroupsManagement() {
                   }
                   placeholder="ROUTINE_PANEL"
                   disabled={!!editingGroup}
-                  className="font-mono"
+                  className="font-mono text-right"
                 />
               </div>
 
@@ -294,6 +294,7 @@ export function TestGroupsManagement() {
                     setFormData({ ...formData, group_name_ar: e.target.value })
                   }
                   placeholder="الفحص الروتيني"
+                  className="text-right"
                 />
               </div>
             </div>
@@ -307,22 +308,23 @@ export function TestGroupsManagement() {
                   setFormData({ ...formData, group_name_en: e.target.value })
                 }
                 placeholder="Routine Panel"
+                className="text-right"
               />
             </div>
 
             <div className="space-y-2">
               <Label>التحاليل المتضمنة * ({formData.test_codes.length} محدد)</Label>
               <div className="border rounded-lg p-4 max-h-96 overflow-y-auto">
-                <Accordion type="multiple" className="w-full">
+                <Accordion type="multiple" className="w-full" dir="rtl">
                   {Object.entries(groupedTests).map(([category, categoryTests]) => (
                     <AccordionItem key={category} value={category}>
-                      <AccordionTrigger className="text-sm font-medium">
+                      <AccordionTrigger className="text-sm font-medium text-right">
                         {category} ({categoryTests.length})
                       </AccordionTrigger>
                       <AccordionContent>
-                        <div className="space-y-2 pr-4">
+                        <div className="space-y-2 pe-4">
                           {categoryTests.map((test) => (
-                            <div key={test.test_code} className="flex items-center space-x-2 space-x-reverse">
+                            <div key={test.test_code} className="flex items-center gap-2">
                               <Checkbox
                                 id={test.test_code}
                                 checked={formData.test_codes.includes(test.test_code)}
@@ -332,10 +334,10 @@ export function TestGroupsManagement() {
                               />
                               <label
                                 htmlFor={test.test_code}
-                                className="text-sm cursor-pointer flex-1"
+                                className="text-sm cursor-pointer flex-1 text-right"
                               >
                                 {test.test_name_ar}
-                                <span className="text-muted-foreground ml-2">
+                                <span className="text-muted-foreground me-2">
                                   ({test.test_code})
                                 </span>
                               </label>
@@ -351,12 +353,12 @@ export function TestGroupsManagement() {
           </div>
 
           <DialogFooter>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {editingGroup ? "حفظ التعديلات" : "إضافة المجموعة"}
+            </Button>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               إلغاء
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-              {editingGroup ? "حفظ التعديلات" : "إضافة المجموعة"}
             </Button>
           </DialogFooter>
         </DialogContent>

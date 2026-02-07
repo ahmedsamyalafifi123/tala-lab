@@ -194,7 +194,7 @@ export function TestsManagement() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" dir="rtl">
       <div className="flex justify-between items-center">
         <p className="text-sm text-muted-foreground">
           إجمالي التحاليل: {tests.length}
@@ -206,16 +206,16 @@ export function TestsManagement() {
       </div>
 
       <div className="border rounded-lg">
-        <Table>
+        <Table dir="rtl">
           <TableHeader>
             <TableRow>
-              <TableHead>الكود</TableHead>
-              <TableHead>الاسم بالعربية</TableHead>
-              <TableHead>الاسم بالإنجليزية</TableHead>
-              <TableHead>الفئة</TableHead>
-              <TableHead>الوحدة</TableHead>
-              <TableHead>القيم الطبيعية</TableHead>
-              <TableHead className="text-left">الإجراءات</TableHead>
+              <TableHead className="text-right">الكود</TableHead>
+              <TableHead className="text-right">الاسم بالعربية</TableHead>
+              <TableHead className="text-right">الاسم بالإنجليزية</TableHead>
+              <TableHead className="text-right">الفئة</TableHead>
+              <TableHead className="text-right">الوحدة</TableHead>
+              <TableHead className="text-right">القيم الطبيعية</TableHead>
+              <TableHead className="text-right">الإجراءات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -228,35 +228,35 @@ export function TestsManagement() {
             ) : (
               tests.map((test) => (
                 <TableRow key={test.uuid}>
-                  <TableCell className="font-mono text-xs">{test.test_code}</TableCell>
-                  <TableCell className="font-medium">{test.test_name_ar}</TableCell>
-                  <TableCell className="text-muted-foreground">{test.test_name_en}</TableCell>
-                  <TableCell>
+                  <TableCell className="font-mono text-xs text-right">{test.test_code}</TableCell>
+                  <TableCell className="font-medium text-right">{test.test_name_ar}</TableCell>
+                  <TableCell className="text-muted-foreground text-right">{test.test_name_en}</TableCell>
+                  <TableCell className="text-right">
                     <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
                       {TEST_CATEGORIES.find(c => c.value === test.category)?.label || test.category}
                     </span>
                   </TableCell>
-                  <TableCell>{test.unit || "-"}</TableCell>
-                  <TableCell>
+                  <TableCell className="text-right">{test.unit || "-"}</TableCell>
+                  <TableCell className="text-right">
                     {test.reference_ranges.default
                       ? `${test.reference_ranges.default.min} - ${test.reference_ranges.default.max}`
                       : "-"}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2 justify-end">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(test)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                  <TableCell className="text-right">
+                    <div className="flex gap-2 justify-start">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDelete(test)}
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(test)}
+                      >
+                        <Pencil className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
@@ -269,8 +269,8 @@ export function TestsManagement() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl text-right" dir="rtl">
+          <DialogHeader className="text-right">
             <DialogTitle>
               {editingTest ? "تعديل تحليل" : "إضافة تحليل جديد"}
             </DialogTitle>
@@ -293,7 +293,7 @@ export function TestsManagement() {
                   }
                   placeholder="CBC_WBC"
                   disabled={!!editingTest}
-                  className="font-mono"
+                  className="font-mono text-right"
                 />
               </div>
 
@@ -305,7 +305,7 @@ export function TestsManagement() {
                     setFormData({ ...formData, category: value })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="text-right">
                     <SelectValue placeholder="اختر الفئة" />
                   </SelectTrigger>
                   <SelectContent>
@@ -329,6 +329,7 @@ export function TestsManagement() {
                     setFormData({ ...formData, test_name_ar: e.target.value })
                   }
                   placeholder="عدد خلايا الدم البيضاء"
+                  className="text-right"
                 />
               </div>
 
@@ -341,6 +342,7 @@ export function TestsManagement() {
                     setFormData({ ...formData, test_name_en: e.target.value })
                   }
                   placeholder="White Blood Cells"
+                  className="text-right"
                 />
               </div>
             </div>
@@ -354,6 +356,7 @@ export function TestsManagement() {
                   setFormData({ ...formData, unit: e.target.value })
                 }
                 placeholder="mg/dL, ×10³/µL, %, etc."
+                className="text-right"
               />
             </div>
 
@@ -369,6 +372,7 @@ export function TestsManagement() {
                     setFormData({ ...formData, reference_min: e.target.value })
                   }
                   placeholder="70"
+                  className="text-right"
                 />
               </div>
 
@@ -383,18 +387,19 @@ export function TestsManagement() {
                     setFormData({ ...formData, reference_max: e.target.value })
                   }
                   placeholder="100"
+                  className="text-right"
                 />
               </div>
             </div>
           </div>
 
           <DialogFooter>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {editingTest ? "حفظ التعديلات" : "إضافة التحليل"}
+            </Button>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               إلغاء
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-              {editingTest ? "حفظ التعديلات" : "إضافة التحليل"}
             </Button>
           </DialogFooter>
         </DialogContent>

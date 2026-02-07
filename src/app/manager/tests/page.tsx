@@ -11,23 +11,23 @@ export default function TestsManagementPage() {
   const [activeTab, setActiveTab] = useState("tests");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold">إدارة التحاليل والفحوصات</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-3xl font-bold text-right">إدارة التحاليل والفحوصات</h1>
+        <p className="text-muted-foreground mt-2 text-right">
           إدارة جميع التحاليل والمجموعات المتاحة لجميع المعامل
         </p>
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="tests" className="gap-2">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6" dir="rtl">
+        <TabsList className="grid w-full max-w-md grid-cols-2" dir="rtl">
+          <TabsTrigger value="tests" className="gap-2 justify-start">
             <FlaskConical className="h-4 w-4" />
             التحاليل الفردية
           </TabsTrigger>
-          <TabsTrigger value="groups" className="gap-2">
+          <TabsTrigger value="groups" className="gap-2 justify-start">
             <Layers className="h-4 w-4" />
             مجموعات التحاليل
           </TabsTrigger>

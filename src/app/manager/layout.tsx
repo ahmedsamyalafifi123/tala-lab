@@ -101,9 +101,9 @@ export default function ManagerLayout({
   )
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="min-h-screen flex bg-background" dir="rtl">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 flex-col border-l fixed inset-y-0 right-0 z-50">
+      <aside className="hidden md:flex w-64 flex-col border-r fixed inset-y-0 right-0 z-50">
         <SidebarContent />
       </aside>
 
@@ -130,7 +130,7 @@ export default function ManagerLayout({
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="p-0 border-l">
+            <SheetContent side="left" className="p-0 border-r">
               <SheetTitle className="sr-only">قائمة التنقل</SheetTitle>
               <SidebarContent />
             </SheetContent>
