@@ -232,8 +232,8 @@ export function TestResultsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto text-right" dir="rtl">
+        <DialogHeader className="text-right">
           <DialogTitle>
             {viewMode === "history"
               ? "نتائج التحاليل"
@@ -249,8 +249,8 @@ export function TestResultsModal({
           </DialogDescription>
         </DialogHeader>
 
-        {/* View mode indicator - only show when editing */}
-        {viewMode === "add" && (
+        {/* View mode indicator - only show when editing existing entry or when there are results */}
+        {viewMode === "add" && (editingEntryId || (results.entries && results.entries.length > 0)) && (
           <div className="flex gap-2 border-b pb-3">
             <Button
               variant="outline"
@@ -362,14 +362,14 @@ export function TestResultsModal({
         {/* Add New Entry View */}
         {viewMode === "add" && (
           <div className="space-y-4 py-4">
-            <Accordion type="multiple" className="w-full">
+            <Accordion type="multiple" className="w-full" dir="rtl">
             {Object.entries(groupedTests).map(([category, categoryTests]) => (
               <AccordionItem key={category} value={category}>
-                <AccordionTrigger className="text-sm font-medium">
+                <AccordionTrigger className="text-sm font-medium text-right">
                   {category} ({categoryTests.length})
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="space-y-4 pr-4">
+                  <div className="space-y-4 pe-4">
                     {categoryTests.map((test) => {
                       const value = testValues[test.test_code]?.value || "";
                       const flag = getTestFlag(test.test_code, value);
@@ -378,11 +378,11 @@ export function TestResultsModal({
                       return (
                         <div key={test.test_code} className="space-y-2 border rounded-lg p-3">
                           <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1">
+                            <div className="flex-1 text-right">
                               <Label htmlFor={test.test_code} className="font-medium">
                                 {test.test_name_ar}
                               </Label>
-                              <p className="text-xs text-muted-foreground mt-1">
+                              <p className="text-xs text-muted-foreground mt-1 text-right">
                                 القيم الطبيعية: {refRange} {test.unit}
                               </p>
                             </div>
@@ -396,7 +396,7 @@ export function TestResultsModal({
 
                           <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                              <Label htmlFor={test.test_code} className="text-xs">
+                              <Label htmlFor={test.test_code} className="text-xs text-right">
                                 القيمة {test.unit && `(${test.unit})`}
                               </Label>
                               <Input
@@ -406,10 +406,11 @@ export function TestResultsModal({
                                 value={value}
                                 onChange={(e) => handleValueChange(test.test_code, e.target.value)}
                                 placeholder="أدخل القيمة"
+                                className="text-right"
                               />
                             </div>
                             <div className="space-y-1">
-                              <Label htmlFor={`${test.test_code}-notes`} className="text-xs">
+                              <Label htmlFor={`${test.test_code}-notes`} className="text-xs text-right">
                                 ملاحظات (اختياري)
                               </Label>
                               <Input
@@ -417,6 +418,7 @@ export function TestResultsModal({
                                 value={testValues[test.test_code]?.notes || ""}
                                 onChange={(e) => handleNotesChange(test.test_code, e.target.value)}
                                 placeholder="ملاحظات"
+                                className="text-right"
                               />
                             </div>
                           </div>
@@ -430,13 +432,14 @@ export function TestResultsModal({
           </Accordion>
 
           <div className="space-y-2 border-t pt-4">
-            <Label htmlFor="overall-notes">ملاحظات عامة (اختياري)</Label>
+            <Label htmlFor="overall-notes" className="text-right">ملاحظات عامة (اختياري)</Label>
             <Textarea
               id="overall-notes"
               value={overallNotes}
               onChange={(e) => setOverallNotes(e.target.value)}
               placeholder="أي ملاحظات عامة على الفحص..."
               rows={3}
+              className="text-right"
             />
           </div>
           </div>
@@ -445,11 +448,21 @@ export function TestResultsModal({
         <DialogFooter>
           {viewMode === "add" ? (
             <>
-              <Button variant="outline" onClick={() => setViewMode("history")} disabled={saving}>
+              <Button variant="outline" onClick={() => {
+                // If editing or has history, go back to history. Otherwise close modal.
+                if (editingEntryId || (results.entries && results.entries.length > 0)) {
+                  setViewMode("history");
+                  setEditingEntryId(null);
+                  setTestValues({});
+                  setOverallNotes("");
+                } else {
+                  onClose();
+                }
+              }} disabled={saving}>
                 إلغاء
               </Button>
               <Button onClick={handleSubmit} disabled={saving}>
-                {saving && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {editingEntryId ? "تحديث النتائج" : "حفظ النتائج"}
               </Button>
             </>
