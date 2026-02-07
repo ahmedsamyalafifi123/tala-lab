@@ -202,6 +202,19 @@ export function ClientModal({
     });
   };
 
+  const handleSelectAllCategory = (categoryTests: any[], selectAll: boolean) => {
+    const categoryCodes = categoryTests.map((test) => test.test_code);
+    setSelectedTests((prev) => {
+      const newSet = new Set(prev);
+      if (selectAll) {
+        categoryCodes.forEach((code) => newSet.add(code));
+      } else {
+        categoryCodes.forEach((code) => newSet.delete(code));
+      }
+      return newSet;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -443,17 +456,33 @@ export function ClientModal({
                 <div className="space-y-2">
                   <Label className="text-sm text-muted-foreground">تحاليل فردية</Label>
                   <Accordion type="multiple" className="w-full">
-                    {Object.entries(groupedTests).map(([category, categoryTests]) => (
+                    {Object.entries(groupedTests).map(([category, categoryTests]) => {
+                      const allSelected = categoryTests.every((t) => selectedTests.has(t.test_code));
+                      return (
                       <AccordionItem key={category} value={category}>
-                        <AccordionTrigger className="text-sm font-medium hover:no-underline">
-                          <div className="flex items-center gap-2">
-                            <span>{category}</span>
-                            <Badge variant="secondary" className="text-xs">
-                              {categoryTests.filter((t) => selectedTests.has(t.test_code)).length}/
-                              {categoryTests.length}
-                            </Badge>
-                          </div>
-                        </AccordionTrigger>
+                        <div className="flex items-center gap-2">
+                          <AccordionTrigger className="text-sm font-medium hover:no-underline flex-1">
+                            <div className="flex items-center gap-2">
+                              <span>{category}</span>
+                              <Badge variant="secondary" className="text-xs">
+                                {categoryTests.filter((t) => selectedTests.has(t.test_code)).length}/
+                                {categoryTests.length}
+                              </Badge>
+                            </div>
+                          </AccordionTrigger>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-xs h-7 px-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectAllCategory(categoryTests, !allSelected);
+                            }}
+                          >
+                            {allSelected ? "إلغاء الكل" : "تحديد الكل"}
+                          </Button>
+                        </div>
                         <AccordionContent>
                           <div className="space-y-2 pr-4 pt-2">
                             {categoryTests.map((test) => (
@@ -479,7 +508,8 @@ export function ClientModal({
                           </div>
                         </AccordionContent>
                       </AccordionItem>
-                    ))}
+                      );
+                    })}
                   </Accordion>
                 </div>
               </>

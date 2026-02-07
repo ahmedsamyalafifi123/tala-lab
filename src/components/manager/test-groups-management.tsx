@@ -84,6 +84,16 @@ export function TestGroupsManagement() {
     }));
   };
 
+  const handleSelectAllCategory = (categoryTests: any[], selectAll: boolean) => {
+    const categoryCodes = categoryTests.map((test) => test.test_code);
+    setFormData((prev) => ({
+      ...prev,
+      test_codes: selectAll
+        ? [...new Set([...prev.test_codes, ...categoryCodes])]
+        : prev.test_codes.filter((code) => !categoryCodes.includes(code)),
+    }));
+  };
+
   const handleSave = async () => {
     // Validation
     if (!formData.group_code || !formData.group_name_ar || formData.test_codes.length === 0) {
@@ -293,11 +303,29 @@ export function TestGroupsManagement() {
               <Label>التحاليل المتضمنة * ({formData.test_codes.length} محدد)</Label>
               <div className="border rounded-lg p-4 max-h-96 overflow-y-auto">
                 <Accordion type="multiple" className="w-full" dir="rtl">
-                  {Object.entries(groupedTests).map(([category, categoryTests]) => (
+                  {Object.entries(groupedTests).map(([category, categoryTests]) => {
+                    const allSelected = categoryTests.every((test) =>
+                      formData.test_codes.includes(test.test_code)
+                    );
+                    return (
                     <AccordionItem key={category} value={category}>
-                      <AccordionTrigger className="text-sm font-medium text-right">
-                        {category} ({categoryTests.length})
-                      </AccordionTrigger>
+                      <div className="flex items-center gap-2">
+                        <AccordionTrigger className="text-sm font-medium text-right flex-1">
+                          {category} ({categoryTests.length})
+                        </AccordionTrigger>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-7 px-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectAllCategory(categoryTests, !allSelected);
+                          }}
+                        >
+                          {allSelected ? "إلغاء الكل" : "تحديد الكل"}
+                        </Button>
+                      </div>
                       <AccordionContent>
                         <div className="space-y-2 pe-4">
                           {categoryTests.map((test) => (
@@ -323,7 +351,8 @@ export function TestGroupsManagement() {
                         </div>
                       </AccordionContent>
                     </AccordionItem>
-                  ))}
+                    );
+                  })}
                 </Accordion>
               </div>
             </div>
