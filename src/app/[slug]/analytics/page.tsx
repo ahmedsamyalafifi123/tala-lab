@@ -66,12 +66,12 @@ export default function AnalyticsPage() {
       }
 
       if (client.results?.entries) {
-        client.results.entries.forEach((entry) => {
+        client.results.entries.forEach((entry: any) => {
           const testCount = Object.keys(entry.tests).length;
           totalResultsEntered += testCount;
           totalResults += testCount;
 
-          Object.values(entry.tests).forEach((result) => {
+          Object.values(entry.tests).forEach((result: any) => {
             if (result.flag && result.flag !== "normal") {
               abnormalResults++;
             }
