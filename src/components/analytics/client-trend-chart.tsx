@@ -81,8 +81,11 @@ export function ClientTrendChart({ clientUuid, clientGender, clientAge }: Client
     }
 
     // Try gender-specific
-    if (!range && clientGender && selectedTest.reference_ranges[clientGender]) {
-      range = selectedTest.reference_ranges[clientGender];
+    const canonicalGender = clientGender === 'ذكر' || clientGender === 'male' ? 'male' : 
+                           clientGender === 'أنثى' || clientGender === 'female' ? 'female' : undefined;
+
+    if (!range && canonicalGender && selectedTest.reference_ranges[canonicalGender]) {
+      range = selectedTest.reference_ranges[canonicalGender];
     }
 
     return range;
