@@ -20,11 +20,17 @@ import * as XLSX from "xlsx";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
+import { useLabContext } from "@/contexts/LabContext";
+
 interface ExportResultsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   clientUuid: string;
   clientName: string;
+  clientGender?: string;
+  clientAge?: number;
+  insuranceNumber?: string;
+  entity?: string;
 }
 
 export function ExportResultsDialog({
@@ -32,7 +38,12 @@ export function ExportResultsDialog({
   onClose,
   clientUuid,
   clientName,
+  clientGender,
+  clientAge,
+  insuranceNumber,
+  entity,
 }: ExportResultsDialogProps) {
+  const { labSlug } = useLabContext();
   const { toast } = useToast();
   const { tests } = useLabTests();
   const { results, getSortedEntries } = useClientResults(clientUuid);
@@ -200,36 +211,36 @@ export function ExportResultsDialog({
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 3px solid #2d3748;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            border-bottom: 2px solid #2d3748;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
           }
 
           .lab-brand {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
           }
 
           .logo-placeholder {
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             background: #2d3748;
-            border-radius: 12px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: bold;
-            font-size: 24px;
+            font-size: 20px;
           }
 
           .lab-info h1 {
             margin: 0;
-            font-size: 24px;
+            font-size: 20px;
             color: #1a202c;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
           }
 
           .report-title {
@@ -239,75 +250,84 @@ export function ExportResultsDialog({
           .report-title h2 {
             margin: 0;
             color: #4a5568;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
           }
 
-          .patient-card {
-            background: #f7fafc;
+          .patient-info-section {
+            margin-bottom: 20px;
             border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
-            display: grid;
-            grid-template-cols: repeat(2, 1fr);
-            gap: 15px;
+            border-radius: 6px;
+            overflow: hidden;
           }
 
-          .info-item {
-            display: flex;
-            gap: 10px;
+          .patient-info-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
           }
 
-          .info-label {
+          .patient-info-table td {
+            padding: 6px 12px;
+            border: 1px solid #e2e8f0;
+            font-size: 12px;
+          }
+
+          .patient-info-table .label {
+            background: #f8fafc;
             color: #718096;
             font-weight: 600;
-            min-width: 100px;
+            width: 110px;
+          }
+
+          .patient-info-table .value {
+            color: #1a202c;
+            font-weight: 500;
           }
 
           .entry {
-            margin-bottom: 40px;
+            margin-bottom: 25px;
           }
 
           .entry-date {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             color: #2d3748;
             background: #edf2f7;
-            padding: 8px 15px;
-            border-radius: 6px;
+            padding: 5px 12px;
+            border-radius: 4px;
             display: inline-block;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
           }
 
           table {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
           }
 
           th {
             background: #2d3748;
             color: white;
             text-align: left;
-            padding: 12px 15px;
-            font-size: 12px;
+            padding: 8px 12px;
+            font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
           }
 
-          th:first-child { border-top-left-radius: 8px; }
-          th:last-child { border-top-right-radius: 8px; }
+          th:first-child { border-top-left-radius: 6px; }
+          th:last-child { border-top-right-radius: 6px; }
 
           td {
-            padding: 12px 15px;
+            padding: 8px 12px;
             border-bottom: 1px solid #e2e8f0;
-            font-size: 14px;
+            font-size: 13px;
           }
 
           .test-name { font-weight: 600; color: #2d3748; }
-          .result-value { font-family: monospace; font-weight: 700; font-size: 16px; }
+          .result-value { font-family: monospace; font-weight: 700; font-size: 15px; }
           
           .flag-badge {
             display: inline-block;
@@ -346,31 +366,46 @@ export function ExportResultsDialog({
         <div class="report-container">
           <header class="header">
             <div class="lab-brand">
-              <div class="logo-placeholder">LAB</div>
+              <img src="/logo.png" alt="Logo" style="width: 80px; height: 80px; object-fit: contain;" />
               <div class="lab-info">
-                <h1>Medical Laboratory</h1>
+                <h1>${labSlug ? `Laboratory ${labSlug}` : 'Medical Laboratory'}</h1>
                 <p style="margin:0; font-size: 12px; color: #718096;">Professional Diagnostic Services</p>
               </div>
             </div>
-
           </header>
 
-          <div class="patient-card">
-            <div class="info-item">
-              <span class="info-label">Patient Name:</span>
-              <span>${clientName}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Report ID:</span>
-              <span style="font-family: monospace;">${clientUuid.substring(0, 8).toUpperCase()}</span>
-            </div>
+          <div class="patient-info-section">
+            <table class="patient-info-table">
+              <tr>
+                <td class="label">Patient Name</td>
+                <td class="value" style="font-weight: 700; font-size: 15px;">${clientName}</td>
+                <td class="label">Report ID</td>
+                <td class="value" style="font-family: monospace;">${clientUuid.substring(0, 8).toUpperCase()}</td>
+              </tr>
+              ${(clientAge !== undefined || clientGender) ? `
+                <tr>
+                  <td class="label">Age</td>
+                  <td class="value">${clientAge !== undefined && clientAge !== null ? `${clientAge} Years` : '-'}</td>
+                  <td class="label">Gender</td>
+                  <td class="value">${clientGender ? (clientGender === 'male' || clientGender === 'ذكر' ? 'Male' : 'Female') : '-'}</td>
+                </tr>
+              ` : ''}
+              ${(insuranceNumber || entity) ? `
+                <tr>
+                  <td class="label">Insurance</td>
+                  <td class="value">${insuranceNumber || '-'}</td>
+                  <td class="label">Entity</td>
+                  <td class="value">${entity || '-'}</td>
+                </tr>
+              ` : ''}
+            </table>
           </div>
     `;
 
     entries.forEach((entry) => {
       html += `
         <div class="entry">
-          <div class="entry-date">Collection Date: ${format(new Date(entry.recorded_at), "PPP p", { locale: ar })}</div>
+          <div class="entry-date">Date: ${format(new Date(entry.recorded_at), "dd/MM/yyyy", )}</div>
           <table>
             <thead>
               <tr>
@@ -429,10 +464,7 @@ export function ExportResultsDialog({
     });
 
     html += `
-          <div class="footer">
-            <span>Generated on: ${format(new Date(), "PPP p", { locale: ar })}</span>
-            <span>Electronic Copy - No Signature Required</span>
-          </div>
+
         </div>
       </body>
       </html>
@@ -483,11 +515,11 @@ export function ExportResultsDialog({
             <Download className="ml-2 h-4 w-4" />
             تصدير PDF
           </Button>
-          <Button onClick={handleExportExcel} disabled={exporting}>
+          {/* <Button onClick={handleExportExcel} disabled={exporting}>
             {exporting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
             <FileSpreadsheet className="ml-2 h-4 w-4" />
             تصدير Excel
-          </Button>
+          </Button> */}
         </DialogFooter>
       </DialogContent>
     </Dialog>

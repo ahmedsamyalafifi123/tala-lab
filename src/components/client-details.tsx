@@ -231,7 +231,7 @@ export function ClientDetails({
                         تصدير
                       </Button>
                       
-                      {client.selected_tests && client.selected_tests.length > 0 && (
+                      {/* {client.selected_tests && client.selected_tests.length > 0 && (
                         <Button
                           variant="default"
                           size="sm"
@@ -241,7 +241,7 @@ export function ClientDetails({
                           <FlaskConical className="w-4 h-4" />
                           إضافة نتائج
                         </Button>
-                      )}
+                      )} */}
                     </div>
                   </div>
                   
@@ -281,6 +281,10 @@ export function ClientDetails({
         onClose={() => setShowExportDialog(false)}
         clientUuid={client.uuid}
         clientName={client.patient_name}
+        clientGender={client.patient_gender}
+        clientAge={client.patient_age}
+        insuranceNumber={client.insurance_number}
+        entity={client.entity}
       />
     </>
   );
