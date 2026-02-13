@@ -324,7 +324,17 @@ export default function LabDashboard() {
 
   const hasFilters = nameFilter || categoryFilter !== "all" || dateFrom || dateTo;
 
-  const handleSave = async (data: { patient_name: string; notes: string; category: string[] | null; daily_date: string; daily_id?: number | null; selected_tests?: string[] }) => {
+  const handleSave = async (data: { 
+    patient_name: string; 
+    notes: string; 
+    category: string[] | null; 
+    daily_date: string; 
+    daily_id?: number | null; 
+    selected_tests?: string[];
+    patient_gender?: string;
+    insurance_number?: string;
+    entity?: string;
+  }) => {
     if (!labId) return;
     console.log('💾 handleSave called with:', {
       name: data.patient_name,
@@ -343,7 +353,10 @@ export default function LabDashboard() {
           p_categories: data.category || [],
           p_daily_date: data.daily_date,
           p_manual_id: data.daily_id || null,
-          p_selected_tests: data.selected_tests  // Pass selected_tests directly to RPC
+          p_selected_tests: data.selected_tests,  // Pass selected_tests directly to RPC
+          p_patient_gender: data.patient_gender,
+          p_insurance_number: data.insurance_number,
+          p_entity: data.entity
         });
 
         if (error) throw error;
@@ -360,7 +373,10 @@ export default function LabDashboard() {
           p_daily_date: data.daily_date,
           p_manual_id: data.daily_id || null,
           p_created_by: currentUserId,
-          p_selected_tests: data.selected_tests || []  // Pass selected_tests directly to RPC
+          p_selected_tests: data.selected_tests || [],  // Pass selected_tests directly to RPC
+          p_patient_gender: data.patient_gender,
+          p_insurance_number: data.insurance_number,
+          p_entity: data.entity
         });
 
         if (error) throw error;

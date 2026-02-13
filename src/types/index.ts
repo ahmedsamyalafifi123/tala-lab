@@ -36,7 +36,9 @@ export interface Client {
   patient_name: string;
   patient_phone?: string;
   patient_age?: number;
-  patient_gender?: "male" | "female";
+  patient_gender?: "male" | "female" | "ذكر" | "أنثى";
+  insurance_number?: string;
+  entity?: "معاشات" | "ارامل" | "موظفين" | "طلبة" | "المرأة المعيلة" | "المقاولات";
   daily_id: number;
   daily_date: Date;
   results: Record<string, any>;

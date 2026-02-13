@@ -54,7 +54,17 @@ import { cn } from "@/lib/utils";
 interface ClientModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { patient_name: string; notes: string; category: string[] | null; daily_date: string; daily_id?: number | null; selected_tests?: string[] }) => Promise<void>;
+  onSave: (data: { 
+    patient_name: string; 
+    notes: string; 
+    category: string[] | null; 
+    daily_date: string; 
+    daily_id?: number | null; 
+    selected_tests?: string[];
+    patient_gender?: string;
+    insurance_number?: string;
+    entity?: string;
+  }) => Promise<void>;
   client?: Client | null;
   categories: Category[];
   isLoading?: boolean;
@@ -69,6 +79,9 @@ export function ClientModal({
   isLoading = false,
 }: ClientModalProps) {
   const [name, setName] = useState("");
+  const [gender, setGender] = useState<string>("ذكر");
+  const [insuranceNumber, setInsuranceNumber] = useState("");
+  const [entity, setEntity] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [date, setDate] = useState<Date>(new Date());
@@ -120,6 +133,9 @@ export function ClientModal({
       });
 
       setName(client.patient_name);
+      setGender(client.patient_gender || "");
+      setInsuranceNumber(client.insurance_number || "");
+      setEntity(client.entity || "");
       setNotes(client.notes || "");
 
       // Handle categories - if empty, use "عام" (General) as default
@@ -150,6 +166,9 @@ export function ClientModal({
       console.log('✅ Loaded groups:', Array.from(matchedGroups));
     } else {
       setName("");
+      setGender("ذكر");
+      setInsuranceNumber("");
+      setEntity("");
       setNotes("");
       // Default to "عام" for new clients
       setSelectedCategories(['عام']);
@@ -232,11 +251,17 @@ export function ClientModal({
       daily_date: format(date, "yyyy-MM-dd"),
       daily_id: isManualId && manualId ? parseInt(manualId) : null,
       selected_tests: testsToSave,
+      patient_gender: gender || undefined,
+      insurance_number: insuranceNumber.trim() || undefined,
+      entity: entity || undefined,
     });
 
     // If we are adding a new client (not editing), reset the form
     if (!client) {
       setName("");
+      setGender("ذكر");
+      setInsuranceNumber("");
+      setEntity("");
       setNotes("");
       setSelectedCategories(['عام']); // Reset to "عام" default
       setDate(new Date());
@@ -285,19 +310,62 @@ export function ClientModal({
     <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0 overflow-hidden">
       <div className={cn("flex-1 overflow-y-auto overscroll-contain p-4", !isDesktop && "pb-8")}>
         <div className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="name" className="text-base">
-              الاسم <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="أدخل اسم العميل"
-              className="h-12 text-lg"
-              required
-              autoFocus
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-base">
+                الاسم <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="أدخل اسم العميل"
+                className="h-12 text-lg"
+                required
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="gender" className="text-base">الجنس</Label>
+              <Select value={gender} onValueChange={setGender}>
+                <SelectTrigger id="gender" className="h-12 text-lg text-right">
+                  <SelectValue placeholder="اختر الجنس" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ذكر">ذكر</SelectItem>
+                  <SelectItem value="أنثى">أنثى</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="insurance_number" className="text-base">الرقم التأميني</Label>
+              <Input
+                id="insurance_number"
+                value={insuranceNumber}
+                onChange={(e) => setInsuranceNumber(e.target.value)}
+                placeholder="أدخل الرقم التأميني"
+                className="h-12 text-lg"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="entity" className="text-base">الجهة</Label>
+              <Select value={entity} onValueChange={setEntity}>
+                <SelectTrigger id="entity" className="h-12 text-lg text-right">
+                  <SelectValue placeholder="اختر الجهة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="معاشات">معاشات</SelectItem>
+                  <SelectItem value="ارامل">ارامل</SelectItem>
+                  <SelectItem value="موظفين">موظفين</SelectItem>
+                  <SelectItem value="طلبة">طلبة</SelectItem>
+                  <SelectItem value="المرأة المعيلة">المرأة المعيلة</SelectItem>
+                  <SelectItem value="المقاولات">المقاولات</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-2">

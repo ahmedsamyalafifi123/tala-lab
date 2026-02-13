@@ -42,6 +42,8 @@ export function ClientCard({ client, onClick }: ClientCardProps) {
           </div>
           <p className="text-xs text-muted-foreground truncate">
             {formatDate(client.daily_date)}
+            {client.patient_gender && ` • ${client.patient_gender === 'male' || client.patient_gender === 'ذكر' ? 'ذكر' : 'أنثى'}`}
+            {client.entity && ` • ${client.entity}`}
             {client.notes && ` • ${client.notes}`}
           </p>
         </div>

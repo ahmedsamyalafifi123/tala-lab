@@ -80,7 +80,9 @@ export function ClientDetails({
                      {client.patient_gender && (
                       <>
                         <span>•</span>
-                        <span className="text-sm">{client.patient_gender === 'male' ? 'ذكر' : 'أنثى'}</span>
+                        <span className="text-sm">
+                          {client.patient_gender === 'male' || client.patient_gender === 'ذكر' ? 'ذكر' : 'أنثى'}
+                        </span>
                       </>
                     )}
                   </div>
@@ -88,6 +90,16 @@ export function ClientDetails({
             </div>
             
              <div className="flex items-center gap-3">
+                 {client.insurance_number && (
+                   <Badge variant="outline" className="text-xs font-mono">
+                     تأمين: {client.insurance_number}
+                   </Badge>
+                 )}
+                 {client.entity && (
+                   <Badge variant="secondary" className="text-xs">
+                     الجهة: {client.entity}
+                   </Badge>
+                 )}
                  {client.categories && client.categories.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {client.categories.map((cat, idx) => (
@@ -150,6 +162,27 @@ export function ClientDetails({
 
               <div className="flex-1 overflow-auto p-6">
                 <TabsContent value="info" className="space-y-6 mt-0 h-full max-w-4xl mx-auto w-full">
+                  {(client.insurance_number || client.entity) && (
+                    <div className="grid grid-cols-2 gap-6">
+                      {client.insurance_number && (
+                        <Card>
+                          <CardContent className="p-6">
+                            <p className="text-sm text-muted-foreground mb-2">الرقم التأميني</p>
+                            <p className="font-mono text-lg">{client.insurance_number}</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                      {client.entity && (
+                        <Card>
+                          <CardContent className="p-6">
+                            <p className="text-sm text-muted-foreground mb-2">الجهة</p>
+                            <p className="text-lg font-bold">{client.entity}</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  )}
+
                   {client.notes && (
                     <div className="space-y-2">
                       <h4 className="text-sm font-medium text-muted-foreground">الملاحظات</h4>
