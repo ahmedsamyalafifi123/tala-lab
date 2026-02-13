@@ -1,5 +1,5 @@
 # Database Schema Export
-Generated: 2026-02-07T18:49:00.947Z
+Generated: 2026-02-13T11:39:05.631Z
 
 ## Table Schemas
 [
@@ -926,41 +926,41 @@ Generated: 2026-02-07T18:49:00.947Z
   {
     "schemaname": "public",
     "tablename": "test_groups",
-    "policyname": "Anyone can view active test groups",
-    "permissive": "PERMISSIVE",
-    "roles": "{authenticated}",
-    "cmd": "SELECT",
-    "qual": "(is_active = true)",
-    "with_check": null
-  },
-  {
-    "schemaname": "public",
-    "tablename": "test_groups",
-    "policyname": "Managers can delete test groups",
+    "policyname": "Anyone can delete test groups",
     "permissive": "PERMISSIVE",
     "roles": "{authenticated}",
     "cmd": "DELETE",
-    "qual": "check_is_manager()",
+    "qual": "true",
     "with_check": null
   },
   {
     "schemaname": "public",
     "tablename": "test_groups",
-    "policyname": "Managers can insert test groups",
+    "policyname": "Anyone can insert test groups",
     "permissive": "PERMISSIVE",
     "roles": "{authenticated}",
     "cmd": "INSERT",
     "qual": null,
-    "with_check": "check_is_manager()"
+    "with_check": "true"
   },
   {
     "schemaname": "public",
     "tablename": "test_groups",
-    "policyname": "Managers can update test groups",
+    "policyname": "Anyone can update test groups",
     "permissive": "PERMISSIVE",
     "roles": "{authenticated}",
     "cmd": "UPDATE",
-    "qual": "check_is_manager()",
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "test_groups",
+    "policyname": "Anyone can view test groups",
+    "permissive": "PERMISSIVE",
+    "roles": "{authenticated}",
+    "cmd": "SELECT",
+    "qual": "true",
     "with_check": null
   }
 ]
@@ -1004,7 +1004,7 @@ Generated: 2026-02-07T18:49:00.947Z
     "argument_types": "",
     "type": "function",
     "language": "plpgsql",
-    "source_code": "\r\nBEGIN\r\n  -- Check if the current user has is_manager = true in lab_users\r\n  RETURN EXISTS (\r\n    SELECT 1 FROM public.lab_users\r\n    WHERE user_id = auth.uid()\r\n    AND is_manager = true\r\n    AND status = 'active'\r\n  );\r\nEND;\r\n",
+    "source_code": "\r\nBEGIN\r\n  RETURN EXISTS (\r\n    SELECT 1 FROM public.lab_users\r\n    WHERE user_id = auth.uid()\r\n    AND is_manager = true\r\n    AND status = 'active'\r\n  );\r\nEND;\r\n",
     "is_security_definer": true
   },
   {
