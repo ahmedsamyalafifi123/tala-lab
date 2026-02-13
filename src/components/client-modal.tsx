@@ -48,7 +48,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 interface ClientModalProps {
@@ -596,12 +595,16 @@ export function ClientModal({
                                 )}
                                 onClick={() => handleTestToggle(test.test_code)}
                               >
-                                <Checkbox
-                                  id={`test-${test.test_code}`}
-                                  checked={isSelected}
-                                  onCheckedChange={() => {}} 
-                                  className={cn(isSelected && "border-primary bg-primary text-primary-foreground")}
-                                />
+                                <div
+                                  className={cn(
+                                    "peer h-4 w-4 shrink-0 rounded-sm border ring-offset-background flex items-center justify-center",
+                                    isSelected 
+                                      ? "border-primary bg-primary text-primary-foreground" 
+                                      : "border-primary"
+                                  )}
+                                >
+                                  {isSelected && <Check className="h-3 w-3" />}
+                                </div>
                                 <div className="flex-1 truncate mr-2">
                                   <div className={cn("text-sm font-bold truncate", isSelected ? "text-primary" : "text-foreground")}>
                                     {test.test_name_ar}
