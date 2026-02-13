@@ -252,6 +252,9 @@ export function TestResultsModal({
                </DialogDescription>
             </div>
             
+
+{/* 
+            
             {viewMode === "history" && (
                 <Button onClick={() => {
                   setViewMode("add");
@@ -263,6 +266,8 @@ export function TestResultsModal({
                 </Button>
             )}
             
+ */}
+
             {viewMode === "add" && (editingEntryId || (results.entries && results.entries.length > 0)) && (
                <Button
                  variant="ghost"

@@ -229,7 +229,7 @@ export function ClientDetails({
                       </Button>
                       
                       {/* Add Results Button */}
-                      {client.selected_tests && client.selected_tests.length > 0 && (
+                      {/* {client.selected_tests && client.selected_tests.length > 0 && (
                         <Button
                           variant="default"
                           size="sm"
@@ -238,7 +238,9 @@ export function ClientDetails({
                           <FlaskConical className="w-4 h-4 me-2" />
                           إضافة نتائج
                         </Button>
-                      )}
+                      )} */}
+
+                      
                     </div>
                   </div>
                   
