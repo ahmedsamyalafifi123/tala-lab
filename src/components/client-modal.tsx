@@ -336,51 +336,49 @@ export function ClientModal({
                 autoFocus
               />
             </div>
-            <div className="md:col-span-1 space-y-2">
-              <Label htmlFor="age" className="text-sm font-medium">العمر</Label>
-              <Input
-                id="age"
-                type="number"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                placeholder="سنة"
-                className="h-11 bg-background"
-              />
-            </div>
-            <div className="md:col-span-1 space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="gender" className="text-sm font-medium">الجنس</Label>
+            
+            <div className="grid grid-cols-2 md:col-span-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="age" className="text-sm font-medium">العمر</Label>
+                <Input
+                  id="age"
+                  type="number"
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  placeholder="سنة"
+                  className="h-11 bg-background"
+                />
               </div>
-              <Select value={gender} onValueChange={setGender}>
-                <SelectTrigger id="gender" className="h-11 text-right bg-background">
-                  <SelectValue placeholder="اختر" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">بدون تحديد</SelectItem>
-                  <SelectItem value="ذكر">ذكر</SelectItem>
-                  <SelectItem value="أنثى">أنثى</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Label htmlFor="gender" className="text-sm font-medium">الجنس</Label>
+                <Select value={gender} onValueChange={setGender}>
+                  <SelectTrigger id="gender" className="h-11 text-right bg-background">
+                    <SelectValue placeholder="اختر" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">بدون</SelectItem>
+                    <SelectItem value="ذكر">ذكر</SelectItem>
+                    <SelectItem value="أنثى">أنثى</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Section 2: Administrative Information */}
         <div className="space-y-4 p-4 rounded-2xl border bg-muted/30">
-          <div className="flex items-center gap-2 text-primary font-bold text-sm mb-2">
-            <FileText className="h-4 w-4" />
-            البيانات
-          </div>
+
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="entity" className="text-sm font-medium">الجهة</Label>
               <Select value={entity} onValueChange={setEntity}>
                 <SelectTrigger id="entity" className="h-11 text-right bg-background">
-                  <SelectValue placeholder="اختر الجهة" />
+                  <SelectValue placeholder="اختر" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">بدون تحديد</SelectItem>
+                  <SelectItem value="none">بدون</SelectItem>
                   <SelectItem value="معاشات">معاشات</SelectItem>
                   <SelectItem value="ارامل">ارامل</SelectItem>
                   <SelectItem value="موظفين">موظفين</SelectItem>
@@ -391,12 +389,12 @@ export function ClientModal({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="insurance_number" className="text-sm font-medium">الرقم التأميني</Label>
+              <Label htmlFor="insurance_number" className="text-sm font-medium truncate">الرقم التأميني</Label>
               <Input
                 id="insurance_number"
                 value={insuranceNumber}
                 onChange={(e) => setInsuranceNumber(e.target.value)}
-                placeholder="أدخل الرقم"
+                placeholder="الرقم"
                 className="h-11 bg-background"
               />
             </div>
@@ -405,12 +403,9 @@ export function ClientModal({
 
         {/* Section 3: Booking & Category */}
         <div className="space-y-4 p-4 rounded-2xl border bg-muted/30">
-          <div className="flex items-center gap-2 text-primary font-bold text-sm mb-2">
-            <CalendarIcon className="h-4 w-4" />
-            تفاصيل
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium">التاريخ</Label>
               <Popover>
@@ -418,12 +413,12 @@ export function ClientModal({
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full h-11 justify-start font-normal bg-background",
+                      "w-full h-11 justify-start font-normal bg-background px-2",
                       !date && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="me-2 h-4 w-4" />
-                    {date ? format(date, "PPP", { locale: ar }) : "اختر التاريخ"}
+                    <CalendarIcon className="me-1 h-4 w-4 shrink-0" />
+                    <span className="truncate text-xs">{date ? format(date, "d/M/yy") : "اختر"}</span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -446,14 +441,14 @@ export function ClientModal({
                     variant="outline"
                     role="combobox"
                     aria-expanded={isCategoryOpen}
-                    className="w-full h-11 justify-between font-normal bg-background"
+                    className="w-full h-11 justify-between font-normal bg-background px-2"
                   >
-                    <span className="truncate">
+                    <span className="truncate text-xs">
                       {selectedCategories.length > 0
-                        ? selectedCategories.join(", ")
-                        : "اختر التصنيف"}
+                        ? selectedCategories[0] + (selectedCategories.length > 1 ? ` +${selectedCategories.length - 1}` : '')
+                        : "اختر"}
                     </span>
-                    <Badge variant="secondary" className="text-[10px] h-5">{selectedCategories.length}</Badge>
+                    <Badge variant="secondary" className="text-[9px] h-4 px-1 shrink-0">{selectedCategories.length}</Badge>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[300px] p-2" align="start">
