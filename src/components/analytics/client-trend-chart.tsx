@@ -19,7 +19,7 @@ import { ar } from "date-fns/locale";
 
 interface ClientTrendChartProps {
   clientUuid: string;
-  clientGender?: "male" | "female";
+  clientGender?: "male" | "female" | "ذكر" | "أنثى";
   clientAge?: number;
 }
 

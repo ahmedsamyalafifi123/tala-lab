@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { CalendarIcon, Loader2, Check } from "lucide-react";
+import { CalendarIcon, Loader2, Check, User, FileText, FlaskConical } from "lucide-react";
 import { Client, Category } from "@/types";
 import {
   Sheet,
@@ -314,114 +314,186 @@ export function ClientModal({
 
   const formContent = (
     <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0 overflow-hidden">
-      <div className={cn("flex-1 overflow-y-auto overscroll-contain p-4", !isDesktop && "pb-8")}>
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className={cn("flex-1 overflow-y-auto overscroll-contain p-4 space-y-6", !isDesktop && "pb-8")}>
+        
+        {/* Section 1: Patient Information */}
+        <div className="space-y-4 p-4 rounded-2xl border bg-muted/30">
+          <div className="flex items-center gap-2 text-primary font-bold text-sm mb-2">
+            <User className="h-4 w-4" />
+            بيانات المريض
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="md:col-span-2 space-y-2">
-              <Label htmlFor="name" className="text-base">
-                الاسم <span className="text-destructive">*</span>
-              </Label>
+              <Label htmlFor="name" className="text-sm font-medium">الاسم الكامل <span className="text-destructive">*</span></Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="أدخل اسم العميل"
-                className="h-12 text-lg"
+                placeholder="اسم العميل"
+                className="h-11 bg-background"
                 required
                 autoFocus
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="gender" className="text-base">الجنس</Label>
+            <div className="md:col-span-1 space-y-2">
+              <Label htmlFor="age" className="text-sm font-medium">العمر</Label>
+              <Input
+                id="age"
+                type="number"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                placeholder="سنة"
+                className="h-11 bg-background"
+              />
+            </div>
+            <div className="md:col-span-1 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="gender" className="text-sm font-medium">الجنس</Label>
+              </div>
               <Select value={gender} onValueChange={setGender}>
-                <SelectTrigger id="gender" className="h-12 text-lg text-right">
-                  <SelectValue placeholder="اختر الجنس" />
+                <SelectTrigger id="gender" className="h-11 text-right bg-background">
+                  <SelectValue placeholder="اختر" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none" className="text-muted-foreground">بدون تحديد</SelectItem>
+                  <SelectItem value="none">بدون تحديد</SelectItem>
                   <SelectItem value="ذكر">ذكر</SelectItem>
                   <SelectItem value="أنثى">أنثى</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Section 2: Administrative Information */}
+        <div className="space-y-4 p-4 rounded-2xl border bg-muted/30">
+          <div className="flex items-center gap-2 text-primary font-bold text-sm mb-2">
+            <FileText className="h-4 w-4" />
+            البيانات
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="age" className="text-base">العمر</Label>
-              <Input
-                id="age"
-                type="number"
-                min="0"
-                max="150"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                placeholder="السنة"
-                className="h-12 text-lg"
-              />
+              <Label htmlFor="entity" className="text-sm font-medium">الجهة</Label>
+              <Select value={entity} onValueChange={setEntity}>
+                <SelectTrigger id="entity" className="h-11 text-right bg-background">
+                  <SelectValue placeholder="اختر الجهة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">بدون تحديد</SelectItem>
+                  <SelectItem value="معاشات">معاشات</SelectItem>
+                  <SelectItem value="ارامل">ارامل</SelectItem>
+                  <SelectItem value="موظفين">موظفين</SelectItem>
+                  <SelectItem value="طلبة">طلبة</SelectItem>
+                  <SelectItem value="المرأة المعيلة">المرأة المعيلة</SelectItem>
+                  <SelectItem value="المقاولات">المقاولات</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="md:col-span-2 space-y-2">
-              <Label htmlFor="insurance_number" className="text-base">الرقم التأميني</Label>
+            <div className="space-y-2">
+              <Label htmlFor="insurance_number" className="text-sm font-medium">الرقم التأميني</Label>
               <Input
                 id="insurance_number"
                 value={insuranceNumber}
                 onChange={(e) => setInsuranceNumber(e.target.value)}
-                placeholder="أدخل الرقم التأميني"
-                className="h-12 text-lg"
+                placeholder="أدخل الرقم"
+                className="h-11 bg-background"
               />
             </div>
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="entity" className="text-base">الجهة</Label>
-            <Select value={entity} onValueChange={setEntity}>
-              <SelectTrigger id="entity" className="h-12 text-lg text-right">
-                <SelectValue placeholder="اختر الجهة" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none" className="text-muted-foreground">بدون تحديد</SelectItem>
-                <SelectItem value="معاشات">معاشات</SelectItem>
-                <SelectItem value="ارامل">ارامل</SelectItem>
-                <SelectItem value="موظفين">موظفين</SelectItem>
-                <SelectItem value="طلبة">طلبة</SelectItem>
-                <SelectItem value="المرأة المعيلة">المرأة المعيلة</SelectItem>
-                <SelectItem value="المقاولات">المقاولات</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* Section 3: Booking & Category */}
+        <div className="space-y-4 p-4 rounded-2xl border bg-muted/30">
+          <div className="flex items-center gap-2 text-primary font-bold text-sm mb-2">
+            <CalendarIcon className="h-4 w-4" />
+            تفاصيل
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-base">التاريخ</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full h-12 justify-start text-lg font-normal",
-                    !date && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="me-2 h-5 w-5" />
-                  {date ? format(date, "PPP", { locale: ar }) : "اختر التاريخ"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={(d) => d && setDate(d)}
-                  initialFocus
-                  locale={ar}
-                />
-              </PopoverContent>
-            </Popover>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">التاريخ</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full h-11 justify-start font-normal bg-background",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="me-2 h-4 w-4" />
+                    {date ? format(date, "PPP", { locale: ar }) : "اختر التاريخ"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={(d) => d && setDate(d)}
+                    initialFocus
+                    locale={ar}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">التصنيف</Label>
+              <Popover open={isCategoryOpen} onOpenChange={setIsCategoryOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={isCategoryOpen}
+                    className="w-full h-11 justify-between font-normal bg-background"
+                  >
+                    <span className="truncate">
+                      {selectedCategories.length > 0
+                        ? selectedCategories.join(", ")
+                        : "اختر التصنيف"}
+                    </span>
+                    <Badge variant="secondary" className="text-[10px] h-5">{selectedCategories.length}</Badge>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-2" align="start">
+                  <div className="grid gap-1">
+                      {categories.map((cat) => {
+                        const isSelected = selectedCategories.includes(cat.name);
+                        return (
+                            <div
+                              key={cat.id}
+                              className={cn(
+                                "flex items-center gap-3 cursor-pointer p-2 rounded-md transition-colors",
+                                isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted"
+                              )}
+                              onClick={() => {
+                                  if (isSelected) {
+                                    setSelectedCategories(prev => prev.filter(c => c !== cat.name));
+                                  } else {
+                                    setSelectedCategories(prev => [...prev, cat.name]);
+                                  }
+                              }}
+                            >
+                              <div className={cn(
+                                  "h-4 w-4 rounded-sm border flex items-center justify-center",
+                                  isSelected ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30"
+                              )}>
+                                  {isSelected && <Check className="h-3 w-3" />}
+                              </div>
+                              <span className="text-sm font-medium">{cat.name}</span>
+                            </div>
+                        );
+                      })}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
-          <div className="space-y-4 rounded-lg border p-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="manual-id-mode" className="text-base cursor-pointer">
-                تحديد رقم الحالة يدوياً
-              </Label>
+          <div className="pt-2 border-t mt-2">
+            <div className="flex items-center justify-between mb-2">
+              <Label htmlFor="manual-id-mode" className="text-sm font-medium cursor-pointer">تحديد رقم الحالة يدوياً</Label>
               <Switch
                 id="manual-id-mode"
                 checked={isManualId}
@@ -431,9 +503,6 @@ export function ClientModal({
             
             {isManualId && (
               <div className="space-y-2 pt-2 animate-in slide-in-from-top-2 fade-in duration-200">
-                <Label htmlFor="manual-id" className="text-base">
-                  رقم الحالة
-                </Label>
                 <Input
                   id="manual-id"
                   type="number"
@@ -441,189 +510,138 @@ export function ClientModal({
                   value={manualId}
                   onChange={(e) => setManualId(e.target.value)}
                   placeholder="أدخل رقم الحالة"
-                  className="h-12 text-lg"
+                  className="h-11 bg-background"
                 />
-                <p className="text-sm text-yellow-600/90 dark:text-yellow-500/90 bg-yellow-50 dark:bg-yellow-950/30 p-2 rounded border border-yellow-200 dark:border-yellow-900">
-                  تنبيه: سيتم إزاحة الحالات التالية تلقائياً إذا كان الرقم مستخدماً
-                </p>
               </div>
             )}
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label className="text-base">
-              التصنيف
-            </Label>
-            <Popover open={isCategoryOpen} onOpenChange={setIsCategoryOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={isCategoryOpen}
-                  className="w-full h-12 justify-between text-lg font-normal"
-                >
-                  <span className="truncate">
-                    {selectedCategories.length > 0
-                      ? selectedCategories.join(", ")
-                      : "اختر التصنيف (اختياري)"}
-                  </span>
-                  <div className="flex items-center gap-2 opacity-50">
-                    <span className="text-xs bg-muted px-1.5 py-0.5 rounded-full">
-                      {selectedCategories.length}
-                    </span>
-                    <CalendarIcon className="h-4 w-4 rotate-90" />
-                  </div>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-2" align="start">
-                 <div className="grid gap-2">
-                    {categories.map((cat) => {
-                       const isSelected = selectedCategories.includes(cat.name);
-                       return (
-                          <div
-                             key={cat.id}
-                             className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors"
-                             onClick={() => {
-                                if (isSelected) {
-                                   setSelectedCategories(prev => prev.filter(c => c !== cat.name));
-                                } else {
-                                   setSelectedCategories(prev => [...prev, cat.name]);
-                                }
-                             }}
-                          >
-                             <div className={cn(
-                                "h-4 w-4 rounded-sm border border-primary flex items-center justify-center",
-                                isSelected ? "bg-primary text-primary-foreground" : "opacity-50"
-                             )}>
-                                {isSelected && <Check className="h-3 w-3" />}
-                             </div>
-                             <span className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                {cat.name}
-                             </span>
-                          </div>
-                       );
-                    })}
-                    {categories.length === 0 && (
-                       <p className="text-sm text-muted-foreground p-2 text-center">لا يوجد تصنيفات</p>
-                    )}
-                 </div>
-              </PopoverContent>
-            </Popover>
+        {/* Section 4: Tests */}
+        <div className="space-y-4 p-4 rounded-2xl border bg-muted/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-primary font-bold text-sm">
+              <FlaskConical className="h-4 w-4" />
+              التحاليل المطلوبة
+            </div>
+            <Badge variant="secondary" className="rounded-full px-3">{selectedTests.size} تحليل</Badge>
           </div>
 
-          <div className="space-y-3 border rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">التحاليل المطلوبة</Label>
-              <Badge variant="secondary">{selectedTests.size} تحليل</Badge>
-            </div>
-
+          <div className="space-y-3">
             {testsLoading || groupsLoading ? (
-              <div className="flex justify-center py-4">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
+              <div className="flex justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
             ) : (
               <>
-                {/* Test Groups */}
                 {groups.length > 0 && (
-                  <div className="space-y-2">
-                    <Label className="text-sm text-muted-foreground">مجموعات سريعة</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {groups.map((group) => (
+                  <div className="flex flex-wrap gap-2 pb-2">
+                    {groups.map((group) => {
+                      const isActive = selectedGroups.has(group.group_code);
+                      return (
                         <Badge
                           key={group.group_code}
-                          variant={selectedGroups.has(group.group_code) ? "default" : "outline"}
-                          className="cursor-pointer hover:bg-primary/90 transition-colors"
+                          variant={isActive ? "default" : "outline"}
+                          className={cn(
+                            "cursor-pointer py-1.5 px-3 transition-all",
+                            !isActive && "bg-background text-muted-foreground hover:bg-muted"
+                          )}
                           onClick={() => handleGroupToggle(group.group_code)}
                         >
                           {group.group_name_ar}
                         </Badge>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
                 )}
 
-                {/* Individual Tests */}
-                <div className="space-y-2">
-                  <Label className="text-sm text-muted-foreground">تحاليل فردية</Label>
-                  <Accordion type="multiple" className="w-full">
-                    {Object.entries(groupedTests).map(([category, categoryTests]) => {
-                      const allSelected = categoryTests.every((t) => selectedTests.has(t.test_code));
-                      return (
-                      <AccordionItem key={category} value={category}>
-                        <div className="flex items-center gap-2">
-                          <AccordionTrigger className="text-sm font-medium hover:no-underline flex-1">
-                            <div className="flex items-center gap-2">
-                              <span>{category}</span>
-                              <Badge variant="secondary" className="text-xs">
-                                {categoryTests.filter((t) => selectedTests.has(t.test_code)).length}/
-                                {categoryTests.length}
+                <Accordion type="multiple" className="w-full space-y-2">
+                  {Object.entries(groupedTests).map(([category, categoryTests]) => {
+                    const allSelected = categoryTests.every((t) => selectedTests.has(t.test_code));
+                    const selectedCount = categoryTests.filter((t) => selectedTests.has(t.test_code)).length;
+                    return (
+                    <AccordionItem key={category} value={category} className="border rounded-xl bg-background overflow-hidden">
+                      <div className="flex items-center px-3 hover:bg-muted/30 transition-colors">
+                        <AccordionTrigger className="flex-1 py-3 text-sm font-bold hover:no-underline">
+                          <div className="flex items-center gap-3">
+                            <span>{category}</span>
+                            {selectedCount > 0 && (
+                              <Badge variant="secondary" className="h-5 text-[10px] bg-primary/10 text-primary border-primary/20">
+                                {selectedCount}
                               </Badge>
-                            </div>
-                          </AccordionTrigger>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="text-xs h-7 px-2"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSelectAllCategory(categoryTests, !allSelected);
-                            }}
-                          >
-                            {allSelected ? "إلغاء الكل" : "تحديد الكل"}
-                          </Button>
-                        </div>
-                        <AccordionContent>
-                          <div className="space-y-2 pr-4 pt-2">
-                            {categoryTests.map((test) => (
-                              <div key={test.test_code} className="flex items-center space-x-2 space-x-reverse">
+                            )}
+                          </div>
+                        </AccordionTrigger>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className={cn(
+                            "h-8 text-xs font-semibold hover:bg-primary/10",
+                            allSelected ? "text-destructive" : "text-primary"
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectAllCategory(categoryTests, !allSelected);
+                          }}
+                        >
+                          {allSelected ? "إلغاء الكل" : "تحديد الكل"}
+                        </Button>
+                      </div>
+                      <AccordionContent className="px-4 pb-3 pt-1 border-t">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                          {categoryTests.map((test) => {
+                            const isSelected = selectedTests.has(test.test_code);
+                            return (
+                              <div 
+                                key={test.test_code} 
+                                className={cn(
+                                  "flex items-center space-x-2 space-x-reverse p-2.5 rounded-lg border transition-all cursor-pointer",
+                                  isSelected 
+                                    ? "bg-primary/10 border-primary/40 ring-1 ring-primary/20" 
+                                    : "hover:bg-muted/50 border-transparent bg-muted/20"
+                                )}
+                                onClick={() => handleTestToggle(test.test_code)}
+                              >
                                 <Checkbox
                                   id={`test-${test.test_code}`}
-                                  checked={selectedTests.has(test.test_code)}
-                                  onCheckedChange={() => handleTestToggle(test.test_code)}
+                                  checked={isSelected}
+                                  onCheckedChange={() => {}} 
+                                  className={cn(isSelected && "border-primary bg-primary text-primary-foreground")}
                                 />
-                                <label
-                                  htmlFor={`test-${test.test_code}`}
-                                  className="text-sm cursor-pointer flex-1"
-                                >
-                                  {test.test_name_en || test.test_name_ar}
-                                  {test.unit && (
-                                    <span className="text-muted-foreground text-xs mr-1">
-                                      ({test.unit})
-                                    </span>
-                                  )}
-                                </label>
+                                <div className="flex-1 truncate mr-2">
+                                  <div className={cn("text-sm font-bold truncate", isSelected ? "text-primary" : "text-foreground")}>
+                                    {test.test_name_ar}
+                                  </div>
+                                  <div className="text-muted-foreground text-[10px] truncate leading-tight">
+                                    {test.test_name_en}
+                                  </div>
+                                </div>
                               </div>
-                            ))}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                      );
-                    })}
-                  </Accordion>
-                </div>
+                            );
+                          })}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                    );
+                  })}
+                </Accordion>
               </>
             )}
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="notes" className="text-base">
-              الملاحظات
-            </Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="أدخل الملاحظات (اختياري)"
-              className="min-h-[100px] text-lg resize-none"
-            />
-          </div>
-
-          {!isDesktop && (
-            <div className="pt-4 pb-4">
-              {renderFooterButtons()}
-            </div>
-          )}
+        {/* Section 5: Notes */}
+        <div className="space-y-2 p-4 rounded-2xl border bg-muted/30">
+          <Label htmlFor="notes" className="text-sm font-medium flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            الملاحظات
+          </Label>
+          <Textarea
+            id="notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="أي ملاحظات إضافية..."
+            className="min-h-[80px] bg-background resize-none border-none focus-visible:ring-1"
+          />
         </div>
       </div>
       
@@ -631,6 +649,11 @@ export function ClientModal({
         <SheetFooter className="border-t pt-4 flex-shrink-0 px-4">
           {renderFooterButtons()}
         </SheetFooter>
+      )}
+      {!isDesktop && (
+        <div className="p-4 border-t">
+          {renderFooterButtons()}
+        </div>
       )}
     </form>
   );

@@ -14,18 +14,22 @@ import type {
  * Calculate result flag based on value and reference range
  * @param value - The test result value
  * @param referenceRanges - Reference ranges (can be gender/age specific)
- * @param gender - Patient gender ('male' | 'female')
+ * @param gender - Patient gender ('male' | 'female' | 'ذكر' | 'أنثى')
  * @param age - Patient age (optional)
  * @returns ResultFlag indicating if value is normal/high/low
  */
 export function calculateFlag(
   value: number,
   referenceRanges: ReferenceRanges,
-  gender?: 'male' | 'female',
+  gender?: 'male' | 'female' | 'ذكر' | 'أنثى',
   age?: number
 ): ResultFlag {
   // Determine which reference range to use
   let range: ReferenceRange | undefined;
+
+  // Map Arabic gender to English for range lookup
+  const canonicalGender = gender === 'ذكر' || gender === 'male' ? 'male' : 
+                         gender === 'أنثى' || gender === 'female' ? 'female' : undefined;
 
   // Try age-specific range first
   if (age !== undefined && referenceRanges.age_ranges) {
@@ -38,8 +42,8 @@ export function calculateFlag(
   }
 
   // Try gender-specific range
-  if (!range && gender && referenceRanges[gender]) {
-    range = referenceRanges[gender];
+  if (!range && canonicalGender && referenceRanges[canonicalGender]) {
+    range = referenceRanges[canonicalGender];
   }
 
   // Fall back to default range
@@ -75,16 +79,20 @@ export function calculateFlag(
 /**
  * Format reference range for display
  * @param referenceRanges - Reference ranges object
- * @param gender - Patient gender
+ * @param gender - Patient gender ('male' | 'female' | 'ذكر' | 'أنثى')
  * @param age - Patient age
  * @returns Formatted string like "70-100 mg/dL"
  */
 export function formatReferenceRange(
   referenceRanges: ReferenceRanges,
-  gender?: 'male' | 'female',
+  gender?: 'male' | 'female' | 'ذكر' | 'أنثى',
   age?: number
 ): string {
   let range: ReferenceRange | undefined;
+
+  // Map Arabic gender to English for range lookup
+  const canonicalGender = gender === 'ذكر' || gender === 'male' ? 'male' : 
+                         gender === 'أنثى' || gender === 'female' ? 'female' : undefined;
 
   // Try age-specific range first
   if (age !== undefined && referenceRanges.age_ranges) {
@@ -97,8 +105,8 @@ export function formatReferenceRange(
   }
 
   // Try gender-specific range
-  if (!range && gender && referenceRanges[gender]) {
-    range = referenceRanges[gender];
+  if (!range && canonicalGender && referenceRanges[canonicalGender]) {
+    range = referenceRanges[canonicalGender];
   }
 
   // Fall back to default range

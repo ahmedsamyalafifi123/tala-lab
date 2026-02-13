@@ -35,7 +35,7 @@ interface TestResultsModalProps {
   onClose: () => void;
   clientUuid: string;
   clientName: string;
-  clientGender?: "male" | "female";
+  clientGender?: "male" | "female" | "ذكر" | "أنثى";
   clientAge?: number;
 }
 
@@ -248,7 +248,7 @@ export function TestResultsModal({
                      : "إضافة نتائج التحاليل"}
                </DialogTitle>
                <DialogDescription id="dialog-description" className="mt-1">
-                 {clientName} • {clientGender === 'male' ? 'ذكر' : 'أنثى'} • {clientAge} سنة
+                 {clientName} • {clientGender === 'male' || clientGender === 'ذكر' ? 'ذكر' : 'أنثى'} • {clientAge} سنة
                </DialogDescription>
             </div>
             
