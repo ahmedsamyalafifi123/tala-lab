@@ -334,6 +334,7 @@ export default function LabDashboard() {
     patient_gender?: string;
     insurance_number?: string;
     entity?: string;
+    patient_age?: number;
   }) => {
     if (!labId) return;
     console.log('💾 handleSave called with:', {
@@ -356,7 +357,8 @@ export default function LabDashboard() {
           p_selected_tests: data.selected_tests,  // Pass selected_tests directly to RPC
           p_patient_gender: data.patient_gender,
           p_insurance_number: data.insurance_number,
-          p_entity: data.entity
+          p_entity: data.entity,
+          p_patient_age: data.patient_age
         });
 
         if (error) throw error;
@@ -376,7 +378,8 @@ export default function LabDashboard() {
           p_selected_tests: data.selected_tests || [],  // Pass selected_tests directly to RPC
           p_patient_gender: data.patient_gender,
           p_insurance_number: data.insurance_number,
-          p_entity: data.entity
+          p_entity: data.entity,
+          p_patient_age: data.patient_age
         });
 
         if (error) throw error;

@@ -64,6 +64,7 @@ interface ClientModalProps {
     patient_gender?: string;
     insurance_number?: string;
     entity?: string;
+    patient_age?: number;
   }) => Promise<void>;
   client?: Client | null;
   categories: Category[];
@@ -80,6 +81,7 @@ export function ClientModal({
 }: ClientModalProps) {
   const [name, setName] = useState("");
   const [gender, setGender] = useState<string>("ذكر");
+  const [age, setAge] = useState<string>("");
   const [insuranceNumber, setInsuranceNumber] = useState("");
   const [entity, setEntity] = useState<string>("");
   const [notes, setNotes] = useState("");
@@ -134,6 +136,7 @@ export function ClientModal({
 
       setName(client.patient_name);
       setGender(client.patient_gender || "");
+      setAge(client.patient_age?.toString() || "");
       setInsuranceNumber(client.insurance_number || "");
       setEntity(client.entity || "");
       setNotes(client.notes || "");
@@ -167,6 +170,7 @@ export function ClientModal({
     } else {
       setName("");
       setGender("ذكر");
+      setAge("");
       setInsuranceNumber("");
       setEntity("");
       setNotes("");
@@ -251,15 +255,17 @@ export function ClientModal({
       daily_date: format(date, "yyyy-MM-dd"),
       daily_id: isManualId && manualId ? parseInt(manualId) : null,
       selected_tests: testsToSave,
-      patient_gender: gender || undefined,
+      patient_gender: (gender && gender !== "none") ? gender : undefined,
       insurance_number: insuranceNumber.trim() || undefined,
-      entity: entity || undefined,
+      entity: (entity && entity !== "none") ? entity : undefined,
+      patient_age: age ? parseInt(age) : undefined,
     });
 
     // If we are adding a new client (not editing), reset the form
     if (!client) {
       setName("");
       setGender("ذكر");
+      setAge("");
       setInsuranceNumber("");
       setEntity("");
       setNotes("");
@@ -310,8 +316,8 @@ export function ClientModal({
     <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0 overflow-hidden">
       <div className={cn("flex-1 overflow-y-auto overscroll-contain p-4", !isDesktop && "pb-8")}>
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2 space-y-2">
               <Label htmlFor="name" className="text-base">
                 الاسم <span className="text-destructive">*</span>
               </Label>
@@ -332,6 +338,7 @@ export function ClientModal({
                   <SelectValue placeholder="اختر الجنس" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none" className="text-muted-foreground">بدون تحديد</SelectItem>
                   <SelectItem value="ذكر">ذكر</SelectItem>
                   <SelectItem value="أنثى">أنثى</SelectItem>
                 </SelectContent>
@@ -339,8 +346,21 @@ export function ClientModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
+              <Label htmlFor="age" className="text-base">العمر</Label>
+              <Input
+                id="age"
+                type="number"
+                min="0"
+                max="150"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                placeholder="السنة"
+                className="h-12 text-lg"
+              />
+            </div>
+            <div className="md:col-span-2 space-y-2">
               <Label htmlFor="insurance_number" className="text-base">الرقم التأميني</Label>
               <Input
                 id="insurance_number"
@@ -350,22 +370,24 @@ export function ClientModal({
                 className="h-12 text-lg"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="entity" className="text-base">الجهة</Label>
-              <Select value={entity} onValueChange={setEntity}>
-                <SelectTrigger id="entity" className="h-12 text-lg text-right">
-                  <SelectValue placeholder="اختر الجهة" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="معاشات">معاشات</SelectItem>
-                  <SelectItem value="ارامل">ارامل</SelectItem>
-                  <SelectItem value="موظفين">موظفين</SelectItem>
-                  <SelectItem value="طلبة">طلبة</SelectItem>
-                  <SelectItem value="المرأة المعيلة">المرأة المعيلة</SelectItem>
-                  <SelectItem value="المقاولات">المقاولات</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="entity" className="text-base">الجهة</Label>
+            <Select value={entity} onValueChange={setEntity}>
+              <SelectTrigger id="entity" className="h-12 text-lg text-right">
+                <SelectValue placeholder="اختر الجهة" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none" className="text-muted-foreground">بدون تحديد</SelectItem>
+                <SelectItem value="معاشات">معاشات</SelectItem>
+                <SelectItem value="ارامل">ارامل</SelectItem>
+                <SelectItem value="موظفين">موظفين</SelectItem>
+                <SelectItem value="طلبة">طلبة</SelectItem>
+                <SelectItem value="المرأة المعيلة">المرأة المعيلة</SelectItem>
+                <SelectItem value="المقاولات">المقاولات</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

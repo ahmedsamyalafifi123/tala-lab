@@ -1,8 +1,9 @@
--- Add new columns to clients table with default gender
+-- Add new columns to clients table
 ALTER TABLE public.clients
 ADD COLUMN IF NOT EXISTS patient_gender text DEFAULT 'ذكر',
 ADD COLUMN IF NOT EXISTS insurance_number text,
-ADD COLUMN IF NOT EXISTS entity text;
+ADD COLUMN IF NOT EXISTS entity text,
+ADD COLUMN IF NOT EXISTS patient_age integer;
 
 -- Add check constraints
 ALTER TABLE public.clients
@@ -30,7 +31,8 @@ CREATE OR REPLACE FUNCTION public.insert_client_multi_category(
     p_selected_tests text[] DEFAULT '{}'::text[],
     p_patient_gender text DEFAULT 'ذكر',
     p_insurance_number text DEFAULT NULL,
-    p_entity text DEFAULT NULL
+    p_entity text DEFAULT NULL,
+    p_patient_age integer DEFAULT NULL
 )
 RETURNS TABLE(ret_uuid uuid, ret_client_group_id uuid, ret_daily_id integer, ret_primary_category text) 
 LANGUAGE plpgsql
@@ -83,7 +85,8 @@ BEGIN
       selected_tests,
       patient_gender,
       insurance_number,
-      entity
+      entity,
+      patient_age
     )
     VALUES (
       p_lab_id,
@@ -99,7 +102,8 @@ BEGIN
       p_selected_tests,
       COALESCE(p_patient_gender, 'ذكر'),
       p_insurance_number,
-      p_entity
+      p_entity,
+      p_patient_age
     )
     RETURNING
       uuid,
@@ -133,7 +137,8 @@ CREATE OR REPLACE FUNCTION public.update_client_group(
     p_selected_tests text[] DEFAULT NULL::text[],
     p_patient_gender text DEFAULT NULL,
     p_insurance_number text DEFAULT NULL,
-    p_entity text DEFAULT NULL
+    p_entity text DEFAULT NULL,
+    p_patient_age integer DEFAULT NULL
 )
 RETURNS void
 LANGUAGE plpgsql
@@ -172,7 +177,8 @@ BEGIN
     selected_tests = COALESCE(p_selected_tests, c.selected_tests),
     patient_gender = COALESCE(p_patient_gender, c.patient_gender),
     insurance_number = p_insurance_number,
-    entity = p_entity
+    entity = p_entity,
+    patient_age = p_patient_age
   WHERE c.client_group_id = p_client_group_id
     AND c.primary_category = ANY(p_categories);
 
@@ -202,7 +208,8 @@ BEGIN
         selected_tests,
         patient_gender,
         insurance_number,
-        entity
+        entity,
+        patient_age
       )
       VALUES (
         v_lab_id,
@@ -217,7 +224,8 @@ BEGIN
         p_selected_tests,
         COALESCE(p_patient_gender, 'ذكر'),
         p_insurance_number,
-        p_entity
+        p_entity,
+        p_patient_age
       );
     END IF;
   END LOOP;
