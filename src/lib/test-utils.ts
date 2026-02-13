@@ -198,22 +198,22 @@ export function getFlagIcon(flag: ResultFlag): string {
 }
 
 /**
- * Get flag label in Arabic
+ * Get flag label in English
  * @param flag - Result flag
- * @returns Arabic label
+ * @returns English label
  */
 export function getFlagLabel(flag: ResultFlag): string {
   switch (flag) {
     case 'normal':
-      return 'طبيعي';
+      return 'Normal';
     case 'high':
-      return 'مرتفع';
+      return 'High';
     case 'low':
-      return 'منخفض';
+      return 'Low';
     case 'critical_high':
-      return 'مرتفع جداً';
+      return 'Critical High';
     case 'critical_low':
-      return 'منخفض جداً';
+      return 'Critical Low';
     default:
       return '';
   }

@@ -189,24 +189,24 @@ export function ResultsHistoryViewer({ clientUuid }: ResultsHistoryViewerProps) 
                               </Badge>
                            </div>
 
-                           <div className="bg-card border rounded-lg overflow-hidden">
+                           <div className="bg-card border rounded-lg overflow-hidden" dir="ltr">
                               <Table>
                                  <TableHeader className="bg-muted/40">
                                     <TableRow className="hover:bg-transparent">
-                                       <TableHead className="w-[30%] text-right font-medium">التحليل</TableHead>
-                                       <TableHead className="w-[20%] text-center font-medium">النتيجة</TableHead>
-                                       <TableHead className="w-[15%] text-center font-medium">الوحدة</TableHead>
-                                       <TableHead className="w-[20%] text-center font-medium">الحالة</TableHead>
-                                       <TableHead className="w-[15%] text-right font-medium">ملاحظات</TableHead>
+                                       <TableHead className="w-[30%] text-left font-medium">Test</TableHead>
+                                       <TableHead className="w-[20%] text-center font-medium">Result</TableHead>
+                                       <TableHead className="w-[15%] text-center font-medium">Unit</TableHead>
+                                       <TableHead className="w-[20%] text-center font-medium">Flag</TableHead>
+                                       <TableHead className="w-[15%] text-left font-medium">Notes</TableHead>
                                     </TableRow>
                                  </TableHeader>
                                  <TableBody>
                                     {items.map(({ code, result, test }) => (
                                        <TableRow key={code} className="hover:bg-muted/20">
-                                          <TableCell className="font-medium text-right py-3" dir="ltr">
+                                          <TableCell className="font-medium text-left py-3">
                                              {test?.test_name_en || test?.test_name_ar || code}
                                           </TableCell>
-                                          <TableCell className="text-center font-mono font-semibold py-3" dir="ltr">
+                                          <TableCell className="text-center font-mono font-semibold py-3">
                                              {result.value}
                                           </TableCell>
                                           <TableCell className="text-center text-muted-foreground text-xs py-3">
@@ -227,11 +227,11 @@ export function ResultsHistoryViewer({ clientUuid }: ResultsHistoryViewerProps) 
                                              )}
                                              {!result.flag && (
                                                 <Badge variant="outline" className="font-normal text-muted-foreground border-border/50 bg-muted/20">
-                                                   طبيعي
+                                                   Normal
                                                 </Badge>
                                              )}
                                           </TableCell>
-                                          <TableCell className="text-right text-sm text-muted-foreground py-3 max-w-[150px] truncate">
+                                          <TableCell className="text-left text-sm text-muted-foreground py-3 max-w-[150px] truncate">
                                              {result.notes || "-"}
                                           </TableCell>
                                        </TableRow>

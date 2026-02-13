@@ -377,7 +377,7 @@ export function TestResultsModal({
                                     <h4 className="font-medium text-sm text-foreground/80">{category}</h4>
                                  </div>
                                  
-                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" dir="ltr">
                                     {items.map(({ code, result, test }) => {
                                        const flagColor = result?.flag ? getFlagColor(result.flag) : "";
                                        const flagIcon = result?.flag ? getFlagIcon(result.flag) : null;
@@ -388,11 +388,11 @@ export function TestResultsModal({
                                              result.flag ? "bg-accent/20 border-accent/20" : "bg-card hover:bg-muted/20"
                                           )}>
                                              {result.flag && (
-                                                <div className={cn("absolute top-0 right-0 w-1 h-full", flagColor.replace('text-', 'bg-').replace('bg-', ''))} />
+                                                <div className={cn("absolute top-0 left-0 w-1 h-full", flagColor.replace('text-', 'bg-').replace('bg-', ''))} />
                                              )}
                                              
                                              <div className="flex justify-between items-start gap-2">
-                                                <span className="text-xs font-medium text-muted-foreground line-clamp-1 text-left" dir="ltr" title={test?.test_name_en || test?.test_name_ar}>{test?.test_name_en || test?.test_name_ar || code}</span>
+                                                <span className="text-xs font-medium text-muted-foreground line-clamp-1" title={test?.test_name_en || test?.test_name_ar}>{test?.test_name_en || test?.test_name_ar || code}</span>
                                                 {flagIcon && <span className={cn("text-xs font-bold", flagColor)}>{flagIcon}</span>}
                                              </div>
                                              
@@ -505,7 +505,7 @@ export function TestResultsModal({
                                           <div className={cn("text-xs font-medium flex items-center justify-end gap-1.5", getFlagColor(flag))}>
                                              <span>{getFlagLabel(flag)}</span>
                                              <span>•</span>
-                                             <span>{flag === 'high' || flag === 'critical_high' ? 'مرتفع' : 'منخفض'}</span>
+                                             <span>{flag === 'high' || flag === 'critical_high' ? 'High' : 'Low'}</span>
                                           </div>
                                        )}
                                     </div>

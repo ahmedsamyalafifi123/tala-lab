@@ -69,19 +69,19 @@ export function ExportResultsDialog({
       // Add results
       entries.forEach((entry) => {
         excelData.push({
-          التاريخ: format(new Date(entry.recorded_at), "PPP p", { locale: ar }),
+          "Date": format(new Date(entry.recorded_at), "PPP p", { locale: ar }),
           "": "",
           "": "",
           "": "",
         });
 
         excelData.push({
-          التحليل: "الاسم",
-          القيمة: "النتيجة",
-          الوحدة: "الوحدة",
-          الحالة: "الحالة",
-          ...(includeReferenceRanges && { "القيم الطبيعية": "المدى الطبيعي" }),
-          الملاحظات: "ملاحظات",
+          "Test": "Name",
+          "Result": "Result",
+          "Unit": "Unit",
+          "Flag": "Flag",
+          ...(includeReferenceRanges && { "Reference Range": "Normal Range" }),
+          "Notes": "Notes",
         });
 
         Object.entries(entry.tests).forEach(([testCode, result]) => {
@@ -89,34 +89,34 @@ export function ExportResultsDialog({
           const refRange = test?.reference_ranges.default;
 
           excelData.push({
-            التحليل: test?.test_name_en || test?.test_name_ar || testCode,
-            القيمة: result.value,
-            الوحدة: result.unit || test?.unit || "-",
-            الحالة:
+            "Test": test?.test_name_en || test?.test_name_ar || testCode,
+            "Result": result.value,
+            "Unit": result.unit || test?.unit || "-",
+            "Flag":
               result.flag === "normal"
-                ? "طبيعي"
+                ? "Normal"
                 : result.flag === "high"
-                ? "مرتفع"
+                ? "High"
                 : result.flag === "low"
-                ? "منخفض"
+                ? "Low"
                 : result.flag === "critical_high"
-                ? "مرتفع جداً"
+                ? "Critical High"
                 : result.flag === "critical_low"
-                ? "منخفض جداً"
-                : "-",
+                ? "Critical Low"
+                : "Normal",
             ...(includeReferenceRanges &&
               refRange && {
-                "القيم الطبيعية": `${refRange.min} - ${refRange.max}`,
+                "Reference Range": `${refRange.min} - ${refRange.max}`,
               }),
-            الملاحظات: result.notes || "-",
+            "Notes": result.notes || "-",
           });
         });
 
         if (entry.notes) {
           excelData.push({});
           excelData.push({
-            التحليل: "ملاحظات عامة:",
-            القيمة: entry.notes,
+            "Test": "General Notes:",
+            "Result": entry.notes,
           });
         }
 
@@ -163,7 +163,6 @@ export function ExportResultsDialog({
   };
 
   const handleExportPDF = () => {
-    // Open print dialog with custom styles
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
@@ -171,80 +170,215 @@ export function ExportResultsDialog({
 
     let html = `
       <!DOCTYPE html>
-      <html dir="rtl" lang="ar">
+      <html dir="ltr" lang="en">
       <head>
         <meta charset="UTF-8">
-        <title>نتائج التحاليل - ${clientName}</title>
+        <title>Medical Report - ${clientName}</title>
         <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+          
           @media print {
-            @page { margin: 2cm; }
+            @page { size: A4; margin: 1.5cm; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           }
+          
           body {
-            font-family: 'Arial', sans-serif;
-            direction: rtl;
+            font-family: 'Inter', -apple-system, sans-serif;
+            line-height: 1.5;
+            color: #1a202c;
+            margin: 0;
+            padding: 0;
+          }
+
+          .report-container {
+            max-width: 800px;
+            margin: 0 auto;
             padding: 20px;
           }
-          h1 {
-            text-align: center;
-            color: #333;
-            border-bottom: 2px solid #666;
-            padding-bottom: 10px;
+
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #2d3748;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
           }
-          .entry {
-            margin: 30px 0;
-            page-break-inside: avoid;
+
+          .lab-brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
           }
-          .entry-header {
-            background: #f5f5f5;
-            padding: 10px;
-            margin-bottom: 15px;
-            border-right: 4px solid #666;
+
+          .logo-placeholder {
+            width: 60px;
+            height: 60px;
+            background: #2d3748;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 24px;
           }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
+
+          .lab-info h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #1a202c;
+            text-transform: uppercase;
+            letter-spacing: 1px;
           }
-          th, td {
-            border: 1px solid #ddd;
-            padding: 12px 8px;
+
+          .report-title {
             text-align: right;
           }
-          th {
-            background: #f9f9f9;
-            font-weight: bold;
+
+          .report-title h2 {
+            margin: 0;
+            color: #4a5568;
+            font-size: 18px;
+            font-weight: 600;
           }
-          .flag-normal { color: #16a34a; font-weight: bold; }
-          .flag-high { color: #eab308; font-weight: bold; }
-          .flag-low { color: #eab308; font-weight: bold; }
-          .flag-critical { color: #dc2626; font-weight: bold; }
-          .notes {
-            background: #f9f9f9;
-            padding: 10px;
-            border-right: 3px solid #666;
+
+          .patient-card {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: grid;
+            grid-template-cols: repeat(2, 1fr);
+            gap: 15px;
+          }
+
+          .info-item {
+            display: flex;
+            gap: 10px;
+          }
+
+          .info-label {
+            color: #718096;
+            font-weight: 600;
+            min-width: 100px;
+          }
+
+          .entry {
+            margin-bottom: 40px;
+          }
+
+          .entry-date {
+            font-size: 14px;
+            font-weight: 700;
+            color: #2d3748;
+            background: #edf2f7;
+            padding: 8px 15px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-bottom: 15px;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-bottom: 15px;
+          }
+
+          th {
+            background: #2d3748;
+            color: white;
+            text-align: left;
+            padding: 12px 15px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+          }
+
+          th:first-child { border-top-left-radius: 8px; }
+          th:last-child { border-top-right-radius: 8px; }
+
+          td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+          }
+
+          .test-name { font-weight: 600; color: #2d3748; }
+          .result-value { font-family: monospace; font-weight: 700; font-size: 16px; }
+          
+          .flag-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+          }
+
+          .flag-normal { color: #2f855a; }
+          .flag-high, .flag-low { background: #feebc8; color: #c05621; }
+          .flag-critical { background: #fed7d7; color: #c53030; }
+
+          .notes-box {
+            background: #fffaf0;
+            border-left: 4px solid #ed8936;
+            padding: 15px;
             margin-top: 10px;
+            font-size: 13px;
+            color: #744210;
+          }
+
+          .footer {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            color: #a0aec0;
+            font-size: 11px;
           }
         </style>
       </head>
       <body>
-        <h1>نتائج التحاليل الطبية</h1>
-        <p style="text-align: center; font-size: 18px; margin: 20px 0;"><strong>المريض:</strong> ${clientName}</p>
+        <div class="report-container">
+          <header class="header">
+            <div class="lab-brand">
+              <div class="logo-placeholder">LAB</div>
+              <div class="lab-info">
+                <h1>Medical Laboratory</h1>
+                <p style="margin:0; font-size: 12px; color: #718096;">Professional Diagnostic Services</p>
+              </div>
+            </div>
+
+          </header>
+
+          <div class="patient-card">
+            <div class="info-item">
+              <span class="info-label">Patient Name:</span>
+              <span>${clientName}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Report ID:</span>
+              <span style="font-family: monospace;">${clientUuid.substring(0, 8).toUpperCase()}</span>
+            </div>
+          </div>
     `;
 
     entries.forEach((entry) => {
       html += `
         <div class="entry">
-          <div class="entry-header">
-            <strong>التاريخ:</strong> ${format(new Date(entry.recorded_at), "PPP p", { locale: ar })}
-          </div>
+          <div class="entry-date">Collection Date: ${format(new Date(entry.recorded_at), "PPP p", { locale: ar })}</div>
           <table>
             <thead>
               <tr>
-                <th>التحليل</th>
-                <th>النتيجة</th>
-                <th>الوحدة</th>
-                <th>الحالة</th>
-                ${includeReferenceRanges ? "<th>القيم الطبيعية</th>" : ""}
+                <th style="width: 35%">Test Name</th>
+                <th style="width: 15%; text-align: center;">Result</th>
+                <th style="width: 10%; text-align: center;">Unit</th>
+                <th style="width: 20%; text-align: center;">Status</th>
+                ${includeReferenceRanges ? "<th style='width: 20%; text-align: center;'>Reference Range</th>" : ""}
               </tr>
             </thead>
             <tbody>
@@ -253,38 +387,31 @@ export function ExportResultsDialog({
       Object.entries(entry.tests).forEach(([testCode, result]) => {
         const test = tests.find((t) => t.test_code === testCode);
         const refRange = test?.reference_ranges.default;
-        const flagClass =
-          result.flag === "normal"
-            ? "flag-normal"
-            : result.flag === "critical_high" || result.flag === "critical_low"
-            ? "flag-critical"
-            : "flag-high";
+        
+        let flagClass = "flag-normal";
+        if (result.flag === "critical_high" || result.flag === "critical_low") flagClass = "flag-critical";
+        else if (result.flag === "high" || result.flag === "low") flagClass = "flag-high";
+
+        const flagLabel = result.flag ? (
+          result.flag === "normal" ? "Normal" :
+          result.flag === "high" ? "High" :
+          result.flag === "low" ? "Low" :
+          result.flag === "critical_high" ? "Critical High" : "Critical Low"
+        ) : "Normal";
 
         html += `
           <tr>
-            <td>${test?.test_name_en || test?.test_name_ar || testCode}</td>
-            <td><strong>${result.value}</strong></td>
-            <td>${result.unit || test?.unit || "-"}</td>
-            <td class="${flagClass}">
-              ${
-                result.flag === "normal"
-                  ? "طبيعي"
-                  : result.flag === "high"
-                  ? "مرتفع"
-                  : result.flag === "low"
-                  ? "منخفض"
-                  : result.flag === "critical_high"
-                  ? "مرتفع جداً"
-                  : result.flag === "critical_low"
-                  ? "منخفض جداً"
-                  : "-"
-              }
+            <td class="test-name">${test?.test_name_en || test?.test_name_ar || testCode}</td>
+            <td class="result-value" style="text-align: center;">${result.value}</td>
+            <td style="text-align: center; color: #718096;">${result.unit || test?.unit || "-"}</td>
+            <td style="text-align: center;">
+              <span class="flag-badge ${flagClass}">${flagLabel}</span>
             </td>
-            ${
-              includeReferenceRanges && refRange
-                ? `<td>${refRange.min} - ${refRange.max}</td>`
-                : ""
-            }
+            ${includeReferenceRanges ? `
+              <td style="text-align: center; font-size: 12px; color: #4a5568;">
+                ${refRange ? `${refRange.min} - ${refRange.max}` : "-"}
+              </td>
+            ` : ""}
           </tr>
         `;
       });
@@ -295,23 +422,29 @@ export function ExportResultsDialog({
       `;
 
       if (entry.notes) {
-        html += `<div class="notes"><strong>ملاحظات:</strong> ${entry.notes}</div>`;
+        html += `<div class="notes-box"><strong>Comments:</strong> ${entry.notes}</div>`;
       }
 
       html += `</div>`;
     });
 
     html += `
-        <p style="text-align: center; margin-top: 40px; color: #666; font-size: 12px;">
-          تم الطباعة في: ${format(new Date(), "PPP p", { locale: ar })}
-        </p>
+          <div class="footer">
+            <span>Generated on: ${format(new Date(), "PPP p", { locale: ar })}</span>
+            <span>Electronic Copy - No Signature Required</span>
+          </div>
+        </div>
       </body>
       </html>
     `;
 
     printWindow.document.write(html);
     printWindow.document.close();
-    printWindow.print();
+    
+    // Add a small delay to ensure styles are loaded before printing
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
 
     onClose();
   };
