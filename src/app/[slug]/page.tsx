@@ -353,12 +353,12 @@ export default function LabDashboard() {
           p_notes: data.notes || '',
           p_categories: data.category || [],
           p_daily_date: data.daily_date,
-          p_manual_id: data.daily_id || null,
-          p_selected_tests: data.selected_tests,  // Pass selected_tests directly to RPC
-          p_patient_gender: data.patient_gender,
-          p_insurance_number: data.insurance_number,
-          p_entity: data.entity,
-          p_patient_age: data.patient_age
+          p_manual_id: data.daily_id ?? null,
+          p_selected_tests: data.selected_tests || [],
+          p_patient_gender: data.patient_gender || 'ذكر',
+          p_insurance_number: data.insurance_number ?? null,
+          p_entity: data.entity ?? null,
+          p_patient_age: data.patient_age ?? null
         });
 
         if (error) throw error;
@@ -373,13 +373,13 @@ export default function LabDashboard() {
           p_notes: data.notes || '',
           p_categories: data.category || [],
           p_daily_date: data.daily_date,
-          p_manual_id: data.daily_id || null,
+          p_manual_id: data.daily_id ?? null,
           p_created_by: currentUserId,
-          p_selected_tests: data.selected_tests || [],  // Pass selected_tests directly to RPC
-          p_patient_gender: data.patient_gender,
-          p_insurance_number: data.insurance_number,
-          p_entity: data.entity,
-          p_patient_age: data.patient_age
+          p_selected_tests: data.selected_tests || [],
+          p_patient_gender: data.patient_gender || 'ذكر',
+          p_insurance_number: data.insurance_number ?? null,
+          p_entity: data.entity ?? null,
+          p_patient_age: data.patient_age ?? null
         });
 
         if (error) throw error;
