@@ -85,10 +85,27 @@ export async function middleware(req: NextRequest) {
 
   // Lab portal protection
   // Matches /slug or /slug/something, but avoids reserved paths
-  const reservedPaths = ["login", "api", "_next", "manager", "static"];
+  const reservedPaths = [
+    "login", 
+    "signup", 
+    "api", 
+    "_next", 
+    "manager", 
+    "static", 
+    "assets", 
+    "public", 
+    "favicon.ico", 
+    "logo.png", 
+    "logo.webp",
+    "robots.txt",
+    "sitemap.xml",
+  ];
   const firstSegment = path.split('/')[1];
 
-  if (firstSegment && !reservedPaths.includes(firstSegment)) {
+  // Quick exit for static assets and reserved paths
+  if (!firstSegment || reservedPaths.includes(firstSegment) || path.includes('.')) {
+    return response;
+  }
     // It's likely a lab slug
     const labSlug = firstSegment;
 
@@ -209,7 +226,6 @@ export async function middleware(req: NextRequest) {
     response.headers.set("x-lab-id", lab.uuid);
     response.headers.set("x-lab-slug", lab.slug);
     response.headers.set("x-user-role", labUser.role);
-  }
 
   return response;
 }
@@ -221,9 +237,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public folder
-     * - api routes (if needed, but usually we want middleware on api too?)
+     * - public folder files (.svg, .png, .jpg, .jpeg, .gif, .webp, .ttf, .woff, .woff2, .mp4, .json)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ttf|woff|woff2|mp4|json|ico|txt)$).*)',
   ],
 };
