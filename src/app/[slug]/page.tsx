@@ -1174,9 +1174,9 @@ export default function LabDashboard() {
                                 src: url('/assets/Cairo.ttf') format('truetype');
                                 font-weight: 400; font-style: normal;
                               }
-                              @page { size: 210mm 297mm; margin: 25mm 20mm; }
+                              @page { size: auto; margin: 5mm; }
                               * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif !important; font-weight: 700 !important; }
-                              body { font-size: 13px; line-height: 1.5; color: #111; direction: rtl; background: #fff; padding: 8mm; }
+                              body { font-size: 13px; line-height: 1.5; color: #111; direction: rtl; background: #fff; padding: 5mm; }
                               .print-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 3px solid #2563eb; }
                               .print-header-right { display: flex; align-items: center; gap: 15px; }
                               .print-logo { width: 70px; height: 70px; border-radius: 8px; object-fit: contain; }
@@ -1238,9 +1238,9 @@ export default function LabDashboard() {
                                 src: url('/assets/Cairo.ttf') format('truetype');
                                 font-weight: 400; font-style: normal;
                               }
-                              @page { size: 210mm 297mm; margin: 25mm 20mm; }
+                              @page { size: auto; margin: 5mm; }
                               * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif !important; font-weight: 700 !important; }
-                              body { font-size: 13px; line-height: 1.5; color: #111; direction: rtl; background: #fff; padding: 8mm; }
+                              body { font-size: 13px; line-height: 1.5; color: #111; direction: rtl; background: #fff; padding: 5mm; }
                               .print-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 3px solid #2563eb; }
                               .print-header-right { display: flex; align-items: center; gap: 15px; }
                               .print-logo { width: 70px; height: 70px; border-radius: 8px; object-fit: contain; }
