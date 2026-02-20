@@ -1175,7 +1175,7 @@ export default function LabDashboard() {
                                 font-weight: 400; font-style: normal;
                               }
                               @page { size: auto; margin: 5mm; }
-                              * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif !important; font-weight: 700 !important; }
+                              * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif !important; font-weight: 500 !important; }
                               body { font-size: 13px; line-height: 1.5; color: #111; direction: rtl; background: #fff; padding: 5mm; }
                               .print-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 3px solid #2563eb; }
                               .print-header-right { display: flex; align-items: center; gap: 15px; }
@@ -1187,9 +1187,9 @@ export default function LabDashboard() {
                               .print-header-left span { color: #2563eb; font-weight: 700; font-size: 16px; }
                               .print-tables-container { column-count: 2; column-gap: 8mm; }
                               table { width: 100%; border-collapse: collapse; font-size: 13px; }
-                              th, td { border: 1px solid #cbd5e1; padding: 8px 6px; text-align: center; }
+                              th, td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: center; }
                               th { background-color: #f1f5f9; font-weight: 700; color: #0f172a; font-size: 14px; }
-                              td { color: #1e293b; font-weight: 700; }
+                              td { color: #1e293b; font-weight: 500; }
                               tr { break-inside: avoid; }
                               tr:nth-child(even) td { background-color: #f8fafc; }
                               .print-footer { margin-top: 30px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; }
@@ -1239,7 +1239,7 @@ export default function LabDashboard() {
                                 font-weight: 400; font-style: normal;
                               }
                               @page { size: auto; margin: 5mm; }
-                              * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif !important; font-weight: 700 !important; }
+                              * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif !important; font-weight: 500 !important; }
                               body { font-size: 13px; line-height: 1.5; color: #111; direction: rtl; background: #fff; padding: 5mm; }
                               .print-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 3px solid #2563eb; }
                               .print-header-right { display: flex; align-items: center; gap: 15px; }
@@ -1251,9 +1251,9 @@ export default function LabDashboard() {
                               .print-header-left span { color: #2563eb; font-weight: 700; font-size: 16px; }
                               .print-tables-container { column-count: 2; column-gap: 8mm; }
                               table { width: 100%; border-collapse: collapse; font-size: 13px; }
-                              th, td { border: 1px solid #cbd5e1; padding: 8px 6px; text-align: center; }
+                              th, td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: center; }
                               th { background-color: #f1f5f9; font-weight: 700; color: #0f172a; font-size: 14px; }
-                              td { color: #1e293b; font-weight: 700; }
+                              td { color: #1e293b; font-weight: 500; }
                               tr { break-inside: avoid; }
                               tr:nth-child(even) td { background-color: #f8fafc; }
                               .print-footer { margin-top: 30px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; }
@@ -1308,18 +1308,18 @@ export default function LabDashboard() {
             <div 
               id="print-content"
               className="bg-white mx-auto shadow-sm sm:shadow-lg border sm:rounded-md"
-              style={{ width: '100%', minWidth: 'auto', maxWidth: '210mm', minHeight: '297mm', padding: '8mm', fontFamily: "'Cairo', sans-serif", fontWeight: '700' }}
+              style={{ width: '100%', minWidth: 'auto', maxWidth: '210mm', minHeight: '297mm', padding: '8mm', fontFamily: "'Cairo', sans-serif", fontWeight: '500' }}
             >
               <div className="print-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', paddingBottom: '15px', borderBottom: '3px solid #2563eb' }}>
                 <div className="print-header-right" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                   <img src="/logo.png" alt="Logo" className="print-logo" style={{ width: '70px', height: '70px', borderRadius: '8px', objectFit: 'contain' }} onError={(e) => e.currentTarget.style.display = 'none'} />
                   <div className="print-header-text">
                     <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#1e3a8a', marginBottom: '5px' }}>معمل {labSlug}</h1>
-                    <p style={{ fontSize: '14px', color: '#475569', fontWeight: '700' }}>سجل الحالات اليومية</p>
+                    <p style={{ fontSize: '14px', color: '#475569', fontWeight: '600' }}>سجل الحالات اليومية</p>
                   </div>
                 </div>
                 <div className="print-header-left" style={{ backgroundColor: '#f8fafc', padding: '12px 20px', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
-                  <p style={{ fontSize: '14px', color: '#334155', marginBottom: '5px', fontWeight: '700' }}>
+                  <p style={{ fontSize: '14px', color: '#334155', marginBottom: '5px', fontWeight: '600' }}>
                     {(() => {
                       if (!dateFrom) return 'جميع الحالات';
                       if (dateTo && format(dateFrom, "yyyy-MM-dd") === format(dateTo, "yyyy-MM-dd")) {
@@ -1328,7 +1328,7 @@ export default function LabDashboard() {
                       return `${format(dateFrom, "EEEE d/M/yyyy", { locale: ar })} ${dateTo ? `- ${format(dateTo, "EEEE d/M/yyyy", { locale: ar })}` : ''}`;
                     })()}
                   </p>
-                  <p style={{ fontSize: '13px', color: '#64748b', marginTop: '4px', fontWeight: '700' }}>
+                  <p style={{ fontSize: '13px', color: '#64748b', marginTop: '4px', fontWeight: '600' }}>
                     إجمالي الحالات: <span style={{ color: '#2563eb', fontWeight: '700', fontSize: '16px' }}>{filteredClients.length}</span> حالة
                   </p>
                 </div>
@@ -1342,17 +1342,17 @@ export default function LabDashboard() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                       <thead>
                         <tr style={{ breakInside: 'avoid', borderBottom: '2px solid #cbd5e1' }}>
-                          <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '35px' }}>م</th>
-                          <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px' }}>الاسم</th>
-                          <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '50px' }}>الاستلام</th>
+                          <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '35px' }}>م</th>
+                          <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px' }}>الاسم</th>
+                          <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '90px' }}>الاستلام</th>
                         </tr>
                       </thead>
                       <tbody>
                         {sortedData.map((client, idx) => (
                           <tr key={client.uuid} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc', breakInside: 'avoid' }}>
-                            <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '700' }}>{client.daily_id}</td>
-                            <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '700' }}>{client.patient_name}</td>
-                            <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px' }}></td>
+                            <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '500' }}>{client.daily_id}</td>
+                            <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '500' }}>{client.patient_name}</td>
+                            <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px' }}></td>
                           </tr>
                         ))}
                       </tbody>
