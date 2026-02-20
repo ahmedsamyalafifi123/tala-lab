@@ -1140,220 +1140,212 @@ export default function LabDashboard() {
 
       {/* Print Modal */}
       <Dialog open={showPrintModal} onOpenChange={setShowPrintModal}>
-        <DialogContent className="max-w-[95vw] h-[95vh] overflow-hidden flex flex-col" dir="rtl">
-          <DialogHeader className="flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <DialogTitle>معاينة الطباعة</DialogTitle>
-              <Button
-                onClick={() => {
-                  const printContent = document.getElementById('print-content');
-                  if (printContent) {
-                    const printWindow = window.open('', '_blank');
-                    if (printWindow) {
-                      printWindow.document.write(`
-                        <!DOCTYPE html>
-                        <html dir="rtl" lang="ar">
-                        <head>
-                          <meta charset="UTF-8">
-                          <title>طباعة حالات المعمل</title>
-                          <style>
-                            @font-face {
-                              font-family: 'Cairo';
-                              src: url('/assets/Cairo.ttf') format('truetype');
-                              font-weight: 400;
-                              font-style: normal;
-                            }
-                            @page {
-                              size: 210mm 297mm;
-                              margin: 10mm;
-                            }
-                            * {
-                              box-sizing: border-box;
-                              margin: 0;
-                              padding: 0;
-                            }
-                            body {
-                              font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif;
-                              font-size: 10px;
-                              line-height: 1.2;
-                              color: #000;
-                              direction: rtl;
-                            }
-                            .header {
-                              text-align: center;
-                              margin-bottom: 10px;
-                              padding-bottom: 8px;
-                              border-bottom: 2px solid #333;
-                            }
-                            .header h1 {
-                              font-size: 16px;
-                              margin-bottom: 3px;
-                            }
-                            .header p {
-                              font-size: 10px;
-                              color: #666;
-                            }
-                            div[style*="display: flex"] {
-                              display: flex !important;
-                              gap: 4mm;
-                            }
-                            table {
-                              width: 48%;
-                              border-collapse: collapse;
-                              font-size: 12px;
-                            }
-                            th, td {
-                              border: 1px solid #333;
-                              padding: 6px 4px;
-                              text-align: center;
-                              font-size: 12px;
-                            }
-                            th {
-                              background-color: #e5e5e5;
-                              font-weight: bold;
-                            }
-                            td {
-                              font-weight: normal;
-                            }
-                            tr:nth-child(even) {
-                              background-color: #fafafa;
-                            }
-                            .footer {
-                              margin-top: 15px;
-                              text-align: center;
-                              font-size: 8px;
-                              color: #666;
-                              border-top: 1px solid #ccc;
-                              padding-top: 8px;
-                            }
-                            @media print {
-                              body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-                            }
-                          </style>
-                        </head>
-                        <body>
-                          ${printContent.innerHTML}
-                        </body>
-                        </html>
-                      `);
-                      printWindow.document.close();
-                      printWindow.focus();
-                      setTimeout(() => {
-                        printWindow.print();
-                        printWindow.close();
-                      }, 250);
+        <DialogContent className="w-[95vw] max-w-4xl h-[90vh] sm:h-[85vh] p-0 rounded-xl overflow-hidden flex flex-col" dir="rtl" showCloseButton={false}>
+          <DialogHeader className="flex-shrink-0 p-4 sm:p-6 border-b bg-background relative">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+              <div className="flex flex-col gap-1 items-start">
+                <DialogTitle className="text-lg sm:text-xl font-bold">معاينة الطباعة</DialogTitle>
+                <DialogDescription className="text-xs sm:text-sm text-right font-bold">
+                  عدد الحالات: {filteredClients.length} | {(() => {
+                    if (!dateFrom) return '';
+                    if (dateTo && format(dateFrom, "yyyy-MM-dd") === format(dateTo, "yyyy-MM-dd")) {
+                      return format(dateFrom, "EEEE d/M/yyyy", { locale: ar });
                     }
-                  }
-                }}
-                className="gap-2"
-              >
-                <Printer className="h-4 w-4" />
-                طباعة
-              </Button>
-              <Button
-                onClick={() => {
-                   const printContent = document.getElementById('print-content');
-                   if (printContent) {
-                     const printWindow = window.open('', '_blank');
-                     if (printWindow) {
-                       printWindow.document.write(`
-                         <!DOCTYPE html>
-                         <html dir="rtl" lang="ar">
-                         <head>
-                           <meta charset="UTF-8">
-                           <title>حالات المعمل - PDF</title>
-                           <style>
-                             @font-face {
-                               font-family: 'Cairo';
-                               src: url('/assets/Cairo.ttf') format('truetype');
-                               font-weight: 400;
-                               font-style: normal;
-                             }
-                             @page { size: 210mm 297mm; margin: 10mm; }
-                             * { box-sizing: border-box; margin: 0; padding: 0; }
-                             body { font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 12px; line-height: 1.2; color: #000; direction: rtl; }
-                             .header { text-align: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #333; }
-                             .header h1 { font-size: 16px; margin-bottom: 3px; }
-                             .header p { font-size: 12px; color: #666; }
-                             div[style*="display: flex"] { display: flex !important; gap: 4mm; }
-                             table { width: 48%; border-collapse: collapse; font-size: 12px; }
-                             th, td { border: 1px solid #333; padding: 6px 4px; text-align: center; font-size: 12px; }
-                             th { background-color: #e5e5e5; font-weight: bold; }
-                             td { font-weight: normal; }
-                             tr:nth-child(even) { background-color: #fafafa; }
-                             .footer { margin-top: 15px; text-align: center; font-size: 8px; color: #666; border-top: 1px solid #ccc; padding-top: 8px; }
-                             @media print { body { print-color-adjust: exact; -webkit-print-color-adjust: exact; } }
-                           </style>
-                         </head>
-                         <body>${printContent.innerHTML}</body>
-                         </html>
-                       `);
-                       printWindow.document.close();
-                       printWindow.focus();
-                       setTimeout(() => {
-                         alert('لحفظ كـ PDF: اختر "حفظ كـ PDF" أو "Save as PDF" في خيارات الطابعة');
-                         printWindow.print();
-                       }, 300);
-                     }
-                   }
-                }}
-                className="gap-2"
-                variant="outline"
-              >
-                <FileDown className="h-4 w-4" />
-                PDF
-              </Button>
+                    return `${format(dateFrom, "EEEE d/M/yyyy", { locale: ar })} ${dateTo ? `- ${format(dateTo, "EEEE d/M/yyyy", { locale: ar })}` : ''}`;
+                  })()}
+                </DialogDescription>
+              </div>
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <Button
+                  onClick={() => {
+                    const printContent = document.getElementById('print-content');
+                    if (printContent) {
+                      const printWindow = window.open('', '_blank');
+                      if (printWindow) {
+                        printWindow.document.write(`
+                          <!DOCTYPE html>
+                          <html dir="rtl" lang="ar">
+                          <head>
+                            <meta charset="UTF-8">
+                            <title>طباعة حالات المعمل</title>
+                            <style>
+                              @font-face {
+                                font-family: 'Cairo';
+                                src: url('/assets/Cairo.ttf') format('truetype');
+                                font-weight: 400; font-style: normal;
+                              }
+                              @page { size: 210mm 297mm; margin: 25mm 20mm; }
+                              * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif !important; font-weight: 700 !important; }
+                              body { font-size: 13px; line-height: 1.5; color: #111; direction: rtl; background: #fff; padding: 5mm; }
+                              .print-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 3px solid #2563eb; }
+                              .print-header-right { display: flex; align-items: center; gap: 15px; }
+                              .print-logo { width: 70px; height: 70px; border-radius: 8px; object-fit: contain; }
+                              .print-header-text h1 { font-size: 22px; font-weight: 700; color: #1e3a8a; margin-bottom: 5px; }
+                              .print-header-text p { font-size: 14px; color: #475569; }
+                              .print-header-left { background-color: #f8fafc; padding: 12px 20px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: right; }
+                              .print-header-left p { font-size: 14px; color: #334155; margin-bottom: 5px; font-weight: 700; }
+                              .print-header-left span { color: #2563eb; font-weight: 700; font-size: 16px; }
+                              .print-tables-container { display: flex; gap: 8mm; justify-content: space-between; }
+                              table { width: 48%; border-collapse: collapse; font-size: 13px; }
+                              th, td { border: 1px solid #cbd5e1; padding: 8px 6px; text-align: center; }
+                              th { background-color: #f1f5f9; font-weight: 700; color: #0f172a; font-size: 14px; }
+                              td { color: #1e293b; font-weight: 700; }
+                              tr:nth-child(even) td { background-color: #f8fafc; }
+                              .print-footer { margin-top: 30px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+                              @media print {
+                                body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+                                .print-header-left { background-color: #f8fafc !important; }
+                                th { background-color: #f1f5f9 !important; }
+                                tr:nth-child(even) td { background-color: #f8fafc !important; }
+                              }
+                            </style>
+                          </head>
+                          <body>
+                            ${printContent.innerHTML}
+                          </body>
+                          </html>
+                        `);
+                        printWindow.document.close();
+                        printWindow.focus();
+                        setTimeout(() => {
+                          printWindow.print();
+                          printWindow.close();
+                        }, 250);
+                      }
+                    }
+                  }}
+                  className="gap-2 px-3 sm:px-4 font-bold h-9"
+                >
+                  <Printer className="h-4 w-4" />
+                  <span className="hidden sm:inline">طباعة</span>
+                </Button>
+                <Button
+                  onClick={() => {
+                    const printContent = document.getElementById('print-content');
+                    if (printContent) {
+                      const printWindow = window.open('', '_blank');
+                      if (printWindow) {
+                        printWindow.document.write(`
+                          <!DOCTYPE html>
+                          <html dir="rtl" lang="ar">
+                          <head>
+                            <meta charset="UTF-8">
+                            <title>حالات المعمل - PDF</title>
+                            <style>
+                              @font-face {
+                                font-family: 'Cairo';
+                                src: url('/assets/Cairo.ttf') format('truetype');
+                                font-weight: 400; font-style: normal;
+                              }
+                              @page { size: 210mm 297mm; margin: 25mm 20mm; }
+                              * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif !important; font-weight: 700 !important; }
+                              body { font-size: 13px; line-height: 1.5; color: #111; direction: rtl; background: #fff; padding: 5mm; }
+                              .print-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 3px solid #2563eb; }
+                              .print-header-right { display: flex; align-items: center; gap: 15px; }
+                              .print-logo { width: 70px; height: 70px; border-radius: 8px; object-fit: contain; }
+                              .print-header-text h1 { font-size: 22px; font-weight: 700; color: #1e3a8a; margin-bottom: 5px; }
+                              .print-header-text p { font-size: 14px; color: #475569; }
+                              .print-header-left { background-color: #f8fafc; padding: 12px 20px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: right; }
+                              .print-header-left p { font-size: 14px; color: #334155; margin-bottom: 5px; font-weight: 700; }
+                              .print-header-left span { color: #2563eb; font-weight: 700; font-size: 16px; }
+                              .print-tables-container { display: flex; gap: 8mm; justify-content: space-between; }
+                              table { width: 48%; border-collapse: collapse; font-size: 13px; }
+                              th, td { border: 1px solid #cbd5e1; padding: 8px 6px; text-align: center; }
+                              th { background-color: #f1f5f9; font-weight: 700; color: #0f172a; font-size: 14px; }
+                              td { color: #1e293b; font-weight: 700; }
+                              tr:nth-child(even) td { background-color: #f8fafc; }
+                              .print-footer { margin-top: 30px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+                              @media print {
+                                body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+                                .print-header-left { background-color: #f8fafc !important; }
+                                th { background-color: #f1f5f9 !important; }
+                                tr:nth-child(even) td { background-color: #f8fafc !important; }
+                              }
+                            </style>
+                          </head>
+                          <body>
+                            ${printContent.innerHTML}
+                          </body>
+                          </html>
+                        `);
+                        printWindow.document.close();
+                        printWindow.focus();
+                        setTimeout(() => {
+                          alert('لحفظ كـ PDF: اختر "حفظ كـ PDF" أو "Save as PDF" في خيارات الطابعة');
+                          printWindow.print();
+                        }, 300);
+                      }
+                    }
+                  }}
+                  className="gap-2 px-3 sm:px-4 font-bold h-9"
+                  variant="outline"
+                >
+                  <FileDown className="h-4 w-4" />
+                  <span className="hidden sm:inline">PDF</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 rounded-full sm:absolute sm:top-4 sm:left-4"
+                  onClick={() => setShowPrintModal(false)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
-            <DialogDescription>
-              عدد الحالات: {filteredClients.length} | {dateFrom ? format(dateFrom, "d/M/yyyy") : ''} {dateFrom && dateTo ? '-' : ''} {dateTo ? format(dateTo, "d/M/yyyy") : ''}
-            </DialogDescription>
           </DialogHeader>
           
-          <div className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-900 p-4">
+          <div className="flex-1 overflow-auto bg-muted/30 p-2 sm:p-6 pb-20 sm:pb-6">
             <style dangerouslySetInnerHTML={{ __html: `
               @font-face {
                 font-family: 'Cairo';
                 src: url('/assets/Cairo.ttf') format('truetype');
-                font-weight: 400;
-                font-style: normal;
+                font-weight: 400; font-style: normal;
               }
             `}} />
             <div 
               id="print-content"
-              className="bg-white mx-auto shadow-lg"
-              style={{ width: '210mm', minHeight: '297mm', padding: '8mm', fontFamily: "'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif" }}
+              className="bg-white mx-auto shadow-sm sm:shadow-lg border sm:rounded-md"
+              style={{ width: '100%', minWidth: '800px', maxWidth: '210mm', minHeight: '297mm', padding: '15mm 20mm', fontFamily: "'Cairo', sans-serif", fontWeight: '700' }}
             >
-              <div className="header text-center mb-3 pb-2 border-b-2 border-gray-800">
-                <h1 className="text-lg font-bold mb-0 text-black">معمل {labSlug}</h1>
-                <p className="text-xs text-gray-600">
-                  {dateFrom && dateTo ? (
-                    <>من {format(dateFrom, "d/M/yyyy")} إلى {format(dateTo, "d/M/yyyy")}</>
-                  ) : dateFrom ? (
-                    <>من {format(dateFrom, "d/M/yyyy")}</>
-                  ) : dateTo ? (
-                    <>حتى {format(dateTo, "d/M/yyyy")}</>
-                  ) : (
-                    <>جميع الحالات</>
-                  )}
-                  {' • '} إجمالي: {filteredClients.length} حالة
-                </p>
+              <div className="print-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', paddingBottom: '15px', borderBottom: '3px solid #2563eb' }}>
+                <div className="print-header-right" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <img src="/logo.png" alt="Logo" className="print-logo" style={{ width: '70px', height: '70px', borderRadius: '8px', objectFit: 'contain' }} onError={(e) => e.currentTarget.style.display = 'none'} />
+                  <div className="print-header-text">
+                    <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#1e3a8a', marginBottom: '5px' }}>معمل {labSlug}</h1>
+                    <p style={{ fontSize: '14px', color: '#475569', fontWeight: '700' }}>سجل الحالات اليومية</p>
+                  </div>
+                </div>
+                <div className="print-header-left" style={{ backgroundColor: '#f8fafc', padding: '12px 20px', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
+                  <p style={{ fontSize: '14px', color: '#334155', marginBottom: '5px', fontWeight: '700' }}>
+                    {(() => {
+                      if (!dateFrom) return 'جميع الحالات';
+                      if (dateTo && format(dateFrom, "yyyy-MM-dd") === format(dateTo, "yyyy-MM-dd")) {
+                        return format(dateFrom, "EEEE d/M/yyyy", { locale: ar });
+                      }
+                      return `${format(dateFrom, "EEEE d/M/yyyy", { locale: ar })} ${dateTo ? `- ${format(dateTo, "EEEE d/M/yyyy", { locale: ar })}` : ''}`;
+                    })()}
+                  </p>
+                  <p style={{ fontSize: '13px', color: '#64748b', marginTop: '4px', fontWeight: '700' }}>
+                    إجمالي الحالات: <span style={{ color: '#2563eb', fontWeight: '700', fontSize: '16px' }}>{filteredClients.length}</span> حالة
+                  </p>
+                </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '4mm' }}>
+              <div className="print-tables-container" style={{ display: 'flex', gap: '8mm', justifyContent: 'space-between' }}>
                 {(() => {
                   const sortedData = printReversed ? [...filteredClients].reverse() : filteredClients;
                   const half = Math.ceil(sortedData.length / 2);
                   const leftData = sortedData.slice(0, half);
                   const rightData = sortedData.slice(half);
                   
-                  // Helper for table rows
                   const TableRows = ({ data }: { data: Client[] }) => (
                     <>
                     {data.map((client, index) => (
-                        <tr key={client.uuid} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                          <td className="border border-gray-800 py-2 px-1 text-center" style={{ fontSize: '12px' }}>{client.daily_id}</td>
-                          <td className="border border-gray-800 py-2 px-1 text-center" style={{ fontSize: '14px' }}>{client.patient_name}</td>
-                          <td className="border border-gray-800 py-2 px-1"></td>
+                        <tr key={client.uuid} style={{ backgroundColor: index % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '700' }}>{client.daily_id}</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '700' }}>{client.patient_name}</td>
+                          <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px' }}></td>
                         </tr>
                       ))}
                     </>
@@ -1361,12 +1353,12 @@ export default function LabDashboard() {
 
                   return (
                     <>
-                      <table className="border-collapse text-black" style={{ fontSize: '12px', width: '48%' }}>
+                      <table style={{ width: '48%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
-                          <tr className="bg-gray-200">
-                            <th className="border border-gray-800 p-1 text-center" style={{ width: '25px', fontSize: '12px' }}>م</th>
-                            <th className="border border-gray-800 p-1 text-center" style={{ fontSize: '12px' }}>الاسم</th>
-                            <th className="border border-gray-800 p-1 text-center" style={{ width: '40px', fontSize: '12px' }}>الاستلام</th>
+                          <tr>
+                            <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '35px' }}>م</th>
+                            <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px' }}>الاسم</th>
+                            <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '50px' }}>الاستلام</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1374,12 +1366,12 @@ export default function LabDashboard() {
                         </tbody>
                       </table>
 
-                      <table className="border-collapse text-black" style={{ fontSize: '12px', width: '48%' }}>
+                      <table style={{ width: '48%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
-                          <tr className="bg-gray-200">
-                            <th className="border border-gray-800 p-1 text-center" style={{ width: '25px', fontSize: '12px' }}>م</th>
-                            <th className="border border-gray-800 p-1 text-center" style={{ fontSize: '12px' }}>الاسم</th>
-                            <th className="border border-gray-800 p-1 text-center" style={{ width: '40px', fontSize: '12px' }}>الاستلام</th>
+                          <tr>
+                            <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '35px' }}>م</th>
+                            <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px' }}>الاسم</th>
+                            <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '50px' }}>الاستلام</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1391,8 +1383,8 @@ export default function LabDashboard() {
                 })()}
               </div>
 
-              <div className="footer mt-4 pt-2 border-t border-gray-300 text-center text-gray-500" style={{ fontSize: '8px' }}>
-                تم الطباعة في {format(new Date(), "d/M/yyyy - h:mm a", { locale: ar })}
+              <div className="print-footer" style={{ marginTop: '30px', textAlign: 'center', fontSize: '11px', color: '#64748b', borderTop: '1px solid #e2e8f0', paddingTop: '15px' }}>
+                تم الطباعة في {format(new Date(), "EEEE d/M/yyyy - h:mm a", { locale: ar })}
               </div>
             </div>
           </div>
