@@ -2,6 +2,7 @@ import { LabProvider } from '@/contexts/LabContext'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import { Metadata } from 'next'
+import { headers } from 'next/headers'
 
 
 export async function generateMetadata(
@@ -46,7 +47,18 @@ export default async function LabLayout({
   }
 
   // Fetch current user's role regardless of lab status
-  const { data: { user } } = await supabase.auth.getUser()
+  const headersList = await headers();
+  const headerUserId = headersList.get('x-user-id');
+  
+  let user = null;
+  if (headerUserId) {
+    user = { id: headerUserId };
+  } else {
+     // Fallback if header is missing (e.g. static export or edge cases)
+     const { data: { user: authUser } } = await supabase.auth.getUser();
+     user = authUser;
+  }
+
   let userRole = null;
   
   if (user) {

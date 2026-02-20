@@ -32,11 +32,43 @@ export async function middleware(req: NextRequest) {
     },
   );
 
+  const path = req.nextUrl.pathname;
+
+  // Lab portal protection
+  // Matches /slug or /slug/something, but avoids reserved paths
+  const reservedPaths = [
+    "login", 
+    "signup", 
+    "api", 
+    "_next", 
+    "manager", 
+    "static", 
+    "assets", 
+    "public", 
+    "favicon.ico", 
+    "logo.png", 
+    "logo.webp",
+    "robots.txt",
+    "sitemap.xml",
+  ];
+  const firstSegment = path.split('/')[1];
+
+  // Quick exit for static assets and reserved paths
+  if (!firstSegment || reservedPaths.includes(firstSegment) || path.includes('.')) {
+    return response;
+  }
+
+  // ONLY call getUser() after we know it's a path that might need it
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const path = req.nextUrl.pathname;
+  // If user is authenticated, pass user ID to downstream components via headers
+  // to avoid redundant getUser() calls in layouts/pages
+  if (user) {
+    response.headers.set("x-user-id", user.id);
+    response.headers.set("x-user-email", user.email || "");
+  }
 
   // Redirect logged-in users away from login page
   if (path === "/login" && user) {
@@ -50,12 +82,14 @@ export async function middleware(req: NextRequest) {
 
     if (labUser) {
       if (labUser.is_manager) {
-        return NextResponse.redirect(new URL("/manager/dashboard", req.url));
+        const redirectResponse = NextResponse.redirect(new URL("/manager/dashboard", req.url));
+        return redirectResponse;
       }
       // @ts-ignore
       if (labUser.labs?.slug) {
         // @ts-ignore
-        return NextResponse.redirect(new URL(`/${labUser.labs.slug}`, req.url));
+        const redirectResponse = NextResponse.redirect(new URL(`/${labUser.labs.slug}`, req.url));
+        return redirectResponse;
       }
     }
   }
@@ -83,29 +117,6 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // Lab portal protection
-  // Matches /slug or /slug/something, but avoids reserved paths
-  const reservedPaths = [
-    "login", 
-    "signup", 
-    "api", 
-    "_next", 
-    "manager", 
-    "static", 
-    "assets", 
-    "public", 
-    "favicon.ico", 
-    "logo.png", 
-    "logo.webp",
-    "robots.txt",
-    "sitemap.xml",
-  ];
-  const firstSegment = path.split('/')[1];
-
-  // Quick exit for static assets and reserved paths
-  if (!firstSegment || reservedPaths.includes(firstSegment) || path.includes('.')) {
-    return response;
-  }
     // It's likely a lab slug
     const labSlug = firstSegment;
 
