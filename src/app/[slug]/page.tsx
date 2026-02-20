@@ -1176,7 +1176,7 @@ export default function LabDashboard() {
                               }
                               @page { size: 210mm 297mm; margin: 25mm 20mm; }
                               * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif !important; font-weight: 700 !important; }
-                              body { font-size: 13px; line-height: 1.5; color: #111; direction: rtl; background: #fff; padding: 5mm; }
+                              body { font-size: 13px; line-height: 1.5; color: #111; direction: rtl; background: #fff; }
                               .print-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 3px solid #2563eb; }
                               .print-header-right { display: flex; align-items: center; gap: 15px; }
                               .print-logo { width: 70px; height: 70px; border-radius: 8px; object-fit: contain; }
@@ -1239,7 +1239,7 @@ export default function LabDashboard() {
                               }
                               @page { size: 210mm 297mm; margin: 25mm 20mm; }
                               * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif !important; font-weight: 700 !important; }
-                              body { font-size: 13px; line-height: 1.5; color: #111; direction: rtl; background: #fff; padding: 5mm; }
+                              body { font-size: 13px; line-height: 1.5; color: #111; direction: rtl; background: #fff; }
                               .print-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 3px solid #2563eb; }
                               .print-header-right { display: flex; align-items: center; gap: 15px; }
                               .print-logo { width: 70px; height: 70px; border-radius: 8px; object-fit: contain; }
@@ -1306,7 +1306,7 @@ export default function LabDashboard() {
             <div 
               id="print-content"
               className="bg-white mx-auto shadow-sm sm:shadow-lg border sm:rounded-md"
-              style={{ width: '100%', minWidth: '800px', maxWidth: '210mm', minHeight: '297mm', padding: '15mm 20mm', fontFamily: "'Cairo', sans-serif", fontWeight: '700' }}
+              style={{ width: '100%', minWidth: '800px', maxWidth: '210mm', minHeight: '297mm', fontFamily: "'Cairo', sans-serif", fontWeight: '700' }}
             >
               <div className="print-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', paddingBottom: '15px', borderBottom: '3px solid #2563eb' }}>
                 <div className="print-header-right" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
@@ -1332,53 +1332,61 @@ export default function LabDashboard() {
                 </div>
               </div>
 
-              <div className="print-tables-container" style={{ display: 'flex', gap: '8mm', justifyContent: 'space-between' }}>
+              <div className="print-tables-container">
                 {(() => {
                   const sortedData = printReversed ? [...filteredClients].reverse() : filteredClients;
-                  const half = Math.ceil(sortedData.length / 2);
-                  const leftData = sortedData.slice(0, half);
-                  const rightData = sortedData.slice(half);
+                  const pairs: Client[][] = [];
+                  for (let i = 0; i < sortedData.length; i += 2) {
+                    pairs.push(sortedData.slice(i, i + 2));
+                  }
                   
-                  const TableRows = ({ data }: { data: Client[] }) => (
-                    <>
-                    {data.map((client, index) => (
-                        <tr key={client.uuid} style={{ backgroundColor: index % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '700' }}>{client.daily_id}</td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '700' }}>{client.patient_name}</td>
-                          <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px' }}></td>
-                        </tr>
-                      ))}
-                    </>
-                  );
-
                   return (
-                    <>
-                      <table style={{ width: '48%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                        <thead>
-                          <tr>
-                            <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '35px' }}>م</th>
-                            <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px' }}>الاسم</th>
-                            <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '50px' }}>الاستلام</th>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                      <thead>
+                        <tr>
+                          {/* Left Column Header */}
+                          <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '35px' }}>م</th>
+                          <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px' }}>الاسم</th>
+                          <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '50px' }}>الاستلام</th>
+                          
+                          {/* Gap Column */}
+                          <th style={{ width: '8mm', border: 'none', background: 'white' }}></th>
+                          
+                          {/* Right Column Header */}
+                          <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '35px' }}>م</th>
+                          <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px' }}>الاسم</th>
+                          <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '50px' }}>الاستلام</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pairs.map((pair, idx) => (
+                          <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                            {/* Left Client */}
+                            <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '700' }}>{pair[0].daily_id}</td>
+                            <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '700' }}>{pair[0].patient_name}</td>
+                            <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px' }}></td>
+                            
+                            {/* Gap */}
+                            <td style={{ border: 'none', background: 'white' }}></td>
+                            
+                            {/* Right Client */}
+                            {pair[1] ? (
+                              <>
+                                <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '700' }}>{pair[1].daily_id}</td>
+                                <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '700' }}>{pair[1].patient_name}</td>
+                                <td style={{ border: '1px solid #cbd5e1', padding: '8px 6px' }}></td>
+                              </>
+                            ) : (
+                              <>
+                                <td style={{ border: '1px solid #cbd5e1', background: '#f8fafc' }}></td>
+                                <td style={{ border: '1px solid #cbd5e1', background: '#f8fafc' }}></td>
+                                <td style={{ border: '1px solid #cbd5e1', background: '#f8fafc' }}></td>
+                              </>
+                            )}
                           </tr>
-                        </thead>
-                        <tbody>
-                            <TableRows data={leftData} />
-                        </tbody>
-                      </table>
-
-                      <table style={{ width: '48%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                        <thead>
-                          <tr>
-                            <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '35px' }}>م</th>
-                            <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px' }}>الاسم</th>
-                            <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '50px' }}>الاستلام</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                            <TableRows data={rightData} />
-                        </tbody>
-                      </table>
-                    </>
+                        ))}
+                      </tbody>
+                    </table>
                   );
                 })()}
               </div>
