@@ -1176,7 +1176,7 @@ export default function LabDashboard() {
                               }
                               @page { size: 210mm 297mm; margin: 25mm 20mm; }
                               * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif !important; font-weight: 700 !important; }
-                              body { font-size: 13px; line-height: 1.5; color: #111; direction: rtl; background: #fff; padding: 10mm; }
+                              body { font-size: 13px; line-height: 1.5; color: #111; direction: rtl; background: #fff; padding: 8mm; }
                               .print-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 3px solid #2563eb; }
                               .print-header-right { display: flex; align-items: center; gap: 15px; }
                               .print-logo { width: 70px; height: 70px; border-radius: 8px; object-fit: contain; }
@@ -1240,7 +1240,7 @@ export default function LabDashboard() {
                               }
                               @page { size: 210mm 297mm; margin: 25mm 20mm; }
                               * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif !important; font-weight: 700 !important; }
-                              body { font-size: 13px; line-height: 1.5; color: #111; direction: rtl; background: #fff; padding: 10mm; }
+                              body { font-size: 13px; line-height: 1.5; color: #111; direction: rtl; background: #fff; padding: 8mm; }
                               .print-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 3px solid #2563eb; }
                               .print-header-right { display: flex; align-items: center; gap: 15px; }
                               .print-logo { width: 70px; height: 70px; border-radius: 8px; object-fit: contain; }
@@ -1297,7 +1297,7 @@ export default function LabDashboard() {
             </div>
           </DialogHeader>
           
-          <div className="flex-1 overflow-auto bg-muted/30 p-2 sm:p-6">
+          <div className="flex-1 overflow-auto bg-muted/30 p-0 sm:p-6">
             <style dangerouslySetInnerHTML={{ __html: `
               @font-face {
                 font-family: 'Cairo';
@@ -1308,7 +1308,7 @@ export default function LabDashboard() {
             <div 
               id="print-content"
               className="bg-white mx-auto shadow-sm sm:shadow-lg border sm:rounded-md"
-              style={{ width: '100%', minWidth: '800px', maxWidth: '210mm', minHeight: '297mm', padding: '10mm', fontFamily: "'Cairo', sans-serif", fontWeight: '700' }}
+              style={{ width: '100%', minWidth: 'auto', maxWidth: '210mm', minHeight: '297mm', padding: '8mm', fontFamily: "'Cairo', sans-serif", fontWeight: '700' }}
             >
               <div className="print-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', paddingBottom: '15px', borderBottom: '3px solid #2563eb' }}>
                 <div className="print-header-right" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
