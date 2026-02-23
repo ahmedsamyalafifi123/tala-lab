@@ -511,8 +511,8 @@ export function TestResultsModal({
                                     </div>
                                  </div>
                                  
-                                 {/* Notes field - shown when value entered or expanding */}
-                                 <div className="mt-3 overflow-hidden transition-all">
+                                 {/* Notes field - temporarily hidden */}
+                                 <div className="mt-3 overflow-hidden transition-all hidden">
                                     <Input
                                        id={`${test.test_code}-notes`}
                                        value={testValues[test.test_code]?.notes || ""}

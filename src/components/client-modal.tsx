@@ -365,42 +365,7 @@ export function ClientModal({
           </div>
         </div>
 
-        {/* Section 2: Administrative Information */}
-        <div className="space-y-4 p-4 rounded-2xl border bg-muted/30">
-
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="entity" className="text-sm font-medium">الجهة</Label>
-              <Select value={entity} onValueChange={setEntity}>
-                <SelectTrigger id="entity" className="h-11 text-right bg-background">
-                  <SelectValue placeholder="اختر" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">بدون</SelectItem>
-                  <SelectItem value="معاشات">معاشات</SelectItem>
-                  <SelectItem value="ارامل">ارامل</SelectItem>
-                  <SelectItem value="موظفين">موظفين</SelectItem>
-                  <SelectItem value="طلبة">طلبة</SelectItem>
-                  <SelectItem value="المرأة المعيلة">المرأة المعيلة</SelectItem>
-                  <SelectItem value="المقاولات">المقاولات</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="insurance_number" className="text-sm font-medium truncate">الرقم التأميني</Label>
-              <Input
-                id="insurance_number"
-                value={insuranceNumber}
-                onChange={(e) => setInsuranceNumber(e.target.value)}
-                placeholder="الرقم"
-                className="h-11 bg-background"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Section 3: Booking & Category */}
+        {/* Section 2: Booking & Category */}
         <div className="space-y-4 p-4 rounded-2xl border bg-muted/30">
 
 
@@ -510,6 +475,42 @@ export function ClientModal({
             )}
           </div>
         </div>
+
+        {/* Section 3: Administrative Information */}
+        <div className="space-y-4 p-4 rounded-2xl border bg-muted/30">
+
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="entity" className="text-sm font-medium">الجهة</Label>
+              <Select value={entity} onValueChange={setEntity}>
+                <SelectTrigger id="entity" className="h-11 text-right bg-background">
+                  <SelectValue placeholder="اختر" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">بدون</SelectItem>
+                  <SelectItem value="معاشات">معاشات</SelectItem>
+                  <SelectItem value="ارامل">ارامل</SelectItem>
+                  <SelectItem value="موظفين">موظفين</SelectItem>
+                  <SelectItem value="طلبة">طلبة</SelectItem>
+                  <SelectItem value="المرأة المعيلة">المرأة المعيلة</SelectItem>
+                  <SelectItem value="المقاولات">المقاولات</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="insurance_number" className="text-sm font-medium truncate">الرقم التأميني</Label>
+              <Input
+                id="insurance_number"
+                value={insuranceNumber}
+                onChange={(e) => setInsuranceNumber(e.target.value)}
+                placeholder="الرقم"
+                className="h-11 bg-background"
+              />
+            </div>
+          </div>
+        </div>
+
 
         {/* Section 4: Tests */}
         <div className="space-y-4 p-4 rounded-2xl border bg-muted/30">
