@@ -260,7 +260,7 @@ export function ClientModal({
       patient_age: age ? parseInt(age) : undefined,
     });
 
-    // If we are adding a new client (not editing), reset the form
+    // If we are adding a new client (not editing), reset the form (except date and category)
     if (!client) {
       setName("");
       setGender("ذكر");
@@ -268,8 +268,6 @@ export function ClientModal({
       setInsuranceNumber("");
       setEntity("");
       setNotes("");
-      setSelectedCategories(['عام']); // Reset to "عام" default
-      setDate(new Date());
       setIsManualId(false);
       setManualId("");
       setSelectedTests(new Set());
