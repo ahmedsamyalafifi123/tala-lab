@@ -1,5 +1,5 @@
 # Database Schema Export
-Generated: 2026-02-23T18:28:51.038Z
+Generated: 2026-03-06T14:33:21.802Z
 
 ## Table Schemas
 [
@@ -1016,7 +1016,7 @@ Generated: 2026-02-23T18:28:51.038Z
     "argument_types": "",
     "type": "function",
     "language": "plpgsql",
-    "source_code": "\r\nBEGIN\r\n  -- Only assign if daily_id is NULL\r\n  IF NEW.daily_id IS NULL THEN\r\n    NEW.daily_id := get_next_available_daily_id(\r\n      NEW.lab_id,\r\n      NEW.daily_date,\r\n      COALESCE(NEW.primary_category, (NEW.categories::text[])[1], '_default')\r\n    );\r\n    -- Ensure primary_category is set\r\n    IF NEW.primary_category IS NULL THEN\r\n      NEW.primary_category := COALESCE((NEW.categories::text[])[1], '_default');\r\n    END IF;\r\n  END IF;\r\n\r\n  RETURN NEW;\r\nEND;\r\n",
+    "source_code": "\r\nBEGIN\r\n  IF NEW.daily_id IS NULL THEN\r\n    NEW.daily_id := get_next_available_daily_id(\r\n      NEW.lab_id,\r\n      NEW.daily_date,\r\n      NULL\r\n    );\r\n    IF NEW.primary_category IS NULL THEN\r\n      NEW.primary_category := COALESCE((NEW.categories::text[])[1], '_default');\r\n    END IF;\r\n  END IF;\r\n\r\n  RETURN NEW;\r\nEND;\r\n",
     "is_security_definer": false
   },
   {
@@ -1063,20 +1063,20 @@ Generated: 2026-02-23T18:28:51.038Z
     "schema": "public",
     "name": "get_next_available_daily_id",
     "result_type": "integer",
-    "argument_types": "p_lab_id uuid, p_date date DEFAULT CURRENT_DATE, p_category text DEFAULT NULL::text",
+    "argument_types": "p_lab_id uuid, p_date date DEFAULT CURRENT_DATE",
     "type": "function",
     "language": "plpgsql",
-    "source_code": "\r\nDECLARE\r\n  v_next_id INTEGER;\r\n  v_existing_id INTEGER;\r\n  v_check_category TEXT := COALESCE(p_category, '_default');\r\nBEGIN\r\n  -- Find the first gap in the sequence for this category\r\n  FOR v_next_id IN 1..10000 LOOP\r\n    SELECT daily_id INTO v_existing_id\r\n    FROM clients\r\n    WHERE lab_id = p_lab_id\r\n      AND daily_date = p_date\r\n      AND primary_category = v_check_category\r\n      AND daily_id = v_next_id\r\n    LIMIT 1;\r\n\r\n    IF v_existing_id IS NULL THEN\r\n      -- Found a gap, update sequence tracker and return\r\n      INSERT INTO daily_id_sequences (lab_id, date, category, last_id)\r\n      VALUES (p_lab_id, p_date, v_check_category, v_next_id)\r\n      ON CONFLICT (lab_id, date, category)\r\n      DO UPDATE SET\r\n        last_id = GREATEST(daily_id_sequences.last_id, v_next_id),\r\n        updated_at = NOW();\r\n\r\n      RETURN v_next_id;\r\n    END IF;\r\n  END LOOP;\r\n\r\n  RAISE EXCEPTION 'Maximum daily ID limit reached';\r\nEND;\r\n",
+    "source_code": "\r\nBEGIN\r\n  RETURN public.get_next_available_daily_id(p_lab_id, p_date, NULL);\r\nEND;\r\n",
     "is_security_definer": false
   },
   {
     "schema": "public",
     "name": "get_next_available_daily_id",
     "result_type": "integer",
-    "argument_types": "p_lab_id uuid, p_date date DEFAULT CURRENT_DATE",
+    "argument_types": "p_lab_id uuid, p_date date DEFAULT CURRENT_DATE, p_category text DEFAULT NULL::text",
     "type": "function",
     "language": "plpgsql",
-    "source_code": "\r\nDECLARE\r\n  v_next_id INTEGER;\r\n  v_existing_id INTEGER;\r\nBEGIN\r\n  -- Find the first gap in the sequence\r\n  -- We look for the smallest daily_id that doesn't exist starting from 1\r\n  FOR v_next_id IN 1..10000 LOOP\r\n    SELECT daily_id INTO v_existing_id\r\n    FROM clients\r\n    WHERE lab_id = p_lab_id\r\n      AND daily_date = p_date\r\n      AND daily_id = v_next_id\r\n    LIMIT 1;\r\n\r\n    IF v_existing_id IS NULL THEN\r\n      -- Found a gap, return this ID\r\n      -- Update the sequence tracker\r\n      INSERT INTO daily_id_sequences (lab_id, date, last_id)\r\n      VALUES (p_lab_id, p_date, v_next_id)\r\n      ON CONFLICT (lab_id, date)\r\n      DO UPDATE SET\r\n        last_id = GREATEST(daily_id_sequences.last_id, v_next_id),\r\n        updated_at = NOW();\r\n\r\n      RETURN v_next_id;\r\n    END IF;\r\n  END LOOP;\r\n\r\n  -- If we get here, we have 10000 clients (shouldn't happen)\r\n  RAISE EXCEPTION 'Maximum daily ID limit reached';\r\nEND;\r\n",
+    "source_code": "\r\nDECLARE\r\n  v_next_id INTEGER;\r\n  v_existing_id INTEGER;\r\nBEGIN\r\n  -- We ignore p_category to ensure global numbering\r\n  FOR v_next_id IN 1..10000 LOOP\r\n    SELECT daily_id INTO v_existing_id\r\n    FROM clients\r\n    WHERE lab_id = p_lab_id\r\n      AND daily_date = p_date\r\n      AND daily_id = v_next_id\r\n    LIMIT 1;\r\n\r\n    IF v_existing_id IS NULL THEN\r\n      -- Use 'عام' to store sequence but meaning is global\r\n      INSERT INTO daily_id_sequences (lab_id, date, category, last_id)\r\n      VALUES (p_lab_id, p_date, 'عام', v_next_id)\r\n      ON CONFLICT (lab_id, date, category)\r\n      DO UPDATE SET\r\n        last_id = GREATEST(daily_id_sequences.last_id, v_next_id),\r\n        updated_at = NOW();\r\n\r\n      RETURN v_next_id;\r\n    END IF;\r\n  END LOOP;\r\n\r\n  RAISE EXCEPTION 'Maximum daily ID limit reached';\r\nEND;\r\n",
     "is_security_definer": false
   },
   {
@@ -1096,7 +1096,7 @@ Generated: 2026-02-23T18:28:51.038Z
     "argument_types": "p_lab_id uuid, p_patient_name text, p_notes text, p_categories text[], p_daily_date date, p_manual_id integer, p_created_by uuid, p_selected_tests text[] DEFAULT '{}'::text[], p_patient_gender text DEFAULT 'ذكر'::text, p_insurance_number text DEFAULT NULL::text, p_entity text DEFAULT NULL::text, p_patient_age integer DEFAULT NULL::integer",
     "type": "function",
     "language": "plpgsql",
-    "source_code": "\r\nDECLARE\r\n    v_client_group_id uuid;\r\n    v_category text;\r\n    v_daily_id int;\r\nBEGIN\r\n    v_client_group_id := gen_random_uuid();\r\n\r\n    IF array_length(p_categories, 1) IS NULL OR array_length(p_categories, 1) = 0 THEN\r\n        p_categories := ARRAY['عام'];\r\n    END IF;\r\n\r\n    SELECT COALESCE(MAX(c.daily_id), 0) + 1\r\n    INTO v_daily_id\r\n    FROM clients c\r\n    WHERE c.lab_id = p_lab_id\r\n      AND c.daily_date = p_daily_date\r\n      AND c.primary_category = p_categories[1];\r\n\r\n    IF p_manual_id IS NOT NULL THEN\r\n        v_daily_id := p_manual_id;\r\n    END IF;\r\n\r\n    FOREACH v_category IN ARRAY p_categories\r\n    LOOP\r\n        INSERT INTO clients (\r\n            lab_id,\r\n            patient_name,\r\n            notes,\r\n            categories,\r\n            primary_category,\r\n            daily_date,\r\n            daily_id,\r\n            client_group_id,\r\n            created_by,\r\n            results,\r\n            selected_tests,\r\n            patient_gender,\r\n            insurance_number,\r\n            entity,\r\n            patient_age\r\n        )\r\n        VALUES (\r\n            p_lab_id,\r\n            p_patient_name,\r\n            p_notes,\r\n            p_categories,\r\n            v_category,\r\n            p_daily_date,\r\n            v_daily_id,\r\n            v_client_group_id,\r\n            p_created_by,\r\n            '{}'::jsonb,\r\n            p_selected_tests,\r\n            COALESCE(p_patient_gender, 'ذكر'),\r\n            p_insurance_number,\r\n            p_entity,\r\n            p_patient_age\r\n        )\r\n        RETURNING\r\n            uuid,\r\n            client_group_id,\r\n            daily_id,\r\n            primary_category\r\n        INTO\r\n            ret_uuid,\r\n            ret_client_group_id,\r\n            ret_daily_id,\r\n            ret_primary_category;\r\n\r\n        RETURN NEXT;\r\n    END LOOP;\r\nEND;\r\n",
+    "source_code": "\r\nDECLARE\r\n    v_client_group_id uuid;\r\n    v_daily_id int;\r\n    v_primary_category text;\r\nBEGIN\r\n    v_client_group_id := gen_random_uuid();\r\n\r\n    IF array_length(p_categories, 1) IS NULL OR array_length(p_categories, 1) = 0 THEN\r\n        p_categories := ARRAY['عام'];\r\n    END IF;\r\n\r\n    v_primary_category := p_categories[1];\r\n\r\n    IF p_manual_id IS NOT NULL THEN\r\n        v_daily_id := p_manual_id;\r\n        \r\n        -- CHECK IF MANUAL ID EXISTS globally for this lab & date, and shift if it does\r\n        IF EXISTS (\r\n            SELECT 1 FROM clients\r\n            WHERE lab_id = p_lab_id\r\n              AND daily_date = p_daily_date\r\n              AND daily_id = v_daily_id\r\n        ) THEN\r\n            -- Push all IDs >= v_daily_id up by 1\r\n            PERFORM public.shift_daily_ids(p_lab_id, p_daily_date, v_daily_id);\r\n        END IF;\r\n\r\n    ELSE\r\n        -- Find MAX global ID\r\n        SELECT COALESCE(MAX(c.daily_id), 0) + 1\r\n        INTO v_daily_id\r\n        FROM clients c\r\n        WHERE c.lab_id = p_lab_id\r\n          AND c.daily_date = p_daily_date;\r\n    END IF;\r\n\r\n    -- ONLY INSERT ONE RECORD INSTEAD OF LOOPING\r\n    INSERT INTO clients (\r\n        lab_id,\r\n        patient_name,\r\n        notes,\r\n        categories,\r\n        primary_category,\r\n        daily_date,\r\n        daily_id,\r\n        client_group_id,\r\n        created_by,\r\n        results,\r\n        selected_tests,\r\n        patient_gender,\r\n        insurance_number,\r\n        entity,\r\n        patient_age\r\n    )\r\n    VALUES (\r\n        p_lab_id,\r\n        p_patient_name,\r\n        p_notes,\r\n        p_categories,\r\n        v_primary_category,\r\n        p_daily_date,\r\n        v_daily_id,\r\n        v_client_group_id,\r\n        p_created_by,\r\n        '{}'::jsonb,\r\n        p_selected_tests,\r\n        COALESCE(p_patient_gender, 'ذكر'),\r\n        p_insurance_number,\r\n        p_entity,\r\n        p_patient_age\r\n    )\r\n    RETURNING\r\n        uuid,\r\n        client_group_id,\r\n        daily_id,\r\n        primary_category\r\n    INTO\r\n        ret_uuid,\r\n        ret_client_group_id,\r\n        ret_daily_id,\r\n        ret_primary_category;\r\n\r\n    RETURN NEXT;\r\nEND;\r\n",
     "is_security_definer": true
   },
   {
@@ -1183,20 +1183,20 @@ Generated: 2026-02-23T18:28:51.038Z
     "schema": "public",
     "name": "resequence_daily_ids",
     "result_type": "void",
-    "argument_types": "p_lab_id uuid, p_date date DEFAULT CURRENT_DATE, p_category text DEFAULT NULL::text",
+    "argument_types": "p_lab_id uuid, p_date date DEFAULT CURRENT_DATE",
     "type": "function",
     "language": "plpgsql",
-    "source_code": "\r\nDECLARE\r\n  v_client RECORD;\r\n  v_new_id INTEGER := 1;\r\n  v_check_category TEXT;\r\nBEGIN\r\n  v_check_category := COALESCE(p_category, '_default');\r\n\r\n  LOCK TABLE clients IN EXCLUSIVE MODE;\r\n\r\n  -- Get all clients for this category ordered by current daily_id\r\n  FOR v_client IN\r\n    SELECT uuid\r\n    FROM clients\r\n    WHERE lab_id = p_lab_id\r\n      AND daily_date = p_date\r\n      AND (p_category IS NULL OR primary_category = v_check_category)\r\n    ORDER BY daily_id ASC\r\n  LOOP\r\n    UPDATE clients\r\n    SET daily_id = v_new_id\r\n    WHERE uuid = v_client.uuid;\r\n\r\n    v_new_id := v_new_id + 1;\r\n  END LOOP;\r\n\r\n  -- Update sequence tracker\r\n  INSERT INTO daily_id_sequences (lab_id, date, category, last_id)\r\n  VALUES (p_lab_id, p_date, v_check_category, v_new_id - 1)\r\n  ON CONFLICT (lab_id, date, category)\r\n  DO UPDATE SET\r\n    last_id = v_new_id - 1,\r\n    updated_at = NOW();\r\nEND;\r\n",
+    "source_code": "\r\nBEGIN\r\n  PERFORM public.resequence_daily_ids(p_lab_id, p_date, NULL);\r\nEND;\r\n",
     "is_security_definer": false
   },
   {
     "schema": "public",
     "name": "resequence_daily_ids",
     "result_type": "void",
-    "argument_types": "p_lab_id uuid, p_date date DEFAULT CURRENT_DATE",
+    "argument_types": "p_lab_id uuid, p_date date DEFAULT CURRENT_DATE, p_category text DEFAULT NULL::text",
     "type": "function",
     "language": "plpgsql",
-    "source_code": "\r\nDECLARE\r\n  v_client RECORD;\r\n  v_new_id INTEGER := 1;\r\nBEGIN\r\n  -- Lock the table to prevent concurrent modifications\r\n  LOCK TABLE clients IN EXCLUSIVE MODE;\r\n\r\n  -- Get all clients ordered by current daily_id\r\n  FOR v_client IN\r\n    SELECT uuid\r\n    FROM clients\r\n    WHERE lab_id = p_lab_id AND daily_date = p_date\r\n    ORDER BY daily_id ASC\r\n  LOOP\r\n    -- Update with new sequential ID\r\n    UPDATE clients\r\n    SET daily_id = v_new_id\r\n    WHERE uuid = v_client.uuid;\r\n\r\n    v_new_id := v_new_id + 1;\r\n  END LOOP;\r\n\r\n  -- Update the sequence tracker\r\n  INSERT INTO daily_id_sequences (lab_id, date, last_id)\r\n  VALUES (p_lab_id, p_date, v_new_id - 1)\r\n  ON CONFLICT (lab_id, date)\r\n  DO UPDATE SET\r\n    last_id = v_new_id - 1,\r\n    updated_at = NOW();\r\nEND;\r\n",
+    "source_code": "\r\nDECLARE\r\n  v_client RECORD;\r\n  v_new_id INTEGER := 1;\r\nBEGIN\r\n  LOCK TABLE clients IN EXCLUSIVE MODE;\r\n\r\n  FOR v_client IN\r\n    SELECT client_group_id\r\n    FROM clients\r\n    WHERE lab_id = p_lab_id\r\n      AND daily_date = p_date\r\n    GROUP BY client_group_id\r\n    ORDER BY MIN(daily_id) ASC\r\n  LOOP\r\n    UPDATE clients\r\n    SET daily_id = v_new_id\r\n    WHERE client_group_id = v_client.client_group_id\r\n      AND lab_id = p_lab_id\r\n      AND daily_date = p_date;\r\n\r\n    v_new_id := v_new_id + 1;\r\n  END LOOP;\r\n\r\n  INSERT INTO daily_id_sequences (lab_id, date, category, last_id)\r\n  VALUES (p_lab_id, p_date, 'عام', v_new_id - 1)\r\n  ON CONFLICT (lab_id, date, category)\r\n  DO UPDATE SET\r\n    last_id = v_new_id - 1,\r\n    updated_at = NOW();\r\nEND;\r\n",
     "is_security_definer": false
   },
   {
@@ -1223,20 +1223,20 @@ Generated: 2026-02-23T18:28:51.038Z
     "schema": "public",
     "name": "shift_daily_ids",
     "result_type": "void",
-    "argument_types": "p_lab_id uuid, p_date date, p_category text, p_target_id integer",
+    "argument_types": "p_lab_id uuid, p_date date, p_target_id integer",
     "type": "function",
     "language": "plpgsql",
-    "source_code": "\r\nDECLARE\r\n  v_client RECORD;\r\n  v_check_category TEXT := COALESCE(p_category, '_default');\r\nBEGIN\r\n  -- Shift IDs starting from highest to avoid conflicts\r\n  FOR v_client IN\r\n    SELECT uuid, daily_id\r\n    FROM clients\r\n    WHERE lab_id = p_lab_id\r\n      AND daily_date = p_date\r\n      AND primary_category = v_check_category\r\n      AND daily_id >= p_target_id\r\n    ORDER BY daily_id DESC\r\n  LOOP\r\n    UPDATE clients\r\n    SET daily_id = v_client.daily_id + 1\r\n    WHERE uuid = v_client.uuid;\r\n  END LOOP;\r\n\r\n  -- Update sequence tracker\r\n  INSERT INTO daily_id_sequences (lab_id, date, category, last_id)\r\n  VALUES (p_lab_id, p_date, v_check_category, p_target_id)\r\n  ON CONFLICT (lab_id, date, category)\r\n  DO UPDATE SET\r\n    last_id = GREATEST(daily_id_sequences.last_id, (\r\n      SELECT COALESCE(MAX(daily_id), 0)\r\n      FROM clients\r\n      WHERE lab_id = p_lab_id\r\n        AND daily_date = p_date\r\n        AND primary_category = v_check_category\r\n    )),\r\n    updated_at = NOW();\r\nEND;\r\n",
+    "source_code": "\r\nBEGIN\r\n  PERFORM public.shift_daily_ids(p_lab_id, p_date, NULL, p_target_id);\r\nEND;\r\n",
     "is_security_definer": false
   },
   {
     "schema": "public",
     "name": "shift_daily_ids",
     "result_type": "void",
-    "argument_types": "p_lab_id uuid, p_date date, p_target_id integer",
+    "argument_types": "p_lab_id uuid, p_date date, p_category text, p_target_id integer",
     "type": "function",
     "language": "plpgsql",
-    "source_code": "\r\nDECLARE\r\n  v_client RECORD;\r\nBEGIN\r\n  -- Shift IDs starting from the highest to avoid conflicts\r\n  -- We need to do this in a loop to avoid unique constraint violations\r\n  FOR v_client IN\r\n    SELECT uuid, daily_id\r\n    FROM clients\r\n    WHERE lab_id = p_lab_id\r\n      AND daily_date = p_date\r\n      AND daily_id >= p_target_id\r\n    ORDER BY daily_id DESC\r\n  LOOP\r\n    UPDATE clients\r\n    SET daily_id = v_client.daily_id + 1\r\n    WHERE uuid = v_client.uuid;\r\n  END LOOP;\r\n\r\n  -- Update the sequence tracker\r\n  INSERT INTO daily_id_sequences (lab_id, date, last_id)\r\n  VALUES (p_lab_id, p_date, p_target_id)\r\n  ON CONFLICT (lab_id, date)\r\n  DO UPDATE SET\r\n    last_id = GREATEST(daily_id_sequences.last_id, (\r\n      SELECT COALESCE(MAX(daily_id), 0)\r\n      FROM clients\r\n      WHERE lab_id = p_lab_id AND daily_date = p_date\r\n    )),\r\n    updated_at = NOW();\r\nEND;\r\n",
+    "source_code": "\r\nDECLARE\r\n  v_client RECORD;\r\nBEGIN\r\n  FOR v_client IN\r\n    SELECT client_group_id, MIN(daily_id) as min_daily_id\r\n    FROM clients\r\n    WHERE lab_id = p_lab_id\r\n      AND daily_date = p_date\r\n      AND daily_id >= p_target_id\r\n    GROUP BY client_group_id\r\n    ORDER BY min_daily_id DESC\r\n  LOOP\r\n    UPDATE clients\r\n    SET daily_id = daily_id + 1\r\n    WHERE client_group_id = v_client.client_group_id\r\n      AND lab_id = p_lab_id\r\n      AND daily_date = p_date;\r\n  END LOOP;\r\n\r\n  INSERT INTO daily_id_sequences (lab_id, date, category, last_id)\r\n  VALUES (p_lab_id, p_date, 'عام', p_target_id)\r\n  ON CONFLICT (lab_id, date, category)\r\n  DO UPDATE SET\r\n    last_id = GREATEST(daily_id_sequences.last_id, (\r\n      SELECT COALESCE(MAX(daily_id), 0)\r\n      FROM clients\r\n      WHERE lab_id = p_lab_id\r\n        AND daily_date = p_date\r\n    )),\r\n    updated_at = NOW();\r\nEND;\r\n",
     "is_security_definer": false
   },
   {
@@ -1246,7 +1246,7 @@ Generated: 2026-02-23T18:28:51.038Z
     "argument_types": "p_client_group_id uuid, p_patient_name text, p_notes text, p_categories text[], p_daily_date date, p_manual_id integer, p_selected_tests text[] DEFAULT NULL::text[], p_patient_gender text DEFAULT NULL::text, p_insurance_number text DEFAULT NULL::text, p_entity text DEFAULT NULL::text, p_patient_age integer DEFAULT NULL::integer",
     "type": "function",
     "language": "plpgsql",
-    "source_code": "\r\nDECLARE\r\n    v_lab_id uuid;\r\n    v_daily_id int;\r\n    v_category text;\r\nBEGIN\r\n    SELECT c.lab_id, c.daily_id\r\n    INTO v_lab_id, v_daily_id\r\n    FROM clients c\r\n    WHERE c.client_group_id = p_client_group_id\r\n    LIMIT 1;\r\n\r\n    IF p_manual_id IS NOT NULL THEN\r\n        v_daily_id := p_manual_id;\r\n    END IF;\r\n\r\n    UPDATE clients c\r\n    SET\r\n        patient_name     = p_patient_name,\r\n        notes            = p_notes,\r\n        categories       = p_categories,\r\n        daily_date       = p_daily_date,\r\n        daily_id         = v_daily_id,\r\n        selected_tests   = COALESCE(p_selected_tests, c.selected_tests),\r\n        patient_gender   = COALESCE(p_patient_gender, c.patient_gender),\r\n        insurance_number = p_insurance_number,\r\n        entity           = p_entity,\r\n        patient_age      = p_patient_age\r\n    WHERE c.client_group_id = p_client_group_id\r\n      AND c.primary_category = ANY(p_categories);\r\n\r\n    DELETE FROM clients c\r\n    WHERE c.client_group_id = p_client_group_id\r\n      AND c.primary_category != ALL(p_categories);\r\n\r\n    FOREACH v_category IN ARRAY p_categories\r\n    LOOP\r\n        IF NOT EXISTS (\r\n            SELECT 1\r\n            FROM clients c\r\n            WHERE c.client_group_id = p_client_group_id\r\n              AND c.primary_category = v_category\r\n        ) THEN\r\n            INSERT INTO clients (\r\n                lab_id,\r\n                patient_name,\r\n                notes,\r\n                categories,\r\n                primary_category,\r\n                daily_date,\r\n                daily_id,\r\n                client_group_id,\r\n                results,\r\n                selected_tests,\r\n                patient_gender,\r\n                insurance_number,\r\n                entity,\r\n                patient_age\r\n            )\r\n            VALUES (\r\n                v_lab_id,\r\n                p_patient_name,\r\n                p_notes,\r\n                p_categories,\r\n                v_category,\r\n                p_daily_date,\r\n                v_daily_id,\r\n                p_client_group_id,\r\n                '{}'::jsonb,\r\n                p_selected_tests,\r\n                COALESCE(p_patient_gender, 'ذكر'),\r\n                p_insurance_number,\r\n                p_entity,\r\n                p_patient_age\r\n            );\r\n        END IF;\r\n    END LOOP;\r\nEND;\r\n",
+    "source_code": "\r\nDECLARE\r\n    v_lab_id uuid;\r\n    v_daily_id int;\r\n    v_first_uuid uuid;\r\nBEGIN\r\n    SELECT c.lab_id, c.daily_id\r\n    INTO v_lab_id, v_daily_id\r\n    FROM clients c\r\n    WHERE c.client_group_id = p_client_group_id\r\n    LIMIT 1;\r\n\r\n    IF array_length(p_categories, 1) IS NULL OR array_length(p_categories, 1) = 0 THEN\r\n        p_categories := ARRAY['عام'];\r\n    END IF;\r\n\r\n    -- Handle Manual ID change on Edit\r\n    IF p_manual_id IS NOT NULL AND p_manual_id != v_daily_id THEN\r\n        v_daily_id := p_manual_id;\r\n        \r\n        -- CHECK IF MANUAL ID EXISTS globally for this lab & date, and shift if it does\r\n        IF EXISTS (\r\n            SELECT 1 FROM clients\r\n            WHERE lab_id = v_lab_id\r\n              AND daily_date = p_daily_date\r\n              AND daily_id = v_daily_id\r\n              AND client_group_id != p_client_group_id\r\n        ) THEN\r\n            -- Push all IDs >= v_daily_id up by 1\r\n            PERFORM public.shift_daily_ids(v_lab_id, p_daily_date, v_daily_id);\r\n        END IF;\r\n    END IF;\r\n\r\n    -- Keep only original record (fix old duplicates if exists)\r\n    SELECT uuid INTO v_first_uuid\r\n    FROM clients\r\n    WHERE client_group_id = p_client_group_id\r\n    ORDER BY created_at ASC\r\n    LIMIT 1;\r\n\r\n    -- Delete any clones\r\n    DELETE FROM clients\r\n    WHERE client_group_id = p_client_group_id\r\n      AND uuid != v_first_uuid;\r\n\r\n    -- Update the single remaining row\r\n    UPDATE clients\r\n    SET\r\n        patient_name     = p_patient_name,\r\n        notes            = p_notes,\r\n        categories       = p_categories,\r\n        primary_category = p_categories[1],\r\n        daily_date       = p_daily_date,\r\n        daily_id         = v_daily_id,\r\n        selected_tests   = COALESCE(p_selected_tests, selected_tests),\r\n        patient_gender   = COALESCE(p_patient_gender, patient_gender),\r\n        insurance_number = p_insurance_number,\r\n        entity           = p_entity,\r\n        patient_age      = p_patient_age\r\n    WHERE uuid = v_first_uuid;\r\nEND;\r\n",
     "is_security_definer": true
   },
   {
@@ -1281,27 +1281,11 @@ Generated: 2026-02-23T18:28:51.038Z
   },
   {
     "trigger_schema": "public",
-    "trigger_name": "trigger_resequence_after_category_change",
-    "event_manipulation": "UPDATE",
-    "event_object_table": "clients",
-    "action_statement": "EXECUTE FUNCTION resequence_after_category_change()",
-    "action_timing": "AFTER"
-  },
-  {
-    "trigger_schema": "public",
     "trigger_name": "trigger_resequence_after_delete",
     "event_manipulation": "DELETE",
     "event_object_table": "clients",
     "action_statement": "EXECUTE FUNCTION resequence_after_delete()",
     "action_timing": "AFTER"
-  },
-  {
-    "trigger_schema": "public",
-    "trigger_name": "trigger_resequence_category_change",
-    "event_manipulation": "UPDATE",
-    "event_object_table": "clients",
-    "action_statement": "EXECUTE FUNCTION resequence_category_change()",
-    "action_timing": "BEFORE"
   },
   {
     "trigger_schema": "public",
