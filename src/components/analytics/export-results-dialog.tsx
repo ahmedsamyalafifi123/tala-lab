@@ -505,7 +505,7 @@ export function ExportResultsDialog({
         if (categoryIndex < sortedCategories.length - 1) {
           html += `
             <tr>
-              <td colspan="${includeReferenceRanges ? 5 : 4}" style="height: 2px; border-bottom: 1px dashed #e2e8f0; padding: 0;"></td>
+              <td colspan="${includeReferenceRanges ? 5 : 4}" style="height: 12px; padding: 0;"></td>
             </tr>
           `;
         }
