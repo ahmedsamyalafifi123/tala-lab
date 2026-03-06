@@ -419,59 +419,95 @@ export function ExportResultsDialog({
             <tbody>
       `;
 
+      // Group tests by category
+      const testsByCategory: Record<string, Array<[string, any]>> = {};
       Object.entries(entry.tests).forEach(([testCode, result]) => {
         const test = tests.find((t) => t.test_code === testCode);
-        const refRanges = test?.reference_ranges || {};
-        
-        // Check if test has valid numeric reference range
-        const hasValidRange = 
-          (refRanges.default && typeof refRanges.default.min === 'number' && typeof refRanges.default.max === 'number') ||
-          (refRanges.male && typeof refRanges.male.min === 'number' && typeof refRanges.male.max === 'number') ||
-          (refRanges.female && typeof refRanges.female.min === 'number' && typeof refRanges.female.max === 'number') ||
-          (refRanges.age_ranges && refRanges.age_ranges.length > 0 && 
-           refRanges.age_ranges.some((r: any) => typeof r.min === 'number' && typeof r.max === 'number'));
-        
-        // Get the display range for this test
-        let displayRange = "-";
-        if (hasValidRange) {
-          const range = refRanges.default || refRanges.male || refRanges.female || refRanges.age_ranges?.[0];
-          if (range && typeof range.min === 'number' && typeof range.max === 'number') {
-            displayRange = `${range.min} - ${range.max}`;
-          }
+        const category = test?.category || "General";
+        if (!testsByCategory[category]) {
+          testsByCategory[category] = [];
         }
-        
-        // Status flag styling
-        let flagClass = "flag-normal";
-        let flagLabel = "-";
-        
-        if (hasValidRange && result.flag) {
-          if (result.flag === "critical_high" || result.flag === "critical_low") {
-            flagClass = "flag-critical";
-          } else if (result.flag === "high" || result.flag === "low") {
-            flagClass = "flag-high";
-          }
-          
-          flagLabel = result.flag === "normal" ? "Normal" :
-                      result.flag === "high" ? "High" :
-                      result.flag === "low" ? "Low" :
-                      result.flag === "critical_high" ? "Critical High" : "Critical Low";
-        }
+        testsByCategory[category].push([testCode, result]);
+      });
 
+      // Sort categories alphabetically
+      const sortedCategories = Object.keys(testsByCategory).sort();
+
+      // Render tests grouped by category
+      sortedCategories.forEach((category, categoryIndex) => {
+        // Add category header
         html += `
           <tr>
-            <td class="test-name">${test?.test_name_en || test?.test_name_ar || testCode}</td>
-            <td class="result-value" style="text-align: center;">${result.value}</td>
-            <td style="text-align: center; color: #718096;">${result.unit || test?.unit || "-"}</td>
-            <td style="text-align: center;">
-              <span class="flag-badge ${flagClass}">${flagLabel}</span>
+            <td colspan="${includeReferenceRanges ? 5 : 4}" style="background: #f7fafc; padding: 8px 12px; font-weight: 700; color: #2d3748; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; border-top: 2px solid #e2e8f0;">
+              ${category}
             </td>
-            ${includeReferenceRanges ? `
-              <td style="text-align: center; font-size: 12px; color: #4a5568;">
-                ${displayRange}
-              </td>
-            ` : ""}
           </tr>
         `;
+
+        // Render tests in this category
+        testsByCategory[category].forEach(([testCode, result]) => {
+          const test = tests.find((t) => t.test_code === testCode);
+          const refRanges = test?.reference_ranges || {};
+          
+          // Check if test has valid numeric reference range
+          const hasValidRange = 
+            (refRanges.default && typeof refRanges.default.min === 'number' && typeof refRanges.default.max === 'number') ||
+            (refRanges.male && typeof refRanges.male.min === 'number' && typeof refRanges.male.max === 'number') ||
+            (refRanges.female && typeof refRanges.female.min === 'number' && typeof refRanges.female.max === 'number') ||
+            (refRanges.age_ranges && refRanges.age_ranges.length > 0 && 
+             refRanges.age_ranges.some((r: any) => typeof r.min === 'number' && typeof r.max === 'number'));
+          
+          // Get the display range for this test
+          let displayRange = "-";
+          if (hasValidRange) {
+            const range = refRanges.default || refRanges.male || refRanges.female || refRanges.age_ranges?.[0];
+            if (range && typeof range.min === 'number' && typeof range.max === 'number') {
+              displayRange = `${range.min} - ${range.max}`;
+            }
+          }
+          
+          // Status flag styling
+          let flagClass = "flag-normal";
+          let flagLabel = "-";
+          
+          if (hasValidRange && result.flag) {
+            if (result.flag === "critical_high" || result.flag === "critical_low") {
+              flagClass = "flag-critical";
+            } else if (result.flag === "high" || result.flag === "low") {
+              flagClass = "flag-high";
+            }
+            
+            flagLabel = result.flag === "normal" ? "Normal" :
+                        result.flag === "high" ? "High" :
+                        result.flag === "low" ? "Low" :
+                        result.flag === "critical_high" ? "Critical High" : "Critical Low";
+          }
+
+          html += `
+            <tr>
+              <td class="test-name" style="padding-left: 24px;">${test?.test_name_en || test?.test_name_ar || testCode}</td>
+              <td class="result-value" style="text-align: center;">${result.value}</td>
+              <td style="text-align: center; color: #718096;">${result.unit || test?.unit || "-"}</td>
+              <td style="text-align: center;">
+                <span class="flag-badge ${flagClass}">${flagLabel}</span>
+              </td>
+              ${includeReferenceRanges ? `
+                <td style="text-align: center; font-size: 12px; color: #4a5568;">
+                  ${displayRange}
+                </td>
+              ` : ""}
+            </tr>
+          `;
+        });
+
+        // Add separator between categories (except for the last one)
+        if (categoryIndex < sortedCategories.length - 1) {
+          html += `
+            <tr>
+              <td colspan="${includeReferenceRanges ? 5 : 4}" style="height: 8px; border-bottom: 1px dashed #cbd5e0;"></td>
+            </tr>
+          `;
+        }
       });
 
       html += `
