@@ -18,7 +18,7 @@ import {
 import { Loader2, Check, AlertCircle, Pencil, Beaker, Calendar, Clock, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { calculateFlag, formatReferenceRange, validateTestValue, getFlagColor, getFlagIcon, getFlagLabel, groupTestsByCategory } from "@/lib/test-utils";
-import type { TestResult } from "@/types/results";
+import type { TestResult, ResultFlag } from "@/types/results";
 import {
   Accordion,
   AccordionContent,
@@ -155,11 +155,33 @@ export function TestResultsModal({
       filledTests.forEach(([testCode, data]) => {
         const test = tests.find((t) => t.test_code === testCode);
         if (test) {
-          const numValue = parseFloat(data.value);
+          // Check if test has valid numeric reference range
+          const refRanges = test.reference_ranges || {};
+          const hasValidRange = 
+            (refRanges.default && typeof refRanges.default.min === 'number' && typeof refRanges.default.max === 'number') ||
+            (refRanges.male && typeof refRanges.male.min === 'number' && typeof refRanges.male.max === 'number') ||
+            (refRanges.female && typeof refRanges.female.min === 'number' && typeof refRanges.female.max === 'number') ||
+            (refRanges.age_ranges && refRanges.age_ranges.length > 0 && 
+             refRanges.age_ranges.some((r: any) => typeof r.min === 'number' && typeof r.max === 'number'));
+          
+          let value: string | number;
+          let flag: ResultFlag | undefined;
+          
+          if (hasValidRange) {
+            // For numeric tests, parse as float and calculate flag
+            const numValue = parseFloat(data.value);
+            value = numValue;
+            flag = getTestFlag(testCode, data.value) || undefined;
+          } else {
+            // For tests without range, store as string (positive, negative, 1+, etc.)
+            value = data.value.trim();
+            flag = undefined; // No flag calculation for non-numeric tests
+          }
+          
           testResults[testCode] = {
-            value: numValue,
+            value,
             unit: test.unit,
-            flag: getTestFlag(testCode, data.value) || undefined,
+            flag,
             notes: data.notes,
           };
         }
@@ -453,63 +475,65 @@ export function TestResultsModal({
                      </div>
                      
                      <div className="grid gap-6">
-                        {categoryTests.map((test) => {
-                           const value = testValues[test.test_code]?.value || "";
-                           const flag = getTestFlag(test.test_code, value);
-                           const refRange = formatReferenceRange(test.reference_ranges, clientGender, clientAge);
-                           
-                           return (
-                              <div key={test.test_code} className={cn(
-                                 "group p-4 rounded-xl border transition-all duration-200",
-                                 value ? (flag ? "bg-accent/5 border-accent/20 shadow-sm" : "bg-card border-border shadow-sm") : "bg-muted/10 border-transparent hover:border-border"
-                              )}>
-                                 <div className="flex flex-col sm:flex-row gap-4 sm:items-start">
-                                    <div className="flex-1 space-y-1">
-                                       <div className="flex items-center justify-between">
-                                          <Label htmlFor={test.test_code} className="font-semibold text-base text-left block" dir="ltr">
-                                             {test.test_name_en || test.test_name_ar}
-                                          </Label>
-                                          {test.unit && <Badge variant="secondary" className="text-xs font-mono">{test.unit}</Badge>}
-                                       </div>
-                                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                          <span>المدى الطبيعي:</span>
-                                          <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{refRange}</span>
-                                       </div>
-                                    </div>
-                                    
-                                    <div className="flex-1 sm:max-w-[200px] space-y-2">
-                                       <div className="relative">
-                                          <Input
-                                             id={test.test_code}
-                                             type="number"
-                                             step="0.01"
-                                             value={value}
-                                             onChange={(e) => handleValueChange(test.test_code, e.target.value)}
-                                             placeholder="النتيجة"
-                                             className={cn(
-                                                "font-mono text-lg h-10 transition-colors",
-                                                flag ? getFlagColor(flag).replace('text-', 'border-').replace('700', '300') : ""
-                                             )}
-                                             dir="ltr"
-                                          />
-                                          {flag && (
-                                             <div className={cn(
-                                                "absolute inset-y-0 right-3 flex items-center pointer-events-none",
-                                                getFlagColor(flag)
-                                             )}>
-                                                {getFlagIcon(flag)}
-                                             </div>
-                                          )}
-                                       </div>
-                                       {flag && (
-                                          <div className={cn("text-xs font-medium flex items-center justify-end gap-1.5", getFlagColor(flag))}>
-                                             <span>{getFlagLabel(flag)}</span>
-                                             <span>•</span>
-                                             <span>{flag === 'high' || flag === 'critical_high' ? 'High' : 'Low'}</span>
-                                          </div>
-                                       )}
-                                    </div>
-                                 </div>
+                         {categoryTests.map((test) => {
+                            const value = testValues[test.test_code]?.value || "";
+                            const flag = getTestFlag(test.test_code, value);
+                            const refRange = formatReferenceRange(test.reference_ranges, clientGender, clientAge);
+                            // Check if test has valid numeric reference range
+                            const hasValidRange = refRange && refRange !== 'N/A' && refRange !== 'undefined - undefined';
+
+                            return (
+                               <div key={test.test_code} className={cn(
+                                  "group p-4 rounded-xl border transition-all duration-200",
+                                  value ? (flag ? "bg-accent/5 border-accent/20 shadow-sm" : "bg-card border-border shadow-sm") : "bg-muted/10 border-transparent hover:border-border"
+                               )}>
+                                  <div className="flex flex-col sm:flex-row gap-4 sm:items-start">
+                                     <div className="flex-1 space-y-1">
+                                        <div className="flex items-center justify-between">
+                                           <Label htmlFor={test.test_code} className="font-semibold text-base text-left block" dir="ltr">
+                                              {test.test_name_en || test.test_name_ar}
+                                           </Label>
+                                           {test.unit && <Badge variant="secondary" className="text-xs font-mono">{test.unit}</Badge>}
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                           <span>المدى الطبيعي:</span>
+                                           <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{refRange}</span>
+                                        </div>
+                                     </div>
+
+                                     <div className="flex-1 sm:max-w-[200px] space-y-2">
+                                        <div className="relative">
+                                           <Input
+                                              id={test.test_code}
+                                              type={hasValidRange ? "number" : "text"}
+                                              step={hasValidRange ? "0.01" : undefined}
+                                              value={value}
+                                              onChange={(e) => handleValueChange(test.test_code, e.target.value)}
+                                              placeholder={hasValidRange ? "النتيجة" : "مثال: positive, 1+, سالب"}
+                                              className={cn(
+                                                 "font-mono text-lg h-10 transition-colors",
+                                                 flag ? getFlagColor(flag).replace('text-', 'border-').replace('700', '300') : ""
+                                              )}
+                                              dir="ltr"
+                                           />
+                                           {flag && (
+                                              <div className={cn(
+                                                 "absolute inset-y-0 right-3 flex items-center pointer-events-none",
+                                                 getFlagColor(flag)
+                                              )}>
+                                                 {getFlagIcon(flag)}
+                                              </div>
+                                           )}
+                                        </div>
+                                        {flag && (
+                                           <div className={cn("text-xs font-medium flex items-center justify-end gap-1.5", getFlagColor(flag))}>
+                                              <span>{getFlagLabel(flag)}</span>
+                                              <span>•</span>
+                                              <span>{flag === 'high' || flag === 'critical_high' ? 'High' : 'Low'}</span>
+                                           </div>
+                                        )}
+                                     </div>
+                                  </div>
                                  
                                  {/* Notes field - temporarily hidden */}
                                  <div className="mt-3 overflow-hidden transition-all hidden">

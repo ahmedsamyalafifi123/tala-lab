@@ -136,7 +136,21 @@ export function validateTestValue(
     return { isValid: true };
   }
 
-  // Check if numeric
+  // Check if test has valid reference range
+  const refRanges = test.reference_ranges || {};
+  const hasValidRange = 
+    (refRanges.default && typeof refRanges.default.min === 'number' && typeof refRanges.default.max === 'number') ||
+    (refRanges.male && typeof refRanges.male.min === 'number' && typeof refRanges.male.max === 'number') ||
+    (refRanges.female && typeof refRanges.female.min === 'number' && typeof refRanges.female.max === 'number') ||
+    (refRanges.age_ranges && refRanges.age_ranges.length > 0 && 
+     refRanges.age_ranges.some((r: any) => typeof r.min === 'number' && typeof r.max === 'number'));
+
+  // For tests without valid range, accept any text value (positive, negative, 1+, etc.)
+  if (!hasValidRange) {
+    return { isValid: true };
+  }
+
+  // Check if numeric (only for tests with valid ranges)
   const numValue = parseFloat(value);
   if (isNaN(numValue)) {
     return { isValid: false, error: 'يجب إدخال رقم صحيح' };
