@@ -413,7 +413,7 @@ export function ExportResultsDialog({
                 <th style="width: 15%; text-align: center;">Result</th>
                 <th style="width: 10%; text-align: center;">Unit</th>
                 <th style="width: 20%; text-align: center;">Status</th>
-                ${includeReferenceRanges ? "<th style='width: 20%; text-align: center;'>Reference Range</th>" : ""}
+                ${includeReferenceRanges ? "<th style='width: 20%; text-align: center;'>RF. Range</th>" : ""}
               </tr>
             </thead>
             <tbody>
