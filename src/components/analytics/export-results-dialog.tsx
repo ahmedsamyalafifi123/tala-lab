@@ -321,9 +321,10 @@ export function ExportResultsDialog({
           th:last-child { border-top-right-radius: 6px; }
 
           td {
-            padding: 8px 12px;
+            padding: 4px 12px;
             border-bottom: 1px solid #e2e8f0;
             font-size: 13px;
+            line-height: 1.3;
           }
 
           .test-name { font-weight: 600; color: #2d3748; }
@@ -438,7 +439,7 @@ export function ExportResultsDialog({
         // Add category header
         html += `
           <tr>
-            <td colspan="${includeReferenceRanges ? 5 : 4}" style="background: #f7fafc; padding: 8px 12px; font-weight: 700; color: #2d3748; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; border-top: 2px solid #e2e8f0;">
+            <td colspan="${includeReferenceRanges ? 5 : 4}" style="background: #f7fafc; padding: 3px 12px; font-weight: 700; color: #2d3748; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-top: 1px solid #e2e8f0;">
               ${category}
             </td>
           </tr>
@@ -504,7 +505,7 @@ export function ExportResultsDialog({
         if (categoryIndex < sortedCategories.length - 1) {
           html += `
             <tr>
-              <td colspan="${includeReferenceRanges ? 5 : 4}" style="height: 8px; border-bottom: 1px dashed #cbd5e0;"></td>
+              <td colspan="${includeReferenceRanges ? 5 : 4}" style="height: 2px; border-bottom: 1px dashed #e2e8f0; padding: 0;"></td>
             </tr>
           `;
         }
