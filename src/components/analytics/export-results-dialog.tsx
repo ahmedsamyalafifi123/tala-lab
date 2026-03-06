@@ -421,18 +421,41 @@ export function ExportResultsDialog({
 
       Object.entries(entry.tests).forEach(([testCode, result]) => {
         const test = tests.find((t) => t.test_code === testCode);
-        const refRange = test?.reference_ranges.default;
+        const refRanges = test?.reference_ranges || {};
         
+        // Check if test has valid numeric reference range
+        const hasValidRange = 
+          (refRanges.default && typeof refRanges.default.min === 'number' && typeof refRanges.default.max === 'number') ||
+          (refRanges.male && typeof refRanges.male.min === 'number' && typeof refRanges.male.max === 'number') ||
+          (refRanges.female && typeof refRanges.female.min === 'number' && typeof refRanges.female.max === 'number') ||
+          (refRanges.age_ranges && refRanges.age_ranges.length > 0 && 
+           refRanges.age_ranges.some((r: any) => typeof r.min === 'number' && typeof r.max === 'number'));
+        
+        // Get the display range for this test
+        let displayRange = "-";
+        if (hasValidRange) {
+          const range = refRanges.default || refRanges.male || refRanges.female || refRanges.age_ranges?.[0];
+          if (range && typeof range.min === 'number' && typeof range.max === 'number') {
+            displayRange = `${range.min} - ${range.max}`;
+          }
+        }
+        
+        // Status flag styling
         let flagClass = "flag-normal";
-        if (result.flag === "critical_high" || result.flag === "critical_low") flagClass = "flag-critical";
-        else if (result.flag === "high" || result.flag === "low") flagClass = "flag-high";
-
-        const flagLabel = result.flag ? (
-          result.flag === "normal" ? "Normal" :
-          result.flag === "high" ? "High" :
-          result.flag === "low" ? "Low" :
-          result.flag === "critical_high" ? "Critical High" : "Critical Low"
-        ) : "Normal";
+        let flagLabel = "-";
+        
+        if (hasValidRange && result.flag) {
+          if (result.flag === "critical_high" || result.flag === "critical_low") {
+            flagClass = "flag-critical";
+          } else if (result.flag === "high" || result.flag === "low") {
+            flagClass = "flag-high";
+          }
+          
+          flagLabel = result.flag === "normal" ? "Normal" :
+                      result.flag === "high" ? "High" :
+                      result.flag === "low" ? "Low" :
+                      result.flag === "critical_high" ? "Critical High" : "Critical Low";
+        }
 
         html += `
           <tr>
@@ -444,7 +467,7 @@ export function ExportResultsDialog({
             </td>
             ${includeReferenceRanges ? `
               <td style="text-align: center; font-size: 12px; color: #4a5568;">
-                ${refRange ? `${refRange.min} - ${refRange.max}` : "-"}
+                ${displayRange}
               </td>
             ` : ""}
           </tr>
