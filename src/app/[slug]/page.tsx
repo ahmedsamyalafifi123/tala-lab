@@ -1268,7 +1268,7 @@ export default function LabDashboard() {
                               checked={testFilters.includes(test.test_code)}
                               onCheckedChange={() => setTestFilters((prev) => toggleArrayValue(prev, test.test_code))}
                             />
-                            <span className="min-w-0 flex-1 truncate">{test.test_name_ar}</span>
+                            <span className="min-w-0 flex-1 truncate">{test.test_name_en}</span>
                             <span className="shrink-0 text-[10px] text-muted-foreground">{test.category}</span>
                           </label>
                         )) : (
