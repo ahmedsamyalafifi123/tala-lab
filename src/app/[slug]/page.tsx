@@ -395,6 +395,12 @@ export default function LabDashboard() {
     }).length;
   }, [clients]);
 
+  const visibleTestsCount = useMemo(() => {
+    return filteredClients.reduce((total, client) => {
+      return total + (Array.isArray(client.selected_tests) ? client.selected_tests.length : 0);
+    }, 0);
+  }, [filteredClients]);
+
   const clearFilters = () => {
     setNameFilter("");
     setCategoryFilter("all");
@@ -935,7 +941,7 @@ export default function LabDashboard() {
         {/* Filters */}
         <Card className="border-border/70 shadow-sm">
           <CardContent className="p-3 sm:p-4">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.35fr)_minmax(160px,0.9fr)_minmax(240px,1.1fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)] xl:items-end">
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-[minmax(220px,1.35fr)_minmax(160px,0.9fr)_minmax(240px,1.1fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)] xl:items-end">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-muted-foreground">الاسم</Label>
                   <div className="relative">
@@ -1097,6 +1103,7 @@ export default function LabDashboard() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Badge variant="secondary">{filteredClients.length} نتيجة</Badge>
+            <Badge variant="outline">{visibleTestsCount} تحليل</Badge>
             <Button
               variant="ghost"
               size="sm"
