@@ -15,8 +15,9 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url);
     const uuid = searchParams.get("uuid");
 
-    if (!uuid) {
-      return NextResponse.json({ error: "Missing uuid" }, { status: 400 });
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuid || !UUID_RE.test(uuid)) {
+      return NextResponse.json({ error: "Invalid uuid" }, { status: 400 });
     }
 
     const supabase = await createServerSupabaseClient();
@@ -50,6 +51,6 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("API Error (DELETE /api/lab/test-categories):", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
