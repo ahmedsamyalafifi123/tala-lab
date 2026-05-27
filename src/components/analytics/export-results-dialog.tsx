@@ -46,9 +46,12 @@ export function ExportResultsDialog({
   const { labSlug } = useLabContext();
   const { toast } = useToast();
   const { tests } = useLabTests();
-  const { results, getSortedEntries } = useClientResults(clientUuid);
+  const { selectedTests, getSortedEntries } = useClientResults(clientUuid);
   const [exporting, setExporting] = useState(false);
   const [includeReferenceRanges, setIncludeReferenceRanges] = useState(true);
+
+  const getExportTestCodes = (entryTests?: Record<string, any>) =>
+    Array.from(new Set([...selectedTests, ...Object.keys(entryTests || {})]));
 
   const handleExportExcel = async () => {
     setExporting(true);
@@ -56,7 +59,7 @@ export function ExportResultsDialog({
     try {
       const entries = getSortedEntries();
 
-      if (entries.length === 0) {
+      if (entries.length === 0 && selectedTests.length === 0) {
         toast({
           title: "لا توجد نتائج",
           description: "لا توجد نتائج للتصدير",
@@ -78,7 +81,11 @@ export function ExportResultsDialog({
       excelData.push({}); // Empty row
 
       // Add results
-      entries.forEach((entry) => {
+      const exportEntries = entries.length > 0
+        ? entries
+        : [{ entry_id: "empty", recorded_at: new Date().toISOString(), recorded_by: "", tests: {} }];
+
+      exportEntries.forEach((entry) => {
         excelData.push({
           "Date": format(new Date(entry.recorded_at), "PPP p", { locale: ar }),
           "": "",
@@ -95,31 +102,28 @@ export function ExportResultsDialog({
           "Notes": "Notes",
         });
 
-        Object.entries(entry.tests).forEach(([testCode, result]) => {
+        getExportTestCodes(entry.tests).forEach((testCode) => {
+          const result = entry.tests[testCode];
           const test = tests.find((t) => t.test_code === testCode);
           const refRange = test?.reference_ranges.default;
 
           excelData.push({
             "Test": test?.test_name_en || test?.test_name_ar || testCode,
-            "Result": result.value,
-            "Unit": result.unit || test?.unit || "-",
+            "Result": result?.value ?? "",
+            "Unit": result?.unit || test?.unit || "-",
             "Flag":
-              result.flag === "normal"
+              result?.flag === "normal"
                 ? "Normal"
-                : result.flag === "high"
+                : result?.flag === "high" || result?.flag === "critical_high"
                 ? "High"
-                : result.flag === "low"
+                : result?.flag === "low" || result?.flag === "critical_low"
                 ? "Low"
-                : result.flag === "critical_high"
-                ? "Critical High"
-                : result.flag === "critical_low"
-                ? "Critical Low"
-                : "Normal",
+                : "",
             ...(includeReferenceRanges &&
               refRange && {
                 "Reference Range": `${refRange.min} - ${refRange.max}`,
               }),
-            "Notes": result.notes || "-",
+            "Notes": result?.notes || "-",
           });
         });
 
@@ -178,6 +182,9 @@ export function ExportResultsDialog({
     if (!printWindow) return;
 
     const entries = getSortedEntries();
+    const exportEntries = entries.length > 0
+      ? entries
+      : [{ entry_id: "empty", recorded_at: new Date().toISOString(), recorded_by: "", tests: {} }];
 
     let html = `
       <!DOCTYPE html>
@@ -341,7 +348,6 @@ export function ExportResultsDialog({
 
           .flag-normal { color: #2f855a; }
           .flag-high, .flag-low { background: #feebc8; color: #c05621; }
-          .flag-critical { background: #fed7d7; color: #c53030; }
 
           .notes-box {
             background: #fffaf0;
@@ -403,7 +409,7 @@ export function ExportResultsDialog({
           </div>
     `;
 
-    entries.forEach((entry) => {
+    exportEntries.forEach((entry) => {
       html += `
         <div class="entry">
           <div class="entry-date">Date: ${format(new Date(entry.recorded_at), "dd/MM/yyyy", )}</div>
@@ -422,7 +428,8 @@ export function ExportResultsDialog({
 
       // Group tests by category
       const testsByCategory: Record<string, Array<[string, any]>> = {};
-      Object.entries(entry.tests).forEach(([testCode, result]) => {
+      getExportTestCodes(entry.tests).forEach((testCode) => {
+        const result = entry.tests[testCode];
         const test = tests.find((t) => t.test_code === testCode);
         const category = test?.category || "General";
         if (!testsByCategory[category]) {
@@ -468,29 +475,26 @@ export function ExportResultsDialog({
           }
           
           // Status flag styling
-          let flagClass = "flag-normal";
-          let flagLabel = "-";
+          let flagClass = "";
+          let flagLabel = "";
           
-          if (hasValidRange && result.flag) {
-            if (result.flag === "critical_high" || result.flag === "critical_low") {
-              flagClass = "flag-critical";
-            } else if (result.flag === "high" || result.flag === "low") {
+          if (hasValidRange && result?.flag) {
+            if (result.flag === "high" || result.flag === "low" || result.flag === "critical_high" || result.flag === "critical_low") {
               flagClass = "flag-high";
             }
             
             flagLabel = result.flag === "normal" ? "Normal" :
-                        result.flag === "high" ? "High" :
-                        result.flag === "low" ? "Low" :
-                        result.flag === "critical_high" ? "Critical High" : "Critical Low";
+                        result.flag === "high" || result.flag === "critical_high" ? "High" :
+                        result.flag === "low" || result.flag === "critical_low" ? "Low" : "";
           }
 
           html += `
             <tr>
               <td class="test-name" style="padding-left: 24px;">${test?.test_name_en || test?.test_name_ar || testCode}</td>
-              <td class="result-value" style="text-align: center;">${result.value}</td>
-              <td style="text-align: center; color: #718096;">${result.unit || test?.unit || "-"}</td>
+              <td class="result-value" style="text-align: center;">${result?.value ?? ""}</td>
+              <td style="text-align: center; color: #718096;">${result?.unit || test?.unit || "-"}</td>
               <td style="text-align: center;">
-                <span class="flag-badge ${flagClass}">${flagLabel}</span>
+                ${flagLabel ? `<span class="flag-badge ${flagClass}">${flagLabel}</span>` : ""}
               </td>
               ${includeReferenceRanges ? `
                 <td style="text-align: center; font-size: 12px; color: #4a5568;">

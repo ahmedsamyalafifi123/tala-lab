@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Loader2, Trash2, Calendar, FileText, Beaker, ClipboardList } from "lucide-react";
 import { getFlagColor, getFlagIcon, getFlagLabel } from "@/lib/test-utils";
-import type { ResultEntry } from "@/types/results";
+import type { ResultEntry, ResultFlag } from "@/types/results";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -39,7 +39,7 @@ interface ResultsHistoryViewerProps {
 
 export function ResultsHistoryViewer({ clientUuid }: ResultsHistoryViewerProps) {
   const { tests } = useLabTests();
-  const { results, deleteResultEntry, getSortedEntries, loading } = useClientResults(clientUuid);
+  const { selectedTests, deleteResultEntry, getSortedEntries, loading } = useClientResults(clientUuid);
   const [deletingEntry, setDeletingEntry] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<ResultEntry | null>(null);
@@ -55,6 +55,9 @@ export function ResultsHistoryViewer({ clientUuid }: ResultsHistoryViewerProps) 
     const test = tests.find((t) => t.test_code === testCode);
     return test?.unit;
   };
+
+  const normalizeFlag = (flag: ResultFlag): ResultFlag =>
+    flag === "critical_high" ? "high" : flag === "critical_low" ? "low" : flag;
 
   const handleDeleteClick = (entry: ResultEntry) => {
     setEntryToDelete(entry);
@@ -107,8 +110,13 @@ export function ResultsHistoryViewer({ clientUuid }: ResultsHistoryViewerProps) 
         
         {sortedEntries.map((entry, index) => {
           // Group tests by category for this entry
-          const entryTests = Object.entries(entry.tests).map(([code, result]) => {
+          const entryTestCodes = Array.from(new Set([
+             ...selectedTests,
+             ...Object.keys(entry.tests || {}),
+          ]));
+          const entryTests = entryTestCodes.map((code) => {
              const test = tests.find(t => t.test_code === code);
+             const result = entry.tests?.[code];
              return { code, result, test };
           });
           
@@ -201,41 +209,43 @@ export function ResultsHistoryViewer({ clientUuid }: ResultsHistoryViewerProps) 
                                     </TableRow>
                                  </TableHeader>
                                  <TableBody>
-                                    {items.map(({ code, result, test }) => (
+                                    {items.map(({ code, result, test }) => {
+                                       const displayFlag = result?.flag ? normalizeFlag(result.flag) : null;
+
+                                       return (
                                        <TableRow key={code} className="hover:bg-muted/20">
                                           <TableCell className="font-medium text-left py-3">
                                              {test?.test_name_en || test?.test_name_ar || code}
                                           </TableCell>
                                           <TableCell className="text-center font-mono font-semibold py-3">
-                                             {result.value}
+                                             {result?.value ?? ""}
                                           </TableCell>
                                           <TableCell className="text-center text-muted-foreground text-xs py-3">
-                                             {result.unit || test?.unit || "-"}
+                                             {result?.unit || test?.unit || "-"}
                                           </TableCell>
                                           <TableCell className="text-center py-3">
-                                             {result.flag && (
+                                             {displayFlag && (
                                                 <Badge 
                                                    variant="outline" 
                                                    className={cn(
                                                       "font-normal border-0 items-center gap-1.5 px-2.5 py-1 justify-center min-w-[90px]",
-                                                      getFlagColor(result.flag)
+                                                      getFlagColor(displayFlag)
                                                    )}
                                                 >
-                                                   <span>{getFlagIcon(result.flag)}</span>
-                                                   <span>{getFlagLabel(result.flag)}</span>
+                                                   <span>{getFlagIcon(displayFlag)}</span>
+                                                   <span>{getFlagLabel(displayFlag)}</span>
                                                 </Badge>
                                              )}
-                                             {!result.flag && (
-                                                <Badge variant="outline" className="font-normal text-muted-foreground border-border/50 bg-muted/20">
-                                                   Normal
-                                                </Badge>
+                                             {!displayFlag && (
+                                                <span className="block min-h-6" />
                                              )}
                                           </TableCell>
                                           <TableCell className="text-left text-sm text-muted-foreground py-3 max-w-[150px] truncate">
-                                             {result.notes || "-"}
+                                             {result?.notes || "-"}
                                           </TableCell>
                                        </TableRow>
-                                    ))}
+                                    );
+                                    })}
                                  </TableBody>
                               </Table>
                            </div>

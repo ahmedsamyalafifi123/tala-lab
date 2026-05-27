@@ -118,6 +118,9 @@ export function TestResultsModal({
     return calculateFlag(numValue, test.reference_ranges, clientGender, clientAge);
   };
 
+  const normalizeFlag = (flag: ResultFlag): ResultFlag =>
+    flag === "critical_high" ? "high" : flag === "critical_low" ? "low" : flag;
+
   const handleSubmit = async () => {
     // Validate at least one test has a value
     const filledTests = Object.entries(testValues).filter(([_, data]) => data.value && data.value.trim());
@@ -317,8 +320,13 @@ export function TestResultsModal({
              
             {results.entries.map((entry, index) => {
                // Group tests for display
-               const entryTests = Object.entries(entry.tests).map(([code, result]) => {
+               const entryTestCodes = Array.from(new Set([
+                  ...selectedTests,
+                  ...Object.keys(entry.tests || {}),
+               ]));
+               const entryTests = entryTestCodes.map((code) => {
                   const test = tests.find(t => t.test_code === code);
+                  const result = entry.tests?.[code];
                   return { code, result, test };
                });
                
@@ -401,15 +409,16 @@ export function TestResultsModal({
                                  
                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" dir="ltr">
                                     {items.map(({ code, result, test }) => {
-                                       const flagColor = result?.flag ? getFlagColor(result.flag) : "";
-                                       const flagIcon = result?.flag ? getFlagIcon(result.flag) : null;
+                                       const displayFlag = result?.flag ? normalizeFlag(result.flag) : null;
+                                       const flagColor = displayFlag ? getFlagColor(displayFlag) : "";
+                                       const flagIcon = displayFlag ? getFlagIcon(displayFlag) : null;
                                        
                                        return (
                                           <div key={code} className={cn(
                                              "border rounded-lg p-3 flex flex-col gap-2 relative overflow-hidden",
-                                             result.flag ? "bg-accent/20 border-accent/20" : "bg-card hover:bg-muted/20"
+                                             displayFlag ? "bg-accent/20 border-accent/20" : "bg-card hover:bg-muted/20"
                                           )}>
-                                             {result.flag && (
+                                             {displayFlag && (
                                                 <div className={cn("absolute top-0 left-0 w-1 h-full", flagColor.replace('text-', 'bg-').replace('bg-', ''))} />
                                              )}
                                              
@@ -419,11 +428,11 @@ export function TestResultsModal({
                                              </div>
                                              
                                              <div className="flex items-baseline gap-1 mt-auto">
-                                                <span className="text-lg font-bold font-mono tracking-tight">{result.value}</span>
-                                                <span className="text-xs text-muted-foreground">{result.unit || test?.unit || "-"}</span>
+                                                <span className="text-lg font-bold font-mono tracking-tight">{result?.value ?? ""}</span>
+                                                <span className="text-xs text-muted-foreground">{result?.unit || test?.unit || "-"}</span>
                                              </div>
                                              
-                                             {result.notes && (
+                                             {result?.notes && (
                                                 <div className="text-[10px] text-muted-foreground bg-muted/50 p-1.5 rounded mt-1 truncate">
                                                    {result.notes}
                                                 </div>
@@ -477,7 +486,8 @@ export function TestResultsModal({
                      <div className="grid gap-6">
                          {categoryTests.map((test) => {
                             const value = testValues[test.test_code]?.value || "";
-                            const flag = getTestFlag(test.test_code, value);
+                            const rawFlag = getTestFlag(test.test_code, value);
+                            const flag = rawFlag ? normalizeFlag(rawFlag) : null;
                             const refRange = formatReferenceRange(test.reference_ranges, clientGender, clientAge);
                             // Check if test has valid numeric reference range
                             const hasValidRange = refRange && refRange !== 'N/A' && refRange !== 'undefined - undefined';
@@ -529,7 +539,7 @@ export function TestResultsModal({
                                            <div className={cn("text-xs font-medium flex items-center justify-end gap-1.5", getFlagColor(flag))}>
                                               <span>{getFlagLabel(flag)}</span>
                                               <span>•</span>
-                                              <span>{flag === 'high' || flag === 'critical_high' ? 'High' : 'Low'}</span>
+                                              <span>{flag === 'high' ? 'High' : 'Low'}</span>
                                            </div>
                                         )}
                                      </div>
