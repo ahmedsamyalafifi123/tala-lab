@@ -732,6 +732,25 @@ export default function LabDashboard() {
     });
 
     const labDisplayName = labSlug ? `Laboratory ${labSlug}` : 'Medical Laboratory';
+    const origin = window.location.origin;
+
+    // Header repeated on every patient page
+    const pageHeader = `
+      <div class="header">
+        <div class="lab-brand">
+          <img src="${origin}/logo.png" alt="Logo" style="width: 80px; height: 80px; object-fit: contain;" onerror="this.style.display='none'" />
+          <div class="lab-info">
+            <h1>${escapeHtml(labDisplayName)}</h1>
+            <p>Professional Diagnostic Services</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Prepend the header into every patient section
+    const sectionsWithHeader = clientSections.map((section) =>
+      section.replace('<div class="patient-section">', `<div class="patient-section">${pageHeader}`)
+    );
 
     const htmlContent = `<!DOCTYPE html>
 <html dir="ltr" lang="en">
@@ -740,7 +759,7 @@ export default function LabDashboard() {
   <title>Medical Reports - ${escapeHtml(labDisplayName)}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    @font-face { font-family: 'Cairo'; src: url('/assets/Cairo.ttf') format('truetype'); font-weight: 400; }
+    @font-face { font-family: 'Cairo'; src: url('${origin}/assets/Cairo.ttf') format('truetype'); font-weight: 400; }
     @media print {
       @page { size: A4; margin: 1.5cm; }
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -775,16 +794,7 @@ export default function LabDashboard() {
 </head>
 <body>
   <div class="report-container">
-    <div class="header">
-      <div class="lab-brand">
-        <img src="/logo.png" alt="Logo" style="width: 80px; height: 80px; object-fit: contain;" onerror="this.style.display='none'" />
-        <div class="lab-info">
-          <h1>${escapeHtml(labDisplayName)}</h1>
-          <p>Professional Diagnostic Services</p>
-        </div>
-      </div>
-    </div>
-    ${clientSections.join("")}
+    ${sectionsWithHeader.join("")}
   </div>
 </body>
 </html>`;
