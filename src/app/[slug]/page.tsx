@@ -405,6 +405,7 @@ export default function LabDashboard() {
   };
 
   const hasFilters = nameFilter || categoryFilter !== "all" || testFilters.length > 0 || dateFrom || dateTo;
+  const useSequentialTestNumbers = testFilters.length > 0;
 
   const handleSave = async (data: { 
     patient_name: string; 
@@ -1033,7 +1034,7 @@ export default function LabDashboard() {
                     </TableRow>
                   ) : (
                     <>
-                    {(printReversed ? [...filteredClients].reverse() : filteredClients).slice(0, 100).map((client) => (
+                    {(printReversed ? [...filteredClients].reverse() : filteredClients).slice(0, 100).map((client, index) => (
                       <TableRow 
                         key={client.uuid} 
                         data-state={selectedIds.includes(client.uuid || "") ? "selected" : undefined}
@@ -1055,7 +1056,9 @@ export default function LabDashboard() {
                             />
                           </TableCell>
                           <TableCell className="text-center">
-                            <Badge variant="outline" className="font-mono">{client.daily_id}</Badge>
+                            <Badge variant="outline" className="font-mono">
+                              {useSequentialTestNumbers ? index + 1 : client.daily_id}
+                            </Badge>
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm">
                             {formatDate(client.daily_date)}
@@ -1500,7 +1503,7 @@ export default function LabDashboard() {
                       <tbody>
                         {sortedData.map((client, idx) => (
                           <tr key={client.uuid} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc', breakInside: 'avoid' }}>
-                            <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '500' }}>{client.daily_id}</td>
+                            <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '500' }}>{useSequentialTestNumbers ? idx + 1 : client.daily_id}</td>
                             <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '500' }}>{client.patient_name}</td>
                             <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px' }}></td>
                           </tr>
