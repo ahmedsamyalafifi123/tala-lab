@@ -1338,7 +1338,7 @@ export default function LabDashboard() {
                               .print-header-left { background-color: #f8fafc; padding: 12px 20px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: right; }
                               .print-header-left p { font-size: 14px; color: #334155; margin-bottom: 5px; font-weight: 700; }
                               .print-header-left span { color: #2563eb; font-weight: 700; font-size: 16px; }
-                              .print-tables-container { column-count: 2; column-gap: 8mm; }
+                              .print-tables-container { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; align-items: start; }
                               table { width: 100%; border-collapse: collapse; font-size: 13px; }
                               th, td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: center; }
                               th { background-color: #f1f5f9; font-weight: 700; color: #0f172a; font-size: 14px; }
@@ -1349,6 +1349,7 @@ export default function LabDashboard() {
                               @media print {
                                 body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
                                 .print-header-left { background-color: #f8fafc !important; }
+                                .print-tables-container { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8mm !important; }
                                 th { background-color: #f1f5f9 !important; }
                                 tr:nth-child(even) td { background-color: #f8fafc !important; }
                               }
@@ -1402,7 +1403,7 @@ export default function LabDashboard() {
                               .print-header-left { background-color: #f8fafc; padding: 12px 20px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: right; }
                               .print-header-left p { font-size: 14px; color: #334155; margin-bottom: 5px; font-weight: 700; }
                               .print-header-left span { color: #2563eb; font-weight: 700; font-size: 16px; }
-                              .print-tables-container { column-count: 2; column-gap: 8mm; }
+                              .print-tables-container { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; align-items: start; }
                               table { width: 100%; border-collapse: collapse; font-size: 13px; }
                               th, td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: center; }
                               th { background-color: #f1f5f9; font-weight: 700; color: #0f172a; font-size: 14px; }
@@ -1413,6 +1414,7 @@ export default function LabDashboard() {
                               @media print {
                                 body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
                                 .print-header-left { background-color: #f8fafc !important; }
+                                .print-tables-container { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8mm !important; }
                                 th { background-color: #f1f5f9 !important; }
                                 tr:nth-child(even) td { background-color: #f8fafc !important; }
                               }
@@ -1487,29 +1489,39 @@ export default function LabDashboard() {
                 </div>
               </div>
 
-              <div className="print-tables-container" style={{ columnCount: 2, columnGap: '8mm' }}>
+              <div className="print-tables-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8mm', alignItems: 'start' }}>
                 {(() => {
                   const sortedData = printReversed ? [...filteredClients].reverse() : filteredClients;
+                  const numberedRows = sortedData.map((client, index) => ({
+                    client,
+                    number: useSequentialTestNumbers ? index + 1 : client.daily_id,
+                  }));
+                  const midpoint = Math.ceil(numberedRows.length / 2);
+                  const columns = [numberedRows.slice(0, midpoint), numberedRows.slice(midpoint)];
                   
                   return (
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                      <thead>
-                        <tr style={{ breakInside: 'avoid', borderBottom: '2px solid #cbd5e1' }}>
-                          <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '35px' }}>م</th>
-                          <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px' }}>الاسم</th>
-                          <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '90px' }}>الاستلام</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sortedData.map((client, idx) => (
-                          <tr key={client.uuid} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc', breakInside: 'avoid' }}>
-                            <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '500' }}>{useSequentialTestNumbers ? idx + 1 : client.daily_id}</td>
-                            <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '500' }}>{client.patient_name}</td>
-                            <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px' }}></td>
-                          </tr>
+                    <>
+                      {columns.map((rows, columnIndex) => (
+                        <table key={columnIndex} style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                          <thead>
+                            <tr style={{ breakInside: 'avoid', borderBottom: '2px solid #cbd5e1' }}>
+                              <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '35px' }}>م</th>
+                              <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px' }}>الاسم</th>
+                              <th style={{ backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center', fontWeight: '700', color: '#0f172a', fontSize: '14px', width: '90px' }}>الاستلام</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rows.map(({ client, number }, idx) => (
+                              <tr key={client.uuid} style={{ backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f8fafc', breakInside: 'avoid' }}>
+                                <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '500' }}>{number}</td>
+                                <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px', textAlign: 'center', fontSize: '13px', color: '#1e293b', fontWeight: '500' }}>{client.patient_name}</td>
+                                <td style={{ border: '1px solid #cbd5e1', padding: '4px 6px' }}></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                         ))}
-                      </tbody>
-                    </table>
+                    </>
                   );
                 })()}
               </div>
