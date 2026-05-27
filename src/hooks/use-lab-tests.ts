@@ -78,14 +78,17 @@ export function useLabTests() {
   };
 
   // Soft delete a test (set is_active = false)
+  // Uses the server API route to bypass the RLS WITH CHECK constraint.
   const deleteTest = async (uuid: string) => {
     try {
-      const { error: deleteError } = await supabase
-        .from('lab_tests')
-        .update({ is_active: false })
-        .eq('uuid', uuid);
+      const res = await fetch(`/api/lab/tests?uuid=${encodeURIComponent(uuid)}`, {
+        method: 'DELETE',
+      });
 
-      if (deleteError) throw deleteError;
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Request failed with status ${res.status}`);
+      }
 
       setTests((prev) => prev.filter((test) => test.uuid !== uuid));
       return { error: null };
