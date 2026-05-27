@@ -1164,7 +1164,9 @@ export default function LabDashboard() {
         {/* Filters */}
         <Card className="border-border/70 shadow-sm">
           <CardContent className="p-3 sm:p-4">
-            <div className="grid grid-cols-2 gap-3 xl:grid-cols-[minmax(220px,1.35fr)_minmax(160px,0.9fr)_minmax(240px,1.1fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)] xl:items-end">
+            <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.35fr)_minmax(160px,0.9fr)_minmax(240px,1.1fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)] gap-3 xl:items-end">
+
+                {/* الاسم */}
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                     <User className="h-3.5 w-3.5" />
@@ -1180,6 +1182,8 @@ export default function LabDashboard() {
                     />
                   </div>
                 </div>
+
+                {/* التصنيف */}
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                     <Tags className="h-3.5 w-3.5" />
@@ -1197,7 +1201,9 @@ export default function LabDashboard() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
+
+                {/* التحاليل المطلوبة — full width on mobile */}
+                <div className="space-y-1.5 col-span-2 xl:col-span-1">
                   <Label className="flex items-center gap-1.5 text-xs font-semibold text-primary">
                     <FlaskConical className="h-3.5 w-3.5" />
                     التحاليل المطلوبة
@@ -1219,7 +1225,13 @@ export default function LabDashboard() {
                         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent align="start" className="w-80 p-2">
+                    <PopoverContent
+                      align="start"
+                      side="bottom"
+                      avoidCollisions={true}
+                      collisionPadding={12}
+                      className="w-[min(320px,calc(100vw-1.5rem))] p-2"
+                    >
                       <div className="relative mb-2">
                         <Search className="absolute start-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
@@ -1229,11 +1241,11 @@ export default function LabDashboard() {
                           className="h-9 ps-8"
                         />
                       </div>
-                      <div className="max-h-80 space-y-1 overflow-y-auto">
+                      <div className="max-h-[35vh] sm:max-h-64 space-y-1 overflow-y-auto overscroll-contain">
                         {filteredLabTests.length > 0 ? filteredLabTests.map((test) => (
                           <label
                             key={test.uuid}
-                            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-muted"
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2.5 text-sm hover:bg-muted active:bg-muted"
                           >
                             <Checkbox
                               checked={testFilters.includes(test.test_code)}
@@ -1249,7 +1261,7 @@ export default function LabDashboard() {
                         )}
                       </div>
                       {(testFilters.length > 0 || testSearchFilter) && (
-                        <div className="mt-2 grid grid-cols-2 gap-2">
+                        <div className="mt-2 grid grid-cols-2 gap-2 border-t pt-2">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -1272,6 +1284,8 @@ export default function LabDashboard() {
                     </PopoverContent>
                   </Popover>
                 </div>
+
+                {/* من تاريخ */}
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                     <CalendarDays className="h-3.5 w-3.5" />
@@ -1301,6 +1315,8 @@ export default function LabDashboard() {
                     </PopoverContent>
                   </Popover>
                 </div>
+
+                {/* إلى تاريخ */}
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                     <CalendarDays className="h-3.5 w-3.5" />
@@ -1330,18 +1346,20 @@ export default function LabDashboard() {
                     </PopoverContent>
                   </Popover>
                 </div>
+
             </div>
           </CardContent>
         </Card>
 
         {/* Results count and Actions */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="gap-1">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {/* Left: stats + sort */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Badge variant="secondary" className="gap-1 h-7 px-2 text-xs">
               <ClipboardList className="h-3 w-3" />
               {filteredClients.length} نتيجة
             </Badge>
-            <Badge variant="outline" className="gap-1">
+            <Badge variant="outline" className="gap-1 h-7 px-2 text-xs">
               <FlaskConical className="h-3 w-3" />
               {visibleTestsCount} تحليل
             </Badge>
@@ -1356,7 +1374,9 @@ export default function LabDashboard() {
             </Button>
             {(isLoading || isFiltering) && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* Right: actions */}
+          <div className="flex items-center gap-1.5">
             {/* Hidden file input for import */}
             <input
               type="file"
@@ -1370,12 +1390,12 @@ export default function LabDashboard() {
               size="sm"
               onClick={() => setShowImportModal(true)}
               disabled={isImporting}
-              className="px-2 sm:px-3"
+              className="h-8 gap-1.5 px-2.5 text-xs"
             >
               {isImporting ? (
-                <Loader2 className="h-4 w-4 animate-spin sm:me-1" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <Upload className="h-4 w-4 sm:me-1" />
+                <Upload className="h-3.5 w-3.5" />
               )}
               <span className="hidden sm:inline">استيراد</span>
             </Button>
@@ -1384,12 +1404,12 @@ export default function LabDashboard() {
               size="sm"
               onClick={exportToExcel}
               disabled={isExporting || filteredClients.length === 0}
-              className="px-2 sm:px-3"
+              className="h-8 gap-1.5 px-2.5 text-xs"
             >
               {isExporting ? (
-                <Loader2 className="h-4 w-4 animate-spin sm:me-1" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <Download className="h-4 w-4 sm:me-1" />
+                <Download className="h-3.5 w-3.5" />
               )}
               <span className="hidden sm:inline">تصدير</span>
             </Button>
@@ -1398,10 +1418,10 @@ export default function LabDashboard() {
                 variant="destructive"
                 size="sm"
                 onClick={() => setShowBulkDeleteDialog(true)}
-                className="px-2 sm:px-3 bg-red-600 hover:bg-red-700 text-white"
+                className="h-8 gap-1.5 px-2.5 text-xs bg-red-600 hover:bg-red-700 text-white"
               >
-                <Trash2 className="h-4 w-4 sm:me-1" />
-                <span className="hidden sm:inline">حذف المحدد ({selectedIds.length})</span>
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>({selectedIds.length})</span>
               </Button>
             )}
             <Button
@@ -1409,9 +1429,9 @@ export default function LabDashboard() {
               size="sm"
               onClick={() => setShowPrintModal(true)}
               disabled={filteredClients.length === 0}
-              className="px-2 sm:px-3"
+              className="h-8 gap-1.5 px-2.5 text-xs"
             >
-              <Printer className="h-4 w-4 sm:me-1" />
+              <Printer className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">طباعة</span>
             </Button>
           </div>
