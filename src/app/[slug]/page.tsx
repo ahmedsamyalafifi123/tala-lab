@@ -20,7 +20,14 @@ import {
   FileDown,
   User,
   FlaskConical,
-  ChevronDown
+  ChevronDown,
+  Tags,
+  ArrowDownUp,
+  Hash,
+  CalendarDays,
+  StickyNote,
+  Wrench,
+  ClipboardList
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase";
@@ -943,7 +950,10 @@ export default function LabDashboard() {
           <CardContent className="p-3 sm:p-4">
             <div className="grid grid-cols-2 gap-3 xl:grid-cols-[minmax(220px,1.35fr)_minmax(160px,0.9fr)_minmax(240px,1.1fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)] xl:items-end">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">الاسم</Label>
+                  <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <User className="h-3.5 w-3.5" />
+                    الاسم
+                  </Label>
                   <div className="relative">
                     <Search className="absolute start-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -955,7 +965,10 @@ export default function LabDashboard() {
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">التصنيف</Label>
+                  <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <Tags className="h-3.5 w-3.5" />
+                    التصنيف
+                  </Label>
                   <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                     <SelectTrigger className="h-10 w-full text-right">
                       <SelectValue placeholder="الكل" />
@@ -1044,7 +1057,10 @@ export default function LabDashboard() {
                   </Popover>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">من تاريخ</Label>
+                  <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    من تاريخ
+                  </Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -1070,7 +1086,10 @@ export default function LabDashboard() {
                   </Popover>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">إلى تاريخ</Label>
+                  <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    إلى تاريخ
+                  </Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -1102,14 +1121,21 @@ export default function LabDashboard() {
         {/* Results count and Actions */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Badge variant="secondary">{filteredClients.length} نتيجة</Badge>
-            <Badge variant="outline">{visibleTestsCount} تحليل</Badge>
+            <Badge variant="secondary" className="gap-1">
+              <ClipboardList className="h-3 w-3" />
+              {filteredClients.length} نتيجة
+            </Badge>
+            <Badge variant="outline" className="gap-1">
+              <FlaskConical className="h-3 w-3" />
+              {visibleTestsCount} تحليل
+            </Badge>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setPrintReversed(!printReversed)}
-              className="h-7 px-2 text-xs"
+              className="h-7 gap-1 px-2 text-xs"
             >
+              <ArrowDownUp className="h-3.5 w-3.5" />
               {printReversed ? '↑ تصاعدي' : '↓ تنازلي'}
             </Button>
             {(isLoading || isFiltering) && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
@@ -1190,12 +1216,42 @@ export default function LabDashboard() {
                           className="mx-auto"
                         />
                       </TableHead>
-                      <TableHead className="w-14 text-center">م</TableHead>
-                      <TableHead className="w-24 text-center">التاريخ</TableHead>
-                      <TableHead className="text-center">الاسم</TableHead>
-                      <TableHead className="hidden sm:table-cell text-center">التصنيف</TableHead>
-                      <TableHead className="hidden md:table-cell text-center">ملاحظات</TableHead>
-                      <TableHead className="w-24 text-center">إجراءات</TableHead>
+                      <TableHead className="w-14 text-center">
+                        <span className="flex items-center justify-center gap-1">
+                          <Hash className="h-3.5 w-3.5" />
+                          م
+                        </span>
+                      </TableHead>
+                      <TableHead className="w-24 text-center">
+                        <span className="flex items-center justify-center gap-1">
+                          <CalendarDays className="h-3.5 w-3.5" />
+                          التاريخ
+                        </span>
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <span className="flex items-center justify-center gap-1">
+                          <User className="h-3.5 w-3.5" />
+                          الاسم
+                        </span>
+                      </TableHead>
+                      <TableHead className="hidden sm:table-cell text-center">
+                        <span className="flex items-center justify-center gap-1">
+                          <Tags className="h-3.5 w-3.5" />
+                          التصنيف
+                        </span>
+                      </TableHead>
+                      <TableHead className="hidden md:table-cell text-center">
+                        <span className="flex items-center justify-center gap-1">
+                          <StickyNote className="h-3.5 w-3.5" />
+                          ملاحظات
+                        </span>
+                      </TableHead>
+                      <TableHead className="w-24 text-center">
+                        <span className="flex items-center justify-center gap-1">
+                          <Wrench className="h-3.5 w-3.5" />
+                          إجراءات
+                        </span>
+                      </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
