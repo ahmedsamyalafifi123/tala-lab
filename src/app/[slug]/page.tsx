@@ -133,6 +133,7 @@ export default function LabDashboard() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
   
   // Filters - default to today
   const [nameFilter, setNameFilter] = useState("");
@@ -584,6 +585,221 @@ export default function LabDashboard() {
       printWindow.print();
       printWindow.close();
     }, 250);
+  };
+
+  const handleBulkExportPDF = () => {
+    type PrintableResult = {
+      recorded_at?: string;
+      tests?: Record<string, { value?: string | number; unit?: string; flag?: string; notes?: string }>;
+      notes?: string;
+    };
+
+    const sortedClients = printReversed ? [...filteredClients].reverse() : filteredClients;
+
+    const clientSections = sortedClients.map((client) => {
+      const entries = Array.isArray(client.results?.entries)
+        ? (client.results.entries as PrintableResult[])
+        : [];
+      const exportEntries: PrintableResult[] = [...entries].sort(
+        (a, b) => new Date(b.recorded_at || 0).getTime() - new Date(a.recorded_at || 0).getTime()
+      );
+      if (exportEntries.length === 0) {
+        exportEntries.push({ recorded_at: new Date().toISOString(), tests: {}, notes: undefined });
+      }
+
+      const getExportTestCodes = (entryTests?: Record<string, any>) =>
+        Array.from(new Set([...(client.selected_tests || []), ...Object.keys(entryTests || {})]));
+
+      let patientHtml = `
+        <div class="patient-section">
+          <div class="patient-info-section">
+            <table class="patient-info-table">
+              <tr>
+                <td class="label">Patient Name</td>
+                <td class="value" style="font-weight: 700; font-size: 15px;">${escapeHtml(client.patient_name)}</td>
+                <td class="label">Report ID</td>
+                <td class="value" style="font-family: monospace;">${escapeHtml(String(client.daily_id))}</td>
+              </tr>
+              ${(client.patient_age !== undefined || client.patient_gender) ? `
+                <tr>
+                  <td class="label">Age</td>
+                  <td class="value">${client.patient_age !== undefined && client.patient_age !== null ? escapeHtml(String(client.patient_age)) + ' Years' : '-'}</td>
+                  <td class="label">Gender</td>
+                  <td class="value">${client.patient_gender ? (client.patient_gender === 'male' || client.patient_gender === 'ذكر' ? 'Male' : 'Female') : '-'}</td>
+                </tr>
+              ` : ''}
+              ${(client.insurance_number || client.entity) ? `
+                <tr>
+                  <td class="label">Insurance</td>
+                  <td class="value">${escapeHtml(client.insurance_number || '-')}</td>
+                  <td class="label">Entity</td>
+                  <td class="value">${escapeHtml(client.entity || '-')}</td>
+                </tr>
+              ` : ''}
+            </table>
+          </div>
+      `;
+
+      exportEntries.forEach((entry) => {
+        const testsByCategory: Record<string, Array<[string, any]>> = {};
+        getExportTestCodes(entry.tests).forEach((testCode) => {
+          const result = (entry.tests as Record<string, any> || {})[testCode];
+          const test = labTests.find((t) => t.test_code === testCode);
+          const category = test?.category || "General";
+          if (!testsByCategory[category]) testsByCategory[category] = [];
+          testsByCategory[category].push([testCode, result]);
+        });
+
+        const sortedCategories = Object.keys(testsByCategory).sort();
+
+        patientHtml += `
+          <div class="entry">
+            <div class="entry-date">Date: ${format(new Date(entry.recorded_at || new Date()), "dd/MM/yyyy")}</div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 35%">Test Name</th>
+                  <th style="width: 15%; text-align: center;">Result</th>
+                  <th style="width: 10%; text-align: center;">Unit</th>
+                  <th style="width: 20%; text-align: center;">Status</th>
+                  <th style="width: 20%; text-align: center;">REF. Range</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+
+        sortedCategories.forEach((category, categoryIndex) => {
+          patientHtml += `
+            <tr>
+              <td colspan="5" style="background: #f7fafc; padding: 3px 12px; font-weight: 700; color: #2d3748; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-top: 1px solid #e2e8f0;">
+                ${escapeHtml(category)}
+              </td>
+            </tr>
+          `;
+
+          testsByCategory[category].forEach(([testCode, result]) => {
+            const test = labTests.find((t) => t.test_code === testCode);
+            const refRanges = test?.reference_ranges || {};
+            const hasValidRange =
+              (refRanges.default && typeof refRanges.default.min === 'number' && typeof refRanges.default.max === 'number') ||
+              (refRanges.male && typeof refRanges.male.min === 'number' && typeof refRanges.male.max === 'number') ||
+              (refRanges.female && typeof refRanges.female.min === 'number' && typeof refRanges.female.max === 'number') ||
+              (refRanges.age_ranges && refRanges.age_ranges.length > 0 &&
+                refRanges.age_ranges.some((r: any) => typeof r.min === 'number' && typeof r.max === 'number'));
+
+            let displayRange = "-";
+            if (hasValidRange) {
+              const range = refRanges.default || refRanges.male || refRanges.female || refRanges.age_ranges?.[0];
+              if (range && typeof range.min === 'number' && typeof range.max === 'number') {
+                displayRange = `${range.min} - ${range.max}`;
+              }
+            }
+
+            let flagClass = "";
+            let flagLabel = "";
+            if (hasValidRange && result?.flag) {
+              if (["high", "low", "critical_high", "critical_low"].includes(result.flag)) flagClass = "flag-high";
+              flagLabel = result.flag === "normal" ? "Normal" :
+                result.flag === "high" || result.flag === "critical_high" ? "High" :
+                result.flag === "low" || result.flag === "critical_low" ? "Low" : "";
+            }
+
+            patientHtml += `
+              <tr>
+                <td class="test-name" style="padding-left: 24px;">${escapeHtml(test?.test_name_en || test?.test_name_ar || testCode)}</td>
+                <td class="result-value" style="text-align: center;">${escapeHtml(String(result?.value ?? ""))}</td>
+                <td style="text-align: center; color: #718096;">${escapeHtml(result?.unit || test?.unit || "-")}</td>
+                <td style="text-align: center;">${flagLabel ? `<span class="flag-badge ${flagClass}">${escapeHtml(flagLabel)}</span>` : ""}</td>
+                <td style="text-align: center; font-size: 12px; color: #4a5568;">${escapeHtml(displayRange)}</td>
+              </tr>
+            `;
+          });
+
+          if (categoryIndex < sortedCategories.length - 1) {
+            patientHtml += `<tr><td colspan="5" style="height: 12px; padding: 0;"></td></tr>`;
+          }
+        });
+
+        patientHtml += `</tbody></table>`;
+        if (entry.notes) {
+          patientHtml += `<div class="notes-box"><strong>Comments:</strong> ${escapeHtml(entry.notes)}</div>`;
+        }
+        patientHtml += `</div>`;
+      });
+
+      patientHtml += `</div>`;
+      return patientHtml;
+    });
+
+    const labDisplayName = labSlug ? `Laboratory ${labSlug}` : 'Medical Laboratory';
+
+    const htmlContent = `<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Medical Reports - ${escapeHtml(labDisplayName)}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    @font-face { font-family: 'Cairo'; src: url('/assets/Cairo.ttf') format('truetype'); font-weight: 400; }
+    @media print {
+      @page { size: A4; margin: 1.5cm; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .patient-section { page-break-after: always; }
+      .patient-section:last-child { page-break-after: auto; }
+    }
+    body { font-family: 'Inter', 'Cairo', sans-serif; line-height: 1.5; color: #1a202c; margin: 0; padding: 0; }
+    .report-container { max-width: 800px; margin: 0 auto; padding: 20px; }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2d3748; padding-bottom: 15px; margin-bottom: 20px; }
+    .lab-brand { display: flex; align-items: center; gap: 12px; }
+    .lab-info h1 { margin: 0; font-size: 20px; color: #1a202c; text-transform: uppercase; letter-spacing: 0.5px; }
+    .lab-info p { margin: 0; font-size: 12px; color: #718096; }
+    .patient-section { margin-bottom: 30px; }
+    .patient-info-section { margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
+    .patient-info-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .patient-info-table td { padding: 6px 12px; border: 1px solid #e2e8f0; font-size: 12px; }
+    .patient-info-table .label { background: #f8fafc; color: #718096; font-weight: 600; width: 110px; }
+    .patient-info-table .value { color: #1a202c; font-weight: 500; }
+    .entry { margin-bottom: 25px; }
+    .entry-date { font-size: 13px; font-weight: 700; color: #2d3748; background: #edf2f7; padding: 5px 12px; border-radius: 4px; display: inline-block; margin-bottom: 10px; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 10px; }
+    th { background: #2d3748; color: white; text-align: left; padding: 8px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    th:first-child { border-top-left-radius: 6px; } th:last-child { border-top-right-radius: 6px; }
+    td { padding: 4px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; line-height: 1.3; }
+    .test-name { font-weight: 600; color: #2d3748; }
+    .result-value { font-family: monospace; font-weight: 700; font-size: 15px; }
+    .flag-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .flag-normal { color: #2f855a; }
+    .flag-high { background: #feebc8; color: #c05621; }
+    .notes-box { background: #fffaf0; border-left: 4px solid #ed8936; padding: 15px; margin-top: 10px; font-size: 13px; color: #744210; }
+  </style>
+</head>
+<body>
+  <div class="report-container">
+    <div class="header">
+      <div class="lab-brand">
+        <img src="/logo.png" alt="Logo" style="width: 80px; height: 80px; object-fit: contain;" onerror="this.style.display='none'" />
+        <div class="lab-info">
+          <h1>${escapeHtml(labDisplayName)}</h1>
+          <p>Professional Diagnostic Services</p>
+        </div>
+      </div>
+    </div>
+    ${clientSections.join("")}
+  </div>
+</body>
+</html>`;
+
+    const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const printWindow = window.open(url, "_blank");
+    if (printWindow) {
+      printWindow.addEventListener("load", () => {
+        setTimeout(() => {
+          printWindow.print();
+          URL.revokeObjectURL(url);
+        }, 500);
+      });
+    }
   };
 
   const handleSave = async (data: { 
@@ -1523,22 +1739,36 @@ export default function LabDashboard() {
       {/* Print Modal */}
       <Dialog open={showPrintModal} onOpenChange={setShowPrintModal}>
         <DialogContent className="w-[95vw] max-w-4xl h-[90vh] sm:h-[85vh] p-0 rounded-xl overflow-hidden flex flex-col" dir="rtl" showCloseButton={false}>
-          <DialogHeader className="flex-shrink-0 p-4 sm:p-6 border-b bg-background relative">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
-              <div className="flex flex-col gap-1 items-start">
-                <DialogTitle className="text-lg sm:text-xl font-bold">معاينة الطباعة</DialogTitle>
-                <DialogDescription className="text-xs sm:text-sm text-right font-bold">
-                  عدد الحالات: {filteredClients.length} | {getPrintDateLabel()}
+          <DialogHeader className="flex-shrink-0 px-4 py-3 sm:px-6 sm:py-4 border-b bg-background">
+            <div className="flex items-center justify-between gap-3 w-full">
+              {/* Title */}
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <DialogTitle className="text-base sm:text-lg font-bold leading-tight">معاينة الطباعة</DialogTitle>
+                <DialogDescription className="text-[11px] sm:text-xs font-medium truncate">
+                  {filteredClients.length} حالة | {getPrintDateLabel()}
                 </DialogDescription>
               </div>
-              <div className="flex items-center gap-2 self-end sm:self-auto">
+
+              {/* Actions */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Button
+                  onClick={handleBulkExportPDF}
+                  size="sm"
+                  variant="outline"
+                  disabled={filteredClients.length === 0}
+                  className="gap-1.5 h-8 px-2.5 text-xs font-semibold"
+                >
+                  <FileDown className="h-3.5 w-3.5" />
+                  <span className="hidden xs:inline sm:inline">تصدير التحاليل</span>
+                </Button>
                 <Button
                   onClick={printDetailedResults}
-                  className="gap-2 px-3 sm:px-4 font-bold h-9"
-                  variant="secondary"
+                  size="sm"
+                  variant="outline"
                   disabled={filteredClients.length === 0}
+                  className="gap-1.5 h-8 px-2.5 text-xs font-semibold"
                 >
-                  <Printer className="h-4 w-4" />
+                  <Printer className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">طباعة بالنتائج</span>
                 </Button>
                 <Button
@@ -1601,19 +1831,20 @@ export default function LabDashboard() {
                       }
                     }
                   }}
-                  className="gap-2 px-3 sm:px-4 font-bold h-9"
+                  size="sm"
                   variant="outline"
+                  className="gap-1.5 h-8 px-2.5 text-xs font-semibold"
                 >
-                  <FileDown className="h-4 w-4" />
+                  <FileDown className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">PDF</span>
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9 rounded-full sm:absolute sm:top-4 sm:left-4"
+                  className="h-8 w-8 rounded-full"
                   onClick={() => setShowPrintModal(false)}
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -1694,6 +1925,7 @@ export default function LabDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
     </>
   );
 }
