@@ -79,8 +79,8 @@ export function TestsManagement() {
       test_name_en: test.test_name_en,
       category: test.category,
       unit: test.unit || "",
-      reference_min: defaultRange?.min.toString() || "",
-      reference_max: defaultRange?.max.toString() || "",
+      reference_min: defaultRange?.min?.toString() ?? "",
+      reference_max: defaultRange?.max?.toString() ?? "",
     });
     setIsDialogOpen(true);
   };
