@@ -583,8 +583,8 @@ export default function LabDashboard() {
     printWindow.focus();
     setTimeout(() => {
       printWindow.print();
-      printWindow.close();
-    }, 250);
+      // don't close — mobile needs the window open for the print dialog to appear
+    }, 1000);
   };
 
   const handleBulkExportPDF = () => {
@@ -793,12 +793,19 @@ export default function LabDashboard() {
     const url = URL.createObjectURL(blob);
     const printWindow = window.open(url, "_blank");
     if (printWindow) {
-      printWindow.addEventListener("load", () => {
+      let printed = false;
+      const doPrint = () => {
+        if (printed) return;
+        printed = true;
         setTimeout(() => {
           printWindow.print();
           URL.revokeObjectURL(url);
+          // don't close — mobile needs window open for print dialog
         }, 500);
-      });
+      };
+      // load event is unreliable on mobile — use it + a fallback timeout
+      printWindow.addEventListener("load", doPrint);
+      setTimeout(doPrint, 2500);
     }
   };
 
