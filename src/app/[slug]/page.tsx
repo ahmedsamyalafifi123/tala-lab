@@ -19,12 +19,14 @@ import {
   Printer,
   FileDown,
   User,
-  FlaskConical
+  FlaskConical,
+  ChevronDown
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase";
 import { Client, Category } from "@/types";
 import { useLabContext } from "@/contexts/LabContext";
+import { useLabTests } from "@/hooks/use-lab-tests";
 import { fuzzyMatchArabic } from "@/lib/arabic-utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ClientModal } from "@/components/client-modal";
@@ -86,6 +88,7 @@ import { cn } from "@/lib/utils";
 
 export default function LabDashboard() {
   const { labId, labSlug, userRole } = useLabContext();
+  const { tests: labTests, loading: labTestsLoading } = useLabTests();
   const [clients, setClients] = useState<Client[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -128,10 +131,82 @@ export default function LabDashboard() {
   const [nameFilter, setNameFilter] = useState("");
   const [debouncedNameFilter, setDebouncedNameFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [testFilters, setTestFilters] = useState<string[]>([]);
+  const [testSearchFilter, setTestSearchFilter] = useState("");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date());
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
+  const [filtersHydrated, setFiltersHydrated] = useState(false);
+
+  const toggleArrayValue = (values: string[], value: string) =>
+    values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+
+  const getMultiFilterText = (count: number, emptyText: string, singularText: string, pluralText: string) => {
+    if (count === 0) return emptyText;
+    if (count === 1) return singularText;
+    return `${count} ${pluralText}`;
+  };
 
   const supabase = createClient();
+
+  const filtersStorageKey = useMemo(() => {
+    if (labSlug) return `lab-dashboard-filters:${labSlug}`;
+    if (typeof window !== "undefined") return `lab-dashboard-filters:${window.location.pathname}`;
+    return "lab-dashboard-filters";
+  }, [labSlug]);
+
+  const filteredLabTests = useMemo(() => {
+    const query = testSearchFilter.trim().toLowerCase();
+    if (!query) return labTests;
+
+    return labTests.filter((test) =>
+      test.test_name_ar.toLowerCase().includes(query) ||
+      test.test_name_en.toLowerCase().includes(query) ||
+      test.test_code.toLowerCase().includes(query) ||
+      test.category.toLowerCase().includes(query)
+    );
+  }, [labTests, testSearchFilter]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    try {
+      const saved = localStorage.getItem(filtersStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved) as {
+          nameFilter?: string;
+          categoryFilter?: string;
+          testFilters?: string[];
+          dateFrom?: string | null;
+          dateTo?: string | null;
+        };
+
+        setNameFilter(parsed.nameFilter || "");
+        setDebouncedNameFilter(parsed.nameFilter || "");
+        setCategoryFilter(parsed.categoryFilter || "all");
+        setTestFilters(Array.isArray(parsed.testFilters) ? parsed.testFilters : []);
+        setDateFrom(parsed.dateFrom ? new Date(parsed.dateFrom) : undefined);
+        setDateTo(parsed.dateTo ? new Date(parsed.dateTo) : undefined);
+      }
+    } catch (error) {
+      console.error("Error loading saved filters:", error);
+    } finally {
+      setFiltersHydrated(true);
+    }
+  }, [filtersStorageKey]);
+
+  useEffect(() => {
+    if (!filtersHydrated || typeof window === "undefined") return;
+
+    const payload = {
+      nameFilter,
+      categoryFilter,
+      testFilters,
+      dateFrom: dateFrom ? format(dateFrom, "yyyy-MM-dd") : null,
+      dateTo: dateTo ? format(dateTo, "yyyy-MM-dd") : null,
+    };
+
+    localStorage.setItem(filtersStorageKey, JSON.stringify(payload));
+  }, [filtersHydrated, filtersStorageKey, nameFilter, categoryFilter, testFilters, dateFrom, dateTo]);
 
   // Debounce the name filter for filtering - 300ms delay
   useEffect(() => {
@@ -156,21 +231,21 @@ export default function LabDashboard() {
     };
     getUser();
 
-    if (labId) {
+    if (labId && filtersHydrated) {
       fetchCategories();
       fetchClients();
     }
-  }, [labId]); // Refetch if labId changes
+  }, [labId, filtersHydrated]); // Refetch if labId changes
 
   // Fetch clients when date filters change
   useEffect(() => {
-    if (labId) fetchClients();
-  }, [dateFrom, dateTo, labId]);
+    if (labId && filtersHydrated) fetchClients();
+  }, [dateFrom, dateTo, labId, filtersHydrated]);
 
   // Refetch when debounced name filter changes (for global search)
   useEffect(() => {
-    if (labId) fetchClients();
-  }, [debouncedNameFilter]);
+    if (labId && filtersHydrated) fetchClients();
+  }, [debouncedNameFilter, labId, filtersHydrated]);
 
   const fetchClients = async () => {
     if (!labId) return;
@@ -282,6 +357,11 @@ export default function LabDashboard() {
              const cats = client.categories || [];
              if (!cats.includes(categoryFilter)) return false;
         }
+        // Required tests filter by selected individual tests
+        if (testFilters.length > 0) {
+          const selectedTests = client.selected_tests || [];
+          if (!testFilters.some((testCode) => selectedTests.includes(testCode))) return false;
+        }
         // Date filtering is done at database level for performance
         // But for display purposes, we might filter loaded list if needed (redundant if DB filter active)
         return true;
@@ -304,7 +384,7 @@ export default function LabDashboard() {
     }, 10);
 
     return () => clearTimeout(timer);
-  }, [clients, debouncedNameFilter, categoryFilter]);
+  }, [clients, debouncedNameFilter, categoryFilter, testFilters]);
 
   const todayClients = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -318,11 +398,13 @@ export default function LabDashboard() {
   const clearFilters = () => {
     setNameFilter("");
     setCategoryFilter("all");
+    setTestFilters([]);
+    setTestSearchFilter("");
     setDateFrom(undefined);
     setDateTo(undefined);
   };
 
-  const hasFilters = nameFilter || categoryFilter !== "all" || dateFrom || dateTo;
+  const hasFilters = nameFilter || categoryFilter !== "all" || testFilters.length > 0 || dateFrom || dateTo;
 
   const handleSave = async (data: { 
     patient_name: string; 
@@ -683,28 +765,26 @@ export default function LabDashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-4 space-y-4">
-        {/* Filters - Restore Grid Layout */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-col gap-4">
-              {/* Row 1: Name + Category */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">الاسم</Label>
+        {/* Filters */}
+        <Card className="border-border/70 shadow-sm">
+          <CardContent className="p-3 sm:p-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.35fr)_minmax(160px,0.9fr)_minmax(240px,1.1fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)] xl:items-end">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">الاسم</Label>
                   <div className="relative">
                     <Search className="absolute start-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="ابحث..."
                       value={nameFilter}
                       onChange={(e) => setNameFilter(e.target.value)}
-                      className="ps-8 h-9"
+                      className="h-10 ps-8"
                     />
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">التصنيف</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">التصنيف</Label>
                   <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                    <SelectTrigger className="h-9 w-full text-right">
+                    <SelectTrigger className="h-10 w-full text-right">
                       <SelectValue placeholder="الكل" />
                     </SelectTrigger>
                     <SelectContent>
@@ -715,18 +795,89 @@ export default function LabDashboard() {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              {/* Row 2: Date From + Date To */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">من تاريخ</Label>
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+                    <FlaskConical className="h-3.5 w-3.5" />
+                    التحاليل المطلوبة
+                  </Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="h-10 w-full justify-between gap-2 px-3 font-normal"
+                        disabled={labTestsLoading || labTests.length === 0}
+                      >
+                        <span className={cn("truncate", testFilters.length === 0 && "text-muted-foreground")}>
+                          {labTestsLoading
+                            ? "جاري التحميل..."
+                            : labTests.length === 0
+                              ? "لا توجد تحاليل"
+                              : getMultiFilterText(testFilters.length, "كل التحاليل", "تحليل واحد", "تحاليل")}
+                        </span>
+                        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-80 p-2">
+                      <div className="relative mb-2">
+                        <Search className="absolute start-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          value={testSearchFilter}
+                          onChange={(e) => setTestSearchFilter(e.target.value)}
+                          placeholder="بحث في التحاليل..."
+                          className="h-9 ps-8"
+                        />
+                      </div>
+                      <div className="max-h-80 space-y-1 overflow-y-auto">
+                        {filteredLabTests.length > 0 ? filteredLabTests.map((test) => (
+                          <label
+                            key={test.uuid}
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-muted"
+                          >
+                            <Checkbox
+                              checked={testFilters.includes(test.test_code)}
+                              onCheckedChange={() => setTestFilters((prev) => toggleArrayValue(prev, test.test_code))}
+                            />
+                            <span className="min-w-0 flex-1 truncate">{test.test_name_ar}</span>
+                            <span className="shrink-0 text-[10px] text-muted-foreground">{test.category}</span>
+                          </label>
+                        )) : (
+                          <div className="py-6 text-center text-sm text-muted-foreground">
+                            لا توجد تحاليل مطابقة
+                          </div>
+                        )}
+                      </div>
+                      {(testFilters.length > 0 || testSearchFilter) && (
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => setTestSearchFilter("")}
+                          >
+                            مسح البحث
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => setTestFilters([])}
+                            disabled={testFilters.length === 0}
+                          >
+                            مسح التحاليل
+                          </Button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">من تاريخ</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full h-9 justify-start font-normal text-sm",
+                          "h-10 w-full justify-start font-normal text-sm",
                           !dateFrom && "text-muted-foreground"
                         )}
                       >
@@ -745,14 +896,14 @@ export default function LabDashboard() {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">إلى تاريخ</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">إلى تاريخ</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full h-9 justify-start font-normal text-sm",
+                          "h-10 w-full justify-start font-normal text-sm",
                           !dateTo && "text-muted-foreground"
                         )}
                       >
@@ -771,7 +922,6 @@ export default function LabDashboard() {
                     </PopoverContent>
                   </Popover>
                 </div>
-              </div>
             </div>
           </CardContent>
         </Card>
