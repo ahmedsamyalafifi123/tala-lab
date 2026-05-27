@@ -407,6 +407,167 @@ export default function LabDashboard() {
   const hasFilters = nameFilter || categoryFilter !== "all" || testFilters.length > 0 || dateFrom || dateTo;
   const useSequentialTestNumbers = testFilters.length > 0;
 
+  const getPrintDateLabel = () => {
+    if (!dateFrom) return "جميع الحالات";
+    if (dateTo && format(dateFrom, "yyyy-MM-dd") === format(dateTo, "yyyy-MM-dd")) {
+      return format(dateFrom, "EEEE d/M/yyyy", { locale: ar });
+    }
+    return `${format(dateFrom, "EEEE d/M/yyyy", { locale: ar })} ${dateTo ? `- ${format(dateTo, "EEEE d/M/yyyy", { locale: ar })}` : ""}`;
+  };
+
+  const escapeHtml = (value: unknown) =>
+    String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
+  const getTestLabel = (testCode: string) => {
+    const test = labTests.find((item) => item.test_code === testCode);
+    return test?.test_name_en || testCode;
+  };
+
+  const getDetailedPrintHtml = () => {
+    type PrintableResult = {
+      recorded_at?: string;
+      tests?: Record<string, { value?: string | number; unit?: string }>;
+    };
+
+    const sortedData = printReversed ? [...filteredClients].reverse() : filteredClients;
+    const rows = sortedData.map((client, index) => {
+      const entries = Array.isArray(client.results?.entries)
+        ? (client.results.entries as PrintableResult[])
+        : [];
+      const latestEntry = [...entries].sort(
+        (a, b) => new Date(b.recorded_at || 0).getTime() - new Date(a.recorded_at || 0).getTime()
+      )[0];
+      const selectedCodes = Array.isArray(client.selected_tests) ? client.selected_tests : [];
+      const resultCodes = latestEntry?.tests ? Object.keys(latestEntry.tests) : [];
+      const availableTestCodes = Array.from(new Set([...selectedCodes, ...resultCodes]));
+      const testCodes = testFilters.length > 0
+        ? availableTestCodes.filter((code) => testFilters.includes(code))
+        : availableTestCodes;
+      const testsHtml = testCodes.length > 0
+        ? testCodes.map((code) => {
+            return `<div class="test-name">${escapeHtml(getTestLabel(code))}</div>`;
+          }).join("")
+        : `<span class="empty-tests">No tests selected</span>`;
+      const resultsHtml = testCodes.length > 0
+        ? testCodes.map(() => `<div class="test-result">&nbsp;</div>`).join("")
+        : `<span class="empty-tests">&nbsp;</span>`;
+
+      return `
+        <tr>
+          <td class="serial">${useSequentialTestNumbers ? index + 1 : client.daily_id}</td>
+          <td class="patient">${escapeHtml(client.patient_name)}</td>
+          <td class="tests">${testsHtml}</td>
+          <td class="results">${resultsHtml}</td>
+        </tr>
+      `;
+    });
+    const midpoint = Math.ceil(rows.length / 2);
+    const columns = [rows.slice(0, midpoint), rows.slice(midpoint)];
+    const renderRows = (columnRows: string[]) =>
+      columnRows.join("") || `<tr><td colspan="4" style="text-align:center; padding: 20px;">لا توجد بيانات</td></tr>`;
+
+    return `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="UTF-8">
+        <title>طباعة التحاليل والنتائج</title>
+        <style>
+          @font-face {
+            font-family: 'Cairo';
+            src: url('/assets/Cairo.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+          }
+          @page { size: auto; margin: 5mm; }
+          * { box-sizing: border-box; font-family: 'Cairo', sans-serif !important; }
+          body { direction: rtl; background: #fff; color: #111827; padding: 5mm; font-size: 11px; line-height: 1.4; }
+          .print-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid #2563eb; }
+          .brand { display: flex; align-items: center; gap: 10px; }
+          .brand img { width: 52px; height: 52px; object-fit: contain; border-radius: 8px; }
+          .brand h1 { font-size: 18px; color: #1e3a8a; margin: 0 0 2px; }
+          .brand p, .meta p { margin: 0; color: #475569; font-size: 11px; font-weight: 600; }
+          .meta { border: 1px solid #dbe3ef; background: #f8fafc; border-radius: 8px; padding: 8px 12px; min-width: 180px; }
+          .meta strong { color: #2563eb; font-size: 13px; }
+          .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; align-items: start; }
+          table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+          th, td { border: 1px solid #cbd5e1; padding: 4px 5px; vertical-align: top; }
+          th { background: #f1f5f9; color: #0f172a; font-size: 11px; font-weight: 700; text-align: center; }
+          tr { break-inside: avoid; page-break-inside: avoid; }
+          tbody tr:nth-child(even) td { background: #f8fafc; }
+          .serial { width: 28px; text-align: center; font-weight: 700; }
+          .patient { width: 180px; text-align: center; font-weight: 700; }
+          .tests { width: auto; text-align: center; }
+          .results { width: 62px; direction: ltr; text-align: center; }
+          .test-name, .test-result { min-height: 20px; padding: 2px 3px; border-bottom: 1px dashed #e2e8f0; display: flex; align-items: center; justify-content: center; overflow-wrap: anywhere; }
+          .test-name:last-child, .test-result:last-child { border-bottom: 0; }
+          .test-name { font-weight: 700; color: #0f172a; font-size: 10px; line-height: 1.25; }
+          .test-result { font-weight: 700; color: #0f172a; white-space: nowrap; }
+          .empty-tests { color: #94a3b8; }
+          .print-footer { margin-top: 14px; padding-top: 8px; border-top: 1px solid #e2e8f0; text-align: center; color: #64748b; font-size: 10px; }
+          @media print {
+            body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            .details-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 6mm !important; }
+            th { background: #f1f5f9 !important; }
+            tbody tr:nth-child(even) td { background: #f8fafc !important; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="print-header">
+          <div class="brand">
+            <img src="/logo.png" alt="Logo" onerror="this.style.display='none'" />
+            <div>
+              <h1>معمل ${escapeHtml(labSlug || "")}</h1>
+              <p>كشف التحاليل والنتائج</p>
+            </div>
+          </div>
+          <div class="meta">
+            <p>${escapeHtml(getPrintDateLabel())}</p>
+            <p>إجمالي الحالات: <strong>${filteredClients.length}</strong></p>
+          </div>
+        </div>
+
+        <div class="details-grid">
+          ${columns.map((columnRows) => `
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 28px;">م</th>
+                  <th style="width: 180px;">الاسم</th>
+                  <th>Tests</th>
+                  <th style="width: 62px;">Results</th>
+                </tr>
+              </thead>
+              <tbody>${renderRows(columnRows)}</tbody>
+            </table>
+          `).join("")}
+        </div>
+
+        <div class="print-footer">تم الطباعة في ${escapeHtml(format(new Date(), "EEEE d/M/yyyy - h:mm a", { locale: ar }))}</div>
+      </body>
+      </html>
+    `;
+  };
+
+  const printDetailedResults = () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    printWindow.document.write(getDetailedPrintHtml());
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
+
   const handleSave = async (data: { 
     patient_name: string; 
     notes: string; 
@@ -1299,16 +1460,19 @@ export default function LabDashboard() {
               <div className="flex flex-col gap-1 items-start">
                 <DialogTitle className="text-lg sm:text-xl font-bold">معاينة الطباعة</DialogTitle>
                 <DialogDescription className="text-xs sm:text-sm text-right font-bold">
-                  عدد الحالات: {filteredClients.length} | {(() => {
-                    if (!dateFrom) return '';
-                    if (dateTo && format(dateFrom, "yyyy-MM-dd") === format(dateTo, "yyyy-MM-dd")) {
-                      return format(dateFrom, "EEEE d/M/yyyy", { locale: ar });
-                    }
-                    return `${format(dateFrom, "EEEE d/M/yyyy", { locale: ar })} ${dateTo ? `- ${format(dateTo, "EEEE d/M/yyyy", { locale: ar })}` : ''}`;
-                  })()}
+                  عدد الحالات: {filteredClients.length} | {getPrintDateLabel()}
                 </DialogDescription>
               </div>
               <div className="flex items-center gap-2 self-end sm:self-auto">
+                <Button
+                  onClick={printDetailedResults}
+                  className="gap-2 px-3 sm:px-4 font-bold h-9"
+                  variant="secondary"
+                  disabled={filteredClients.length === 0}
+                >
+                  <Printer className="h-4 w-4" />
+                  <span className="hidden sm:inline">طباعة بالنتائج</span>
+                </Button>
                 <Button
                   onClick={() => {
                     const printContent = document.getElementById('print-content');
@@ -1475,13 +1639,7 @@ export default function LabDashboard() {
                 </div>
                 <div className="print-header-left" style={{ backgroundColor: '#f8fafc', padding: '12px 20px', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'right' }}>
                   <p style={{ fontSize: '14px', color: '#334155', marginBottom: '5px', fontWeight: '600' }}>
-                    {(() => {
-                      if (!dateFrom) return 'جميع الحالات';
-                      if (dateTo && format(dateFrom, "yyyy-MM-dd") === format(dateTo, "yyyy-MM-dd")) {
-                        return format(dateFrom, "EEEE d/M/yyyy", { locale: ar });
-                      }
-                      return `${format(dateFrom, "EEEE d/M/yyyy", { locale: ar })} ${dateTo ? `- ${format(dateTo, "EEEE d/M/yyyy", { locale: ar })}` : ''}`;
-                    })()}
+                    {getPrintDateLabel()}
                   </p>
                   <p style={{ fontSize: '13px', color: '#64748b', marginTop: '4px', fontWeight: '600' }}>
                     إجمالي الحالات: <span style={{ color: '#2563eb', fontWeight: '700', fontSize: '16px' }}>{filteredClients.length}</span> حالة
