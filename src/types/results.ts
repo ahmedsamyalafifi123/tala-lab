@@ -41,6 +41,20 @@ export interface LabTest {
 }
 
 /**
+ * Lab Test Category (Global - shared across all labs)
+ */
+export interface LabTestCategory {
+  uuid: string;
+  value: string;       // English key stored in lab_tests.category
+  label_ar: string;    // Arabic display name
+  label_en: string;    // English display name
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
  * Test Group/Panel Definition (Global - shared across all labs)
  */
 export interface TestGroup {

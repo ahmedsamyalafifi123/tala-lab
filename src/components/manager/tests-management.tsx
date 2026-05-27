@@ -31,29 +31,13 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLabTestCategories } from "@/hooks/use-lab-test-categories";
 import type { LabTest } from "@/types/results";
-
-const TEST_CATEGORIES = [
-  { value: "Hematology", label: "أمراض الدم" },
-  { value: "Diabetes", label: "السكري" },
-  { value: "Lipid Profile", label: "الدهون" },
-  { value: "Liver Function", label: "وظائف الكبد" },
-  { value: "Kidney Function", label: "وظائف الكلى" },
-  { value: "Thyroid Function", label: "الغدة الدرقية" },
-  { value: "Electrolytes", label: "الأملاح والمعادن" },
-  { value: "Immunology", label: "المناعة" },
-  { value: "Hormones", label: "الهرمونات" },
-  { value: "Vitamins", label: "الفيتامينات" },
-  { value: "Tumor Markers", label: "دلالات الأورام" },
-  { value: "Serology", label: "الأمصال" },
-  { value: "Urine Analysis", label: "تحليل البول" },
-  { value: "Stool Analysis", label: "تحليل البراز" },
-  { value: "Other", label: "أخرى" },
-];
 
 export function TestsManagement() {
   const { tests, loading, createTest, updateTest, deleteTest } = useLabTests();
   const { toast } = useToast();
+  const { categories } = useLabTestCategories();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTest, setEditingTest] = useState<LabTest | null>(null);
   const [saving, setSaving] = useState(false);
@@ -233,7 +217,7 @@ export function TestsManagement() {
                   <TableCell className="text-muted-foreground text-right">{test.test_name_en}</TableCell>
                   <TableCell className="text-right">
                     <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
-                      {TEST_CATEGORIES.find(c => c.value === test.category)?.label || test.category}
+                      {categories.find(c => c.value === test.category)?.label_ar || test.category}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">{test.unit || "-"}</TableCell>
@@ -309,9 +293,9 @@ export function TestsManagement() {
                     <SelectValue placeholder="اختر الفئة" />
                   </SelectTrigger>
                   <SelectContent>
-                    {TEST_CATEGORIES.map((cat) => (
+                    {categories.map((cat) => (
                       <SelectItem key={cat.value} value={cat.value}>
-                        {cat.label}
+                        {cat.label_ar}
                       </SelectItem>
                     ))}
                   </SelectContent>

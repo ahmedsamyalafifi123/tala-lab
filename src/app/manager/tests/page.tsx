@@ -5,7 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TestsManagement } from "@/components/manager/tests-management";
 import { TestGroupsManagement } from "@/components/manager/test-groups-management";
-import { FlaskConical, Layers } from "lucide-react";
+import { CategoriesManagement } from "@/components/manager/categories-management";
+import { FlaskConical, Layers, Tag } from "lucide-react";
 
 export default function TestsManagementPage() {
   const [activeTab, setActiveTab] = useState("tests");
@@ -22,7 +23,7 @@ export default function TestsManagementPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6" dir="rtl">
-        <TabsList className="grid w-full max-w-md grid-cols-2" dir="rtl">
+        <TabsList className="grid w-full max-w-2xl grid-cols-3" dir="rtl">
           <TabsTrigger value="tests" className="gap-2 justify-start">
             <FlaskConical className="h-4 w-4" />
             التحاليل الفردية
@@ -30,6 +31,10 @@ export default function TestsManagementPage() {
           <TabsTrigger value="groups" className="gap-2 justify-start">
             <Layers className="h-4 w-4" />
             مجموعات التحاليل
+          </TabsTrigger>
+          <TabsTrigger value="categories" className="gap-2 justify-start">
+            <Tag className="h-4 w-4" />
+            الفئات
           </TabsTrigger>
         </TabsList>
 
@@ -59,6 +64,20 @@ export default function TestsManagementPage() {
             </CardHeader>
             <CardContent>
               <TestGroupsManagement />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        {/* Categories Tab */}
+        <TabsContent value="categories" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>فئات التحاليل</CardTitle>
+              <CardDescription>
+                إضافة وتعديل وحذف فئات التحاليل المتاحة لجميع المعامل
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CategoriesManagement />
             </CardContent>
           </Card>
         </TabsContent>
