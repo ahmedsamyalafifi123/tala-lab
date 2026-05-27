@@ -107,7 +107,7 @@ export default async function LabLayout({
   }
 
   return (
-    <LabProvider initialLabId={lab.uuid} initialLabSlug={lab.slug} initialUserRole={userRole || undefined}>
+    <LabProvider initialLabId={lab.uuid} initialLabSlug={lab.slug} initialLabName={lab.name} initialUserRole={userRole || undefined}>
       <div data-lab-id={lab.uuid} data-lab-slug={lab.slug} className="min-h-screen bg-background">
         {children}
       </div>

@@ -87,7 +87,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function LabDashboard() {
-  const { labId, labSlug, userRole } = useLabContext();
+  const { labId, labSlug, labName, userRole } = useLabContext();
   const { tests: labTests, loading: labTestsLoading } = useLabTests();
   const [clients, setClients] = useState<Client[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -415,6 +415,11 @@ export default function LabDashboard() {
     return `${format(dateFrom, "EEEE d/M/yyyy", { locale: ar })} ${dateTo ? `- ${format(dateTo, "EEEE d/M/yyyy", { locale: ar })}` : ""}`;
   };
 
+  const getDisplayLabName = () => {
+    const name = labName || (labSlug === "shohada" ? "الشهداء" : labSlug) || "المعمل";
+    return name.startsWith("معمل") ? name : `معمل ${name}`;
+  };
+
   const escapeHtml = (value: unknown) =>
     String(value ?? "")
       .replace(/&/g, "&amp;")
@@ -523,7 +528,7 @@ export default function LabDashboard() {
           <div class="brand">
             <img src="/logo.png" alt="Logo" onerror="this.style.display='none'" />
             <div>
-              <h1>معمل ${escapeHtml(labSlug || "")}</h1>
+              <h1>${escapeHtml(getDisplayLabName())}</h1>
               <p>كشف التحاليل والنتائج</p>
             </div>
           </div>
@@ -540,8 +545,8 @@ export default function LabDashboard() {
                 <tr>
                   <th style="width: 28px;">م</th>
                   <th style="width: 180px;">الاسم</th>
-                  <th>Tests</th>
-                  <th style="width: 62px;">Results</th>
+                  <th>التحاليل</th>
+                  <th style="width: 62px;">النتائج</th>
                 </tr>
               </thead>
               <tbody>${renderRows(columnRows)}</tbody>
@@ -886,7 +891,7 @@ export default function LabDashboard() {
                 onError={(e) => e.currentTarget.style.display = 'none'}
               />
               <div>
-                <h1 className="text-lg font-bold">معمل {labSlug}</h1>
+                <h1 className="text-lg font-bold">{getDisplayLabName()}</h1>
                 <p className="text-xs text-muted-foreground">
                   {todayClients} حالة اليوم • {clients.length} إجمالي
                 </p>
@@ -1633,7 +1638,7 @@ export default function LabDashboard() {
                 <div className="print-header-right" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                   <img src="/logo.png" alt="Logo" className="print-logo" style={{ width: '70px', height: '70px', borderRadius: '8px', objectFit: 'contain' }} onError={(e) => e.currentTarget.style.display = 'none'} />
                   <div className="print-header-text">
-                    <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#1e3a8a', marginBottom: '5px' }}>معمل {labSlug}</h1>
+                    <h1 style={{ fontSize: '22px', fontWeight: '700', color: '#1e3a8a', marginBottom: '5px' }}>{getDisplayLabName()}</h1>
                     <p style={{ fontSize: '14px', color: '#475569', fontWeight: '600' }}>سجل الحالات اليومية</p>
                   </div>
                 </div>
