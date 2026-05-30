@@ -113,6 +113,7 @@ export default function LabDashboard() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [resultsClient, setResultsClient] = useState<Client | null>(null);
+  const [resultsModalInitialView, setResultsModalInitialView] = useState<"auto" | "add">("auto");
   const [showSettings, setShowSettings] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
@@ -409,6 +410,11 @@ export default function LabDashboard() {
     }, 0);
   }, [filteredClients]);
 
+  const visibleClients = useMemo(() => {
+    const orderedClients = printReversed ? [...filteredClients].reverse() : filteredClients;
+    return orderedClients.slice(0, 100);
+  }, [filteredClients, printReversed]);
+
   const clearFilters = () => {
     setNameFilter("");
     setCategoryFilter("all");
@@ -420,6 +426,42 @@ export default function LabDashboard() {
 
   const hasFilters = nameFilter || categoryFilter !== "all" || testFilters.length > 0 || dateFrom || dateTo;
   const useSequentialTestNumbers = testFilters.length > 0;
+
+  const openResultsForClient = (client: Client) => {
+    setResultsModalInitialView("auto");
+    setResultsClient(client);
+    setShowResultsModal(true);
+  };
+
+  const handleResultsSaved = (savedClientUuid: string) => {
+    const currentIndex = visibleClients.findIndex((client) => client.uuid === savedClientUuid);
+
+    if (currentIndex >= 0 && currentIndex < visibleClients.length - 1) {
+      setResultsModalInitialView("auto");
+      setResultsClient(visibleClients[currentIndex + 1]);
+      return;
+    }
+
+    setResultsModalInitialView("auto");
+    setShowResultsModal(false);
+    setResultsClient(null);
+  };
+
+  const navigateResultsClient = (direction: "previous" | "next") => {
+    if (!resultsClient) return;
+
+    const currentIndex = visibleClients.findIndex((client) => client.uuid === resultsClient.uuid);
+    if (currentIndex === -1) return;
+
+    const targetIndex = direction === "previous" ? currentIndex - 1 : currentIndex + 1;
+    const targetClient = visibleClients[targetIndex];
+
+    if (!targetClient) return;
+
+    setResultsModalInitialView("auto");
+    setResultsClient(targetClient);
+    setShowResultsModal(true);
+  };
 
   const getPrintDateLabel = () => {
     if (!dateFrom) return "جميع الحالات";
@@ -1516,7 +1558,7 @@ export default function LabDashboard() {
                     </TableRow>
                   ) : (
                     <>
-                    {(printReversed ? [...filteredClients].reverse() : filteredClients).slice(0, 100).map((client, index) => (
+                    {visibleClients.map((client, index) => (
                       <TableRow 
                         key={client.uuid} 
                         data-state={selectedIds.includes(client.uuid || "") ? "selected" : undefined}
@@ -1591,10 +1633,7 @@ export default function LabDashboard() {
                                         variant="ghost"
                                         size="icon"
                                         className="h-8 w-8 text-primary"
-                                        onClick={() => {
-                                          setResultsClient(client);
-                                          setShowResultsModal(true);
-                                        }}
+                                        onClick={() => openResultsForClient(client)}
                                         title="إضافة نتائج التحاليل"
                                       >
                                         <FlaskConical className="h-4 w-4" />
@@ -1692,17 +1731,35 @@ export default function LabDashboard() {
 
     {/* Test Results Modal */}
     {resultsClient && (
+      (() => {
+        const currentIndex = visibleClients.findIndex((client) => client.uuid === resultsClient.uuid);
+        const hasPrevious = currentIndex > 0;
+        const hasNext = currentIndex >= 0 && currentIndex < visibleClients.length - 1;
+        const clientPosition = currentIndex >= 0 ? currentIndex + 1 : undefined;
+
+        return (
       <TestResultsModal
         isOpen={showResultsModal}
         onClose={() => {
+          setResultsModalInitialView("auto");
           setShowResultsModal(false);
           setResultsClient(null);
         }}
+        onSaveSuccess={handleResultsSaved}
+        onNavigatePrevious={() => navigateResultsClient("previous")}
+        onNavigateNext={() => navigateResultsClient("next")}
+        hasPrevious={hasPrevious}
+        hasNext={hasNext}
+        clientPosition={clientPosition}
+        totalClients={visibleClients.length}
+        initialViewMode={resultsModalInitialView}
         clientUuid={resultsClient.uuid}
         clientName={resultsClient.patient_name}
         clientGender={resultsClient.patient_gender}
         clientAge={resultsClient.patient_age}
       />
+        );
+      })()
     )}
 
     <ClientDetails

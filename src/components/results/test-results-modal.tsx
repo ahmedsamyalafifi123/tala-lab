@@ -15,16 +15,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Check, AlertCircle, Pencil, Beaker, Calendar, Clock, ArrowRight } from "lucide-react";
+import { Loader2, AlertCircle, Pencil, Beaker, Calendar, Clock, ArrowRight, ChevronRight, ChevronLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { calculateFlag, formatReferenceRange, validateTestValue, getFlagColor, getFlagIcon, getFlagLabel, groupTestsByCategory } from "@/lib/test-utils";
 import type { TestResult, ResultFlag } from "@/types/results";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +27,14 @@ import { cn } from "@/lib/utils";
 interface TestResultsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSaveSuccess?: (clientUuid: string) => void;
+  onNavigatePrevious?: () => void;
+  onNavigateNext?: () => void;
+  hasPrevious?: boolean;
+  hasNext?: boolean;
+  clientPosition?: number;
+  totalClients?: number;
+  initialViewMode?: "auto" | "add";
   clientUuid: string;
   clientName: string;
   clientGender?: "male" | "female" | "ذكر" | "أنثى";
@@ -42,6 +44,14 @@ interface TestResultsModalProps {
 export function TestResultsModal({
   isOpen,
   onClose,
+  onSaveSuccess,
+  onNavigatePrevious,
+  onNavigateNext,
+  hasPrevious = false,
+  hasNext = false,
+  clientPosition,
+  totalClients,
+  initialViewMode = "auto",
   clientUuid,
   clientName,
   clientGender,
@@ -77,7 +87,7 @@ export function TestResultsModal({
 
   const groupedTests = groupTestsByCategory(availableTests);
 
-  // Reset form when modal closes or opens
+  // Reset local editing state whenever we switch client or close the modal.
   useEffect(() => {
     if (!isOpen) {
       setTestValues({});
@@ -85,14 +95,23 @@ export function TestResultsModal({
       setViewMode("history");
       setEditingEntryId(null);
     } else {
-      // Show add form if no results, otherwise show history
-      if (results.entries && results.entries.length > 0) {
-        setViewMode("history");
-      } else {
-        setViewMode("add");
-      }
+      setTestValues({});
+      setOverallNotes("");
+      setEditingEntryId(null);
+      setViewMode(initialViewMode === "add" ? "add" : "history");
     }
-  }, [isOpen, results.entries]);
+  }, [clientUuid, initialViewMode, isOpen]);
+
+  // Once results load for the current client, choose the natural view for auto mode.
+  useEffect(() => {
+    if (!isOpen || initialViewMode !== "auto" || editingEntryId || resultsLoading) return;
+
+    if (results.entries && results.entries.length > 0) {
+      setViewMode("history");
+    } else {
+      setViewMode("add");
+    }
+  }, [editingEntryId, initialViewMode, isOpen, results.entries, resultsLoading]);
 
   const handleValueChange = (testCode: string, value: string) => {
     setTestValues((prev) => ({
@@ -123,7 +142,7 @@ export function TestResultsModal({
 
   const handleSubmit = async () => {
     // Validate at least one test has a value
-    const filledTests = Object.entries(testValues).filter(([_, data]) => data.value && data.value.trim());
+    const filledTests = Object.entries(testValues).filter(([, data]) => data.value && data.value.trim());
 
     if (filledTests.length === 0) {
       toast({
@@ -165,7 +184,7 @@ export function TestResultsModal({
             (refRanges.male && typeof refRanges.male.min === 'number' && typeof refRanges.male.max === 'number') ||
             (refRanges.female && typeof refRanges.female.min === 'number' && typeof refRanges.female.max === 'number') ||
             (refRanges.age_ranges && refRanges.age_ranges.length > 0 && 
-             refRanges.age_ranges.some((r: any) => typeof r.min === 'number' && typeof r.max === 'number'));
+             refRanges.age_ranges.some((r: { min?: number; max?: number }) => typeof r.min === 'number' && typeof r.max === 'number'));
           
           let value: string | number;
           let flag: ResultFlag | undefined;
@@ -209,15 +228,20 @@ export function TestResultsModal({
         description: editingEntryId ? "تم تحديث النتائج بنجاح" : "تم حفظ نتائج التحاليل بنجاح",
       });
 
+      if (!editingEntryId) {
+        onSaveSuccess?.(clientUuid);
+        return;
+      }
+
       // Switch to history view to show the saved results
       setViewMode("history");
       setTestValues({});
       setOverallNotes("");
       setEditingEntryId(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "خطأ",
-        description: error.message || "حدث خطأ أثناء الحفظ",
+        description: error instanceof Error ? error.message : "حدث خطأ أثناء الحفظ",
         variant: "destructive",
       });
     } finally {
@@ -225,94 +249,79 @@ export function TestResultsModal({
     }
   };
 
-  if (testsLoading || resultsLoading) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>جاري التحميل...</DialogTitle>
-            <DialogDescription>يرجى الانتظار</DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  if (availableTests.length === 0) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>لا توجد تحاليل</DialogTitle>
-            <DialogDescription>
-              لم يتم تحديد أي تحاليل لهذا العميل. يرجى تعديل الحالة وإضافة التحاليل المطلوبة.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={onClose}>إغلاق</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  const isLoading = testsLoading || resultsLoading;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden" aria-describedby="dialog-description">
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden" aria-describedby="dialog-description">
         <DialogHeader className="px-6 py-4 border-b bg-muted/20 shrink-0">
-          <div className="flex items-center justify-between">
-            <div>
-               <DialogTitle className="text-xl">
-                 {viewMode === "history"
-                   ? "نتائج التحاليل"
-                   : editingEntryId
-                     ? "تعديل النتائج"
-                     : "إضافة نتائج التحاليل"}
-               </DialogTitle>
-               <DialogDescription id="dialog-description" className="mt-1">
-                 {clientName} • {clientGender === 'male' || clientGender === 'ذكر' ? 'ذكر' : 'أنثى'} • {clientAge} سنة
-               </DialogDescription>
-            </div>
-            
-
-{/* 
-            
-            {viewMode === "history" && (
-                <Button onClick={() => {
-                  setViewMode("add");
+          {/* Title row — always RTL so text sits on the right */}
+          <div className="flex items-center justify-between" dir="rtl">
+            <DialogTitle className="text-xl">
+              {viewMode === "history"
+                ? "نتائج التحاليل"
+                : editingEntryId
+                  ? "تعديل النتائج"
+                  : "إضافة نتائج التحاليل"}
+            </DialogTitle>
+            {viewMode === "add" && (editingEntryId || (results.entries && results.entries.length > 0)) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1 opacity-70 hover:opacity-100"
+                onClick={() => {
+                  setViewMode("history");
+                  setEditingEntryId(null);
                   setTestValues({});
                   setOverallNotes("");
-                  setEditingEntryId(null);
-                }}>
-                  + إضافة نتائج جديدة
-                </Button>
+                }}
+              >
+                <ArrowRight className="h-4 w-4" />
+                رجوع للسجل
+              </Button>
             )}
-            
- */}
+          </div>
 
-            {viewMode === "add" && (editingEntryId || (results.entries && results.entries.length > 0)) && (
-               <Button
-                 variant="ghost"
-                 size="sm"
-                 className="gap-1 opacity-70 hover:opacity-100"
-                 onClick={() => {
-                   setViewMode("history");
-                   setEditingEntryId(null);
-                   setTestValues({});
-                   setOverallNotes("");
-                 }}
-               >
-                 <ArrowRight className="h-4 w-4" />
-                 رجوع للسجل
-               </Button>
-             )}
+          {/* Client name — separated section */}
+          <div className="mt-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3" dir="rtl">
+            <div className="text-lg font-bold text-foreground">{clientName}</div>
+            <DialogDescription id="dialog-description" className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+              {clientGender && (
+                <span>{clientGender === "male" || clientGender === "ذكر" ? "ذكر" : "أنثى"}</span>
+              )}
+              {typeof clientAge === "number" && (
+                <>
+                  {clientGender && <span className="text-muted-foreground">•</span>}
+                  <span>{clientAge} سنة</span>
+                </>
+              )}
+              {typeof clientPosition === "number" && typeof totalClients === "number" && totalClients > 0 && (
+                <>
+                  <span className="text-muted-foreground">•</span>
+                  <Badge variant="outline" className="px-1.5 py-0 text-xs">
+                    {clientPosition} / {totalClients}
+                  </Badge>
+                </>
+              )}
+            </DialogDescription>
           </div>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 text-right" dir="rtl">
+        {isLoading ? (
+          <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">جاري تحميل بيانات العميل...</p>
+          </div>
+        ) : availableTests.length === 0 ? (
+          <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 py-12 text-center">
+            <h3 className="text-lg font-semibold">لا توجد تحاليل</h3>
+            <p className="max-w-md text-sm text-muted-foreground">
+              لم يتم تحديد أي تحاليل لهذا العميل. يرجى تعديل الحالة وإضافة التحاليل المطلوبة.
+            </p>
+          </div>
+        ) : (
+          <>
         {/* History View */}
         {viewMode === "history" && results.entries && results.entries.length > 0 && (
           <div className="space-y-6 relative">
@@ -576,9 +585,33 @@ export function TestResultsModal({
              </div>
           </div>
         )}
+        </>
+        )}
         </div>
 
         <DialogFooter className="border-t bg-muted/20 px-6 py-4 shrink-0 sm:justify-start">
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex w-full gap-2 sm:w-auto">
+            <Button
+              variant="outline"
+              onClick={() => onNavigatePrevious?.()}
+              disabled={saving || !hasPrevious}
+              className="flex-1 sm:flex-none"
+            >
+              <ChevronRight className="mr-2 h-4 w-4" />
+              السابق
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => onNavigateNext?.()}
+              disabled={saving || !hasNext}
+              className="flex-1 sm:flex-none"
+            >
+              التالي
+              <ChevronLeft className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+
           <div className="flex w-full gap-2 sm:w-auto sm:mr-auto">
           {viewMode === "add" ? (
             <>
@@ -605,6 +638,7 @@ export function TestResultsModal({
               إغلاق
             </Button>
           )}
+          </div>
           </div>
         </DialogFooter>
       </DialogContent>
