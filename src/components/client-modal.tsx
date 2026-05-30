@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { CalendarIcon, Loader2, Check, User, FileText, FlaskConical } from "lucide-react";
+import { CalendarIcon, Loader2, Check, User, FileText, FlaskConical, Search, X } from "lucide-react";
 import { Client, Category } from "@/types";
 import {
   Sheet,
@@ -91,12 +91,52 @@ export function ClientModal({
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [selectedTests, setSelectedTests] = useState<Set<string>>(new Set());
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
+  const [testSearch, setTestSearch] = useState("");
+  const [openAccordionItems, setOpenAccordionItems] = useState<string[]>([]);
 
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const { tests, loading: testsLoading } = useLabTests();
   const { groups, loading: groupsLoading } = useTestGroups();
 
-  const groupedTests = groupTestsByCategory(tests);
+  const groupedTests = useMemo(() => groupTestsByCategory(tests), [tests]);
+
+  const trimmedSearch = testSearch.trim().toLowerCase();
+
+  const filteredGroupedTests = useMemo((): Record<string, typeof tests> => {
+    if (!trimmedSearch) return groupedTests;
+
+    // Build lookup map once — O(G) instead of O(categories × G)
+    const groupByCode = new Map(groups.map((g) => [g.group_code, g]));
+
+    // Hoist group matching outside the per-category loop
+    const matchedGroupTestCodes = new Set<string>();
+    const matchedGroupPills = groups.filter(
+      (g) =>
+        g.group_name_ar.includes(testSearch.trim()) ||
+        (g.group_name_en ?? "").toLowerCase().includes(trimmedSearch)
+    );
+    matchedGroupPills.forEach((g) => {
+      g.test_codes.forEach((code) => matchedGroupTestCodes.add(code));
+    });
+
+    const result: Record<string, typeof tests> = {};
+    for (const [cat, catTests] of Object.entries(groupedTests)) {
+      // Full category match → include everything
+      if (cat.toLowerCase().includes(trimmedSearch)) {
+        result[cat] = catTests;
+        continue;
+      }
+      // Filter individual tests: group match OR name match
+      const matched = catTests.filter(
+        (t) =>
+          matchedGroupTestCodes.has(t.test_code) ||
+          t.test_name_ar.includes(testSearch.trim()) ||
+          t.test_name_en.toLowerCase().includes(trimmedSearch)
+      );
+      if (matched.length > 0) result[cat] = matched;
+    }
+    return result;
+  }, [groupedTests, trimmedSearch, testSearch, groups]);
 
   // Handle back button behavior
   useEffect(() => {
@@ -151,6 +191,8 @@ export function ClientModal({
       setDate(new Date(client.daily_date));
       setIsManualId(false);
       setManualId("");
+      setTestSearch("");
+      setOpenAccordionItems([]);
 
       const clientTests = new Set(client.selected_tests || []);
       setSelectedTests(clientTests);
@@ -180,6 +222,8 @@ export function ClientModal({
       setManualId("");
       setSelectedTests(new Set());
       setSelectedGroups(new Set());
+      setTestSearch("");
+      setOpenAccordionItems([]);
     }
   }, [client, isOpen]);
 
@@ -272,6 +316,8 @@ export function ClientModal({
       setManualId("");
       setSelectedTests(new Set());
       setSelectedGroups(new Set());
+      setTestSearch("");
+      setOpenAccordionItems([]);
       const nameInput = document.getElementById("name");
       if (nameInput) {
         nameInput.focus();
@@ -525,102 +571,140 @@ export function ClientModal({
               <div className="flex justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
             ) : (
               <>
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    value={testSearch}
+                    onChange={(e) => setTestSearch(e.target.value)}
+                    placeholder="ابحث عن تحليل..."
+                    className="h-9 pr-9 pl-8 bg-background text-sm"
+                    dir="rtl"
+                  />
+                  {testSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setTestSearch("")}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Group badges — always visible */}
                 {groups.length > 0 && (
                   <div className="flex flex-wrap gap-2 pb-2">
-                    {groups.map((group) => {
-                      const isActive = selectedGroups.has(group.group_code);
-                      return (
-                        <Badge
-                          key={group.group_code}
-                          variant={isActive ? "default" : "outline"}
-                          className={cn(
-                            "cursor-pointer py-1.5 px-3 transition-all",
-                            !isActive && "bg-background text-muted-foreground hover:bg-muted"
-                          )}
-                          onClick={() => handleGroupToggle(group.group_code)}
-                        >
-                          {group.group_name_ar}
-                        </Badge>
-                      );
-                    })}
+                    {groups
+                      .filter((group) =>
+                        !trimmedSearch ||
+                        group.group_name_ar.includes(testSearch.trim()) ||
+                        (group.group_name_en ?? "").toLowerCase().includes(trimmedSearch)
+                      )
+                      .map((group) => {
+                        const isActive = selectedGroups.has(group.group_code);
+                        return (
+                          <Badge
+                            key={group.group_code}
+                            variant={isActive ? "default" : "outline"}
+                            className={cn(
+                              "cursor-pointer py-1.5 px-3 transition-all",
+                              !isActive && "bg-background text-muted-foreground hover:bg-muted"
+                            )}
+                            onClick={() => handleGroupToggle(group.group_code)}
+                          >
+                            {group.group_name_ar}
+                          </Badge>
+                        );
+                      })}
                   </div>
                 )}
 
-                <Accordion type="multiple" className="w-full space-y-2">
-                  {Object.entries(groupedTests).map(([category, categoryTests]) => {
-                    const allSelected = categoryTests.every((t) => selectedTests.has(t.test_code));
-                    const selectedCount = categoryTests.filter((t) => selectedTests.has(t.test_code)).length;
-                    return (
-                    <AccordionItem key={category} value={category} className="border rounded-xl bg-background overflow-hidden">
-                      <div className="flex items-center px-3 hover:bg-muted/30 transition-colors">
-                        <AccordionTrigger className="flex-1 py-3 text-sm font-bold hover:no-underline">
-                          <div className="flex items-center gap-3">
-                            <span>{category}</span>
-                            {selectedCount > 0 && (
-                              <Badge variant="secondary" className="h-5 text-[10px] bg-primary/10 text-primary border-primary/20">
-                                {selectedCount}
-                              </Badge>
-                            )}
-                          </div>
-                        </AccordionTrigger>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className={cn(
-                            "h-8 text-xs font-semibold hover:bg-primary/10",
-                            allSelected ? "text-destructive" : "text-primary"
-                          )}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelectAllCategory(categoryTests, !allSelected);
-                          }}
-                        >
-                          {allSelected ? "إلغاء الكل" : "تحديد الكل"}
-                        </Button>
-                      </div>
-                      <AccordionContent className="px-4 pb-3 pt-1 border-t">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                          {categoryTests.map((test) => {
-                            const isSelected = selectedTests.has(test.test_code);
-                            return (
-                              <div 
-                                key={test.test_code} 
-                                className={cn(
-                                  "flex items-center space-x-2 space-x-reverse p-2.5 rounded-lg border transition-all cursor-pointer",
-                                  isSelected 
-                                    ? "bg-primary/10 border-primary/40 ring-1 ring-primary/20" 
-                                    : "hover:bg-muted/50 border-transparent bg-muted/20"
+                {/* Accordion — filtered when searching, auto-expanded */}
+                {Object.keys(filteredGroupedTests).length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground text-sm">لا توجد نتائج</div>
+                ) : (
+                  <Accordion
+                    type="multiple"
+                    className="w-full space-y-2"
+                    value={trimmedSearch ? Object.keys(filteredGroupedTests) : openAccordionItems}
+                    onValueChange={trimmedSearch ? undefined : setOpenAccordionItems}
+                  >
+                    {Object.entries(filteredGroupedTests).map(([category, categoryTests]) => {
+                      const allSelected = categoryTests.every((t) => selectedTests.has(t.test_code));
+                      const selectedCount = categoryTests.filter((t) => selectedTests.has(t.test_code)).length;
+                      return (
+                        <AccordionItem key={category} value={category} className="border rounded-xl bg-background overflow-hidden">
+                          <div className="flex items-center px-3 hover:bg-muted/30 transition-colors">
+                            <AccordionTrigger className="flex-1 py-3 text-sm font-bold hover:no-underline">
+                              <div className="flex items-center gap-3">
+                                <span>{category}</span>
+                                {selectedCount > 0 && (
+                                  <Badge variant="secondary" className="h-5 text-[10px] bg-primary/10 text-primary border-primary/20">
+                                    {selectedCount}
+                                  </Badge>
                                 )}
-                                onClick={() => handleTestToggle(test.test_code)}
-                              >
-                                <div
-                                  className={cn(
-                                    "peer h-4 w-4 shrink-0 rounded-sm border ring-offset-background flex items-center justify-center",
-                                    isSelected 
-                                      ? "border-primary bg-primary text-primary-foreground" 
-                                      : "border-primary"
-                                  )}
-                                >
-                                  {isSelected && <Check className="h-3 w-3" />}
-                                </div>
-                                <div className="flex-1 truncate mr-2">
-                                  <div className={cn("text-sm font-bold truncate", isSelected ? "text-primary" : "text-foreground")}>
-                                    {test.test_name_ar}
-                                  </div>
-                                  <div className="text-muted-foreground text-[10px] truncate leading-tight">
-                                    {test.test_name_en}
-                                  </div>
-                                </div>
                               </div>
-                            );
-                          })}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                    );
-                  })}
-                </Accordion>
+                            </AccordionTrigger>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className={cn(
+                                "h-8 text-xs font-semibold hover:bg-primary/10",
+                                allSelected ? "text-destructive" : "text-primary"
+                              )}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectAllCategory(categoryTests, !allSelected);
+                              }}
+                            >
+                              {allSelected ? "إلغاء الكل" : "تحديد الكل"}
+                            </Button>
+                          </div>
+                          <AccordionContent className="px-4 pb-3 pt-1 border-t">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                              {categoryTests.map((test) => {
+                                const isSelected = selectedTests.has(test.test_code);
+                                return (
+                                  <div
+                                    key={test.test_code}
+                                    className={cn(
+                                      "flex items-center space-x-2 space-x-reverse p-2.5 rounded-lg border transition-all cursor-pointer",
+                                      isSelected
+                                        ? "bg-primary/10 border-primary/40 ring-1 ring-primary/20"
+                                        : "hover:bg-muted/50 border-transparent bg-muted/20"
+                                    )}
+                                    onClick={() => handleTestToggle(test.test_code)}
+                                  >
+                                    <div
+                                      className={cn(
+                                        "peer h-4 w-4 shrink-0 rounded-sm border ring-offset-background flex items-center justify-center",
+                                        isSelected
+                                          ? "border-primary bg-primary text-primary-foreground"
+                                          : "border-primary"
+                                      )}
+                                    >
+                                      {isSelected && <Check className="h-3 w-3" />}
+                                    </div>
+                                    <div className="flex-1 truncate mr-2">
+                                      <div className={cn("text-sm font-bold truncate", isSelected ? "text-primary" : "text-foreground")}>
+                                        {test.test_name_ar}
+                                      </div>
+                                      <div className="text-muted-foreground text-[10px] truncate leading-tight">
+                                        {test.test_name_en}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
+                  </Accordion>
+                )}
               </>
             )}
           </div>
