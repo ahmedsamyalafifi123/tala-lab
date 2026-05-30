@@ -358,8 +358,10 @@ export default function LabDashboard() {
     const timer = setTimeout(() => {
       const results = clients.filter((client) => {
         // Name filter (client-side for Arabic fuzzy matching) - uses debounced value
-        if (debouncedNameFilter && !fuzzyMatchArabic(debouncedNameFilter, client.patient_name)) {
-          return false;
+        if (debouncedNameFilter) {
+          const phoneMatch = client.patient_phone?.includes(debouncedNameFilter.trim());
+          const nameMatch = fuzzyMatchArabic(debouncedNameFilter, client.patient_name);
+          if (!nameMatch && !phoneMatch) return false;
         }
         // Category filter
         if (categoryFilter !== "all") {

@@ -215,6 +215,7 @@ export function ClientModal({
       setName("");
       setGender("ذكر");
       setAge("");
+      setPhone("");
       setInsuranceNumber("");
       setEntity("");
       setNotes("");
