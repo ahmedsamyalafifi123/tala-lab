@@ -281,33 +281,35 @@ export function TestResultsModal({
               </Button>
             )}
           </div>
+          <DialogDescription id="dialog-description" className="sr-only">
+            نافذة نتائج التحاليل
+          </DialogDescription>
+        </DialogHeader>
 
-          {/* Client name — separated section */}
-          <div className="mt-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3" dir="rtl">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 text-right" dir="rtl">
+          {/* Client info — scrolls with content on mobile */}
+          <div className="mb-4 rounded-xl border border-border/60 bg-muted/40 px-4 py-3" dir="rtl">
             <div className="text-lg font-bold text-foreground">{clientName}</div>
-            <DialogDescription id="dialog-description" className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
               {clientGender && (
                 <span>{clientGender === "male" || clientGender === "ذكر" ? "ذكر" : "أنثى"}</span>
               )}
               {typeof clientAge === "number" && (
                 <>
-                  {clientGender && <span className="text-muted-foreground">•</span>}
+                  {clientGender && <span>•</span>}
                   <span>{clientAge} سنة</span>
                 </>
               )}
               {typeof clientPosition === "number" && typeof totalClients === "number" && totalClients > 0 && (
                 <>
-                  <span className="text-muted-foreground">•</span>
+                  <span>•</span>
                   <Badge variant="outline" className="px-1.5 py-0 text-xs">
                     {clientPosition} / {totalClients}
                   </Badge>
                 </>
               )}
-            </DialogDescription>
+            </div>
           </div>
-        </DialogHeader>
-
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 text-right" dir="rtl">
         {isLoading ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
