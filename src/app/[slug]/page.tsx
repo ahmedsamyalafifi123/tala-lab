@@ -869,6 +869,7 @@ export default function LabDashboard() {
     daily_id?: number | null; 
     selected_tests?: string[];
     patient_gender?: string;
+    patient_phone?: string;
     insurance_number?: string;
     entity?: string;
     patient_age?: number;
@@ -893,6 +894,7 @@ export default function LabDashboard() {
           p_manual_id: data.daily_id ?? null,
           p_selected_tests: data.selected_tests || [],
           p_patient_gender: data.patient_gender || 'ذكر',
+          p_patient_phone: data.patient_phone ?? null,
           p_insurance_number: data.insurance_number ?? null,
           p_entity: data.entity ?? null,
           p_patient_age: data.patient_age ?? null
@@ -914,6 +916,7 @@ export default function LabDashboard() {
           p_created_by: currentUserId,
           p_selected_tests: data.selected_tests || [],
           p_patient_gender: data.patient_gender || 'ذكر',
+          p_patient_phone: data.patient_phone ?? null,
           p_insurance_number: data.insurance_number ?? null,
           p_entity: data.entity ?? null,
           p_patient_age: data.patient_age ?? null

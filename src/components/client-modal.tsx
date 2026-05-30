@@ -61,6 +61,7 @@ interface ClientModalProps {
     daily_id?: number | null; 
     selected_tests?: string[];
     patient_gender?: string;
+    patient_phone?: string;
     insurance_number?: string;
     entity?: string;
     patient_age?: number;
@@ -81,6 +82,7 @@ export function ClientModal({
   const [name, setName] = useState("");
   const [gender, setGender] = useState<string>("ذكر");
   const [age, setAge] = useState<string>("");
+  const [phone, setPhone] = useState("");
   const [insuranceNumber, setInsuranceNumber] = useState("");
   const [entity, setEntity] = useState<string>("");
   const [notes, setNotes] = useState("");
@@ -176,6 +178,7 @@ export function ClientModal({
       setName(client.patient_name);
       setGender(client.patient_gender || "");
       setAge(client.patient_age?.toString() || "");
+      setPhone(client.patient_phone || "");
       setInsuranceNumber(client.insurance_number || "");
       setEntity(client.entity || "");
       setNotes(client.notes || "");
@@ -299,6 +302,7 @@ export function ClientModal({
       daily_id: isManualId && manualId ? parseInt(manualId) : null,
       selected_tests: testsToSave,
       patient_gender: (gender && gender !== "none") ? gender : undefined,
+      patient_phone: phone.trim() || undefined,
       insurance_number: insuranceNumber.trim() || undefined,
       entity: (entity && entity !== "none") ? entity : undefined,
       patient_age: age ? parseInt(age) : undefined,
@@ -309,6 +313,7 @@ export function ClientModal({
       setName("");
       setGender("ذكر");
       setAge("");
+      setPhone("");
       setInsuranceNumber("");
       setEntity("");
       setNotes("");
@@ -524,7 +529,29 @@ export function ClientModal({
         <div className="space-y-4 p-4 rounded-2xl border bg-muted/30">
 
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-sm font-medium truncate">رقم الهاتف</Label>
+              <Input
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="05xxxxxxxx"
+                inputMode="tel"
+                className="h-11 bg-background"
+                dir="ltr"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="insurance_number" className="text-sm font-medium truncate">الرقم التأميني</Label>
+              <Input
+                id="insurance_number"
+                value={insuranceNumber}
+                onChange={(e) => setInsuranceNumber(e.target.value)}
+                placeholder="الرقم"
+                className="h-11 bg-background"
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="entity" className="text-sm font-medium">الجهة</Label>
               <Select value={entity} onValueChange={setEntity}>
@@ -541,16 +568,6 @@ export function ClientModal({
                   <SelectItem value="المقاولات">المقاولات</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="insurance_number" className="text-sm font-medium truncate">الرقم التأميني</Label>
-              <Input
-                id="insurance_number"
-                value={insuranceNumber}
-                onChange={(e) => setInsuranceNumber(e.target.value)}
-                placeholder="الرقم"
-                className="h-11 bg-background"
-              />
             </div>
           </div>
         </div>
