@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, FlaskConical, FileText, TrendingUp, Download } from "lucide-react";
+import { Pencil, FlaskConical, FileText, TrendingUp, Download, Phone } from "lucide-react";
 import { Client } from "@/types";
 import { TestResultsModal } from "@/components/results/test-results-modal";
 import { ResultsHistoryViewer } from "@/components/results/results-history-viewer";
@@ -149,6 +149,16 @@ export function ClientDetails({
 
   const bodyContent = (
     <Tabs defaultValue="results" className="flex-1 flex flex-col h-full" dir="rtl">
+      {client.patient_phone && (
+        <a
+          href={`tel:${client.patient_phone}`}
+          className="flex items-center gap-2 px-4 md:px-6 py-2.5 border-b bg-primary/5 text-primary hover:bg-primary/10 transition-colors shrink-0"
+          dir="ltr"
+        >
+          <Phone className="h-4 w-4 shrink-0" />
+          <span className="font-mono font-semibold tracking-wide">{client.patient_phone}</span>
+        </a>
+      )}
       <div className="px-4 md:px-6 border-b bg-background shrink-0">
         <TabsList className="w-full justify-start gap-4 md:gap-8 bg-transparent h-12 md:h-14 p-0 rounded-none overflow-x-auto scrollbar-hide">
           <TabsTrigger
