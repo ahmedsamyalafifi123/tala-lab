@@ -10,6 +10,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Download, FileSpreadsheet } from "lucide-react";
@@ -49,6 +57,7 @@ export function ExportResultsDialog({
   const { selectedTests, getSortedEntries } = useClientResults(clientUuid);
   const [exporting, setExporting] = useState(false);
   const [includeReferenceRanges, setIncludeReferenceRanges] = useState(true);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const getExportTestCodes = (entryTests?: Record<string, any>) =>
     Array.from(new Set([...selectedTests, ...Object.keys(entryTests || {})]));
@@ -545,36 +554,69 @@ export function ExportResultsDialog({
     onClose();
   };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>تصدير نتائج التحاليل</DialogTitle>
-          <DialogDescription>
-            اختر صيغة التصدير والخيارات المطلوبة
-          </DialogDescription>
-        </DialogHeader>
+  const checkboxContent = (
+    <div className="space-y-4 py-4">
+      <div className="flex items-center space-x-2 space-x-reverse">
+        <Checkbox
+          id="include-reference"
+          checked={includeReferenceRanges}
+          onCheckedChange={(checked) => setIncludeReferenceRanges(checked as boolean)}
+        />
+        <label
+          htmlFor="include-reference"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          تضمين القيم الطبيعية المرجعية
+        </label>
+      </div>
+    </div>
+  );
 
-        <div className="space-y-4 py-4">
-          <div className="flex items-center space-x-2 space-x-reverse">
-            <Checkbox
-              id="include-reference"
-              checked={includeReferenceRanges}
-              onCheckedChange={(checked) => setIncludeReferenceRanges(checked as boolean)}
-            />
-            <label
-              htmlFor="include-reference"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              تضمين القيم الطبيعية المرجعية
-            </label>
-          </div>
+  if (isDesktop) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>تصدير نتائج التحاليل</DialogTitle>
+            <DialogDescription>
+              اختر صيغة التصدير والخيارات المطلوبة
+            </DialogDescription>
+          </DialogHeader>
+
+          {checkboxContent}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={onClose} disabled={exporting}>
+              إلغاء
+            </Button>
+            <Button onClick={handleExportPDF} disabled={exporting} variant="outline">
+              <Download className="ml-2 h-4 w-4" />
+              تصدير PDF
+            </Button>
+            {/* <Button onClick={handleExportExcel} disabled={exporting}>
+              {exporting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+              <FileSpreadsheet className="ml-2 h-4 w-4" />
+              تصدير Excel
+            </Button> */}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Drawer open={isOpen} onOpenChange={onClose}>
+      <DrawerContent className="pb-6">
+        <DrawerHeader>
+          <DrawerTitle>تصدير نتائج التحاليل</DrawerTitle>
+          <p className="text-sm text-muted-foreground">اختر صيغة التصدير والخيارات المطلوبة</p>
+        </DrawerHeader>
+
+        <div className="px-4">
+          {checkboxContent}
         </div>
 
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose} disabled={exporting}>
-            إلغاء
-          </Button>
+        <DrawerFooter className="flex flex-col gap-2">
           <Button onClick={handleExportPDF} disabled={exporting} variant="outline">
             <Download className="ml-2 h-4 w-4" />
             تصدير PDF
@@ -584,8 +626,11 @@ export function ExportResultsDialog({
             <FileSpreadsheet className="ml-2 h-4 w-4" />
             تصدير Excel
           </Button> */}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <Button variant="outline" onClick={onClose} disabled={exporting}>
+            إلغاء
+          </Button>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   );
 }

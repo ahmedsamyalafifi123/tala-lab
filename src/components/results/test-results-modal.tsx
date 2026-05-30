@@ -15,6 +15,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { Loader2, AlertCircle, Pencil, Beaker, Calendar, Clock, ArrowRight, ChevronRight, ChevronLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { calculateFlag, formatReferenceRange, validateTestValue, getFlagColor, getFlagIcon, getFlagLabel, groupTestsByCategory } from "@/lib/test-utils";
@@ -250,36 +258,114 @@ export function TestResultsModal({
   };
 
   const isLoading = testsLoading || resultsLoading;
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
-  return (
+  const titleText = viewMode === "history"
+    ? "نتائج التحاليل"
+    : editingEntryId
+      ? "تعديل النتائج"
+      : "إضافة نتائج التحاليل";
+
+  const backButton = viewMode === "add" && (editingEntryId || (results.entries && results.entries.length > 0)) ? (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="gap-1 opacity-70 hover:opacity-100"
+      onClick={() => {
+        setViewMode("history");
+        setEditingEntryId(null);
+        setTestValues({});
+        setOverallNotes("");
+      }}
+    >
+      <ArrowRight className="h-4 w-4" />
+      رجوع للسجل
+    </Button>
+  ) : null;
+
+  const footerContent = (
+    <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex w-full gap-2 sm:w-auto">
+        <Button
+          variant="outline"
+          onClick={() => onNavigatePrevious?.()}
+          disabled={saving || !hasPrevious}
+          className="flex-1 sm:flex-none"
+        >
+          <ChevronRight className="mr-2 h-4 w-4" />
+          السابق
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => onNavigateNext?.()}
+          disabled={saving || !hasNext}
+          className="flex-1 sm:flex-none"
+        >
+          التالي
+          <ChevronLeft className="ml-2 h-4 w-4" />
+        </Button>
+      </div>
+      <div className="flex w-full gap-2 sm:w-auto sm:mr-auto">
+        {viewMode === "add" ? (
+          <>
+            <Button variant="outline" onClick={() => {
+              if (editingEntryId || (results.entries && results.entries.length > 0)) {
+                setViewMode("history");
+                setEditingEntryId(null);
+                setTestValues({});
+                setOverallNotes("");
+              } else {
+                onClose();
+              }
+            }} disabled={saving}>
+              إلغاء
+            </Button>
+            <Button onClick={handleSubmit} disabled={saving} className="min-w-[120px]">
+              {saving && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+              {editingEntryId ? "تحديث النتائج" : "حفظ النتائج"}
+            </Button>
+          </>
+        ) : (
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
+            إغلاق
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+
+  const clientInfoCard = (
+    <div className="mb-4 rounded-xl border border-border/60 bg-muted/40 px-4 py-3" dir="rtl">
+      <div className="text-lg font-bold text-foreground">{clientName}</div>
+      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+        {clientGender && (
+          <span>{clientGender === "male" || clientGender === "ذكر" ? "ذكر" : "أنثى"}</span>
+        )}
+        {typeof clientAge === "number" && (
+          <>
+            {clientGender && <span>•</span>}
+            <span>{clientAge} سنة</span>
+          </>
+        )}
+        {typeof clientPosition === "number" && typeof totalClients === "number" && totalClients > 0 && (
+          <>
+            <span>•</span>
+            <Badge variant="outline" className="px-1.5 py-0 text-xs">
+              {clientPosition} / {totalClients}
+            </Badge>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  if (isDesktop) return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden" aria-describedby="dialog-description">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden" aria-describedby="dialog-description">
         <DialogHeader className="px-6 py-4 border-b bg-muted/20 shrink-0">
-          {/* Title row — always RTL so text sits on the right */}
           <div className="flex items-center justify-between" dir="rtl">
-            <DialogTitle className="text-xl">
-              {viewMode === "history"
-                ? "نتائج التحاليل"
-                : editingEntryId
-                  ? "تعديل النتائج"
-                  : "إضافة نتائج التحاليل"}
-            </DialogTitle>
-            {viewMode === "add" && (editingEntryId || (results.entries && results.entries.length > 0)) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1 opacity-70 hover:opacity-100"
-                onClick={() => {
-                  setViewMode("history");
-                  setEditingEntryId(null);
-                  setTestValues({});
-                  setOverallNotes("");
-                }}
-              >
-                <ArrowRight className="h-4 w-4" />
-                رجوع للسجل
-              </Button>
-            )}
+            <DialogTitle className="text-xl">{titleText}</DialogTitle>
+            {backButton}
           </div>
           <DialogDescription id="dialog-description" className="sr-only">
             نافذة نتائج التحاليل
@@ -287,29 +373,7 @@ export function TestResultsModal({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 text-right" dir="rtl">
-          {/* Client info — scrolls with content on mobile */}
-          <div className="mb-4 rounded-xl border border-border/60 bg-muted/40 px-4 py-3" dir="rtl">
-            <div className="text-lg font-bold text-foreground">{clientName}</div>
-            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-              {clientGender && (
-                <span>{clientGender === "male" || clientGender === "ذكر" ? "ذكر" : "أنثى"}</span>
-              )}
-              {typeof clientAge === "number" && (
-                <>
-                  {clientGender && <span>•</span>}
-                  <span>{clientAge} سنة</span>
-                </>
-              )}
-              {typeof clientPosition === "number" && typeof totalClients === "number" && totalClients > 0 && (
-                <>
-                  <span>•</span>
-                  <Badge variant="outline" className="px-1.5 py-0 text-xs">
-                    {clientPosition} / {totalClients}
-                  </Badge>
-                </>
-              )}
-            </div>
-          </div>
+          {clientInfoCard}
         {isLoading ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -592,58 +656,182 @@ export function TestResultsModal({
         </div>
 
         <DialogFooter className="border-t bg-muted/20 px-6 py-4 shrink-0 sm:justify-start">
-          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex w-full gap-2 sm:w-auto">
-            <Button
-              variant="outline"
-              onClick={() => onNavigatePrevious?.()}
-              disabled={saving || !hasPrevious}
-              className="flex-1 sm:flex-none"
-            >
-              <ChevronRight className="mr-2 h-4 w-4" />
-              السابق
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => onNavigateNext?.()}
-              disabled={saving || !hasNext}
-              className="flex-1 sm:flex-none"
-            >
-              التالي
-              <ChevronLeft className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="flex w-full gap-2 sm:w-auto sm:mr-auto">
-          {viewMode === "add" ? (
-            <>
-              <Button variant="outline" onClick={() => {
-                // If editing or has history, go back to history. Otherwise close modal.
-                if (editingEntryId || (results.entries && results.entries.length > 0)) {
-                  setViewMode("history");
-                  setEditingEntryId(null);
-                  setTestValues({});
-                  setOverallNotes("");
-                } else {
-                  onClose();
-                }
-              }} disabled={saving}>
-                إلغاء
-              </Button>
-              <Button onClick={handleSubmit} disabled={saving} className="min-w-[120px]">
-                {saving && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                {editingEntryId ? "تحديث النتائج" : "حفظ النتائج"}
-              </Button>
-            </>
-          ) : (
-            <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
-              إغلاق
-            </Button>
-          )}
-          </div>
-          </div>
+          {footerContent}
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+
+  return (
+    <Drawer open={isOpen} onOpenChange={onClose}>
+      <DrawerContent className="flex flex-col max-h-[92dvh] overflow-hidden">
+        <DrawerHeader className="px-4 py-3 border-b bg-muted/20 shrink-0">
+          <div className="flex items-center justify-between" dir="rtl">
+            <DrawerTitle className="text-lg">{titleText}</DrawerTitle>
+            {backButton}
+          </div>
+        </DrawerHeader>
+
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 text-right" dir="rtl">
+          {clientInfoCard}
+          {isLoading ? (
+            <div className="flex min-h-[200px] flex-col items-center justify-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">جاري تحميل بيانات العميل...</p>
+            </div>
+          ) : availableTests.length === 0 ? (
+            <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 text-center">
+              <h3 className="text-base font-semibold">لا توجد تحاليل</h3>
+              <p className="text-sm text-muted-foreground">
+                لم يتم تحديد أي تحاليل لهذا العميل. يرجى تعديل الحالة وإضافة التحاليل المطلوبة.
+              </p>
+            </div>
+          ) : (
+            <>
+              {viewMode === "history" && results.entries && results.entries.length > 0 && (
+                <div className="space-y-4">
+                  {results.entries.map((entry) => (
+                    <div key={entry.entry_id} className="border rounded-xl overflow-hidden bg-card">
+                      <div className="bg-muted/30 border-b p-3 flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-sm">
+                              {format(new Date(entry.recorded_at), "PPP", { locale: ar })}
+                            </h3>
+                          </div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {format(new Date(entry.recorded_at), "p", { locale: ar })}
+                            <span className="mx-1">•</span>
+                            {Object.keys(entry.tests).length} تحليل
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 gap-1 text-muted-foreground hover:text-primary"
+                          onClick={() => {
+                            const values: Record<string, { value: string; notes?: string }> = {};
+                            Object.entries(entry.tests).forEach(([testCode, result]) => {
+                              values[testCode] = { value: result.value.toString(), notes: result.notes };
+                            });
+                            setTestValues(values);
+                            setOverallNotes(entry.notes || "");
+                            setEditingEntryId(entry.entry_id);
+                            setViewMode("add");
+                          }}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          <span className="text-xs">تعديل</span>
+                        </Button>
+                      </div>
+                      <div className="p-3 grid grid-cols-2 gap-2">
+                        {Object.entries(entry.tests).map(([code, result]) => {
+                          const test = tests.find(t => t.test_code === code);
+                          const displayFlag = result?.flag ? normalizeFlag(result.flag) : null;
+                          const flagColor = displayFlag ? getFlagColor(displayFlag) : "";
+                          const flagIcon = displayFlag ? getFlagIcon(displayFlag) : null;
+                          return (
+                            <div key={code} className={cn("border rounded-lg p-2.5 flex flex-col gap-1", displayFlag ? "bg-accent/10" : "bg-card")}>
+                              <span className="text-[10px] text-muted-foreground truncate" dir="ltr">{test?.test_name_en || test?.test_name_ar || code}</span>
+                              <div className="flex items-baseline gap-1" dir="ltr">
+                                <span className="text-base font-bold font-mono">{result?.value ?? ""}</span>
+                                <span className="text-[10px] text-muted-foreground">{result?.unit || test?.unit || ""}</span>
+                                {flagIcon && <span className={cn("text-xs font-bold mr-auto", flagColor)}>{flagIcon}</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {entry.notes && (
+                        <div className="bg-muted/30 p-2.5 text-xs text-muted-foreground border-t flex gap-1.5">
+                          <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          <p>{entry.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {viewMode === "history" && (!results.entries || results.entries.length === 0) && (
+                <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 text-center">
+                  <h3 className="text-base font-semibold">لا توجد نتائج مسجلة</h3>
+                </div>
+              )}
+              {viewMode === "add" && (
+                <div className="space-y-6 pb-2">
+                  {Object.entries(groupedTests).map(([category, categoryTests]) => (
+                    <div key={category} className="space-y-3">
+                      <div className="flex items-center gap-2 pb-1.5 border-b">
+                        <h4 className="font-semibold">{category}</h4>
+                        <Badge variant="outline" className="mr-auto text-xs">{categoryTests.length} تحليل</Badge>
+                      </div>
+                      <div className="grid gap-4">
+                        {categoryTests.map((test) => {
+                          const value = testValues[test.test_code]?.value || "";
+                          const rawFlag = getTestFlag(test.test_code, value);
+                          const flag = rawFlag ? normalizeFlag(rawFlag) : null;
+                          const refRange = formatReferenceRange(test.reference_ranges, clientGender, clientAge);
+                          const hasValidRange = refRange && refRange !== 'N/A' && refRange !== 'undefined - undefined';
+                          return (
+                            <div key={test.test_code} className={cn(
+                              "p-3 rounded-xl border transition-all",
+                              value ? "bg-card border-border shadow-sm" : "bg-muted/10 border-transparent"
+                            )}>
+                              <div className="mb-2 space-y-0.5">
+                                <Label htmlFor={`m-${test.test_code}`} className="font-semibold text-sm block" dir="ltr">
+                                  {test.test_name_en || test.test_name_ar}
+                                </Label>
+                                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <span>المدى الطبيعي:</span>
+                                  <span className="font-mono bg-muted px-1 rounded">{refRange}</span>
+                                  {test.unit && <Badge variant="secondary" className="text-[10px] font-mono mr-auto">{test.unit}</Badge>}
+                                </div>
+                              </div>
+                              <div className="relative">
+                                <Input
+                                  id={`m-${test.test_code}`}
+                                  type={hasValidRange ? "number" : "text"}
+                                  step={hasValidRange ? "0.01" : undefined}
+                                  value={value}
+                                  onChange={(e) => handleValueChange(test.test_code, e.target.value)}
+                                  placeholder={hasValidRange ? "النتيجة" : "مثال: positive, 1+"}
+                                  className={cn("font-mono h-10", flag ? getFlagColor(flag).replace('text-', 'border-').replace('700', '300') : "")}
+                                  dir="ltr"
+                                />
+                                {flag && (
+                                  <div className={cn("absolute inset-y-0 right-3 flex items-center pointer-events-none", getFlagColor(flag))}>
+                                    {getFlagIcon(flag)}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="space-y-2 pt-4 border-t">
+                    <Label htmlFor="m-overall-notes" className="text-sm font-medium">ملاحظات عامة (اختياري)</Label>
+                    <Textarea
+                      id="m-overall-notes"
+                      value={overallNotes}
+                      onChange={(e) => setOverallNotes(e.target.value)}
+                      placeholder="أي ملاحظات عامة تظهر في أسفل التقرير..."
+                      rows={3}
+                      className="resize-none"
+                    />
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <DrawerFooter className="border-t bg-muted/20 px-4 py-3 shrink-0">
+          {footerContent}
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   );
 }
