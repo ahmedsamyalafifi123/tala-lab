@@ -362,7 +362,7 @@ export function ClientModal({
   );
 
   const formContent = (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0 overflow-hidden">
+    <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
       <div className={cn("flex-1 overflow-y-auto overscroll-contain p-4 space-y-6", !isDesktop && "pb-8")}>
         
         {/* Section 1: Patient Information */}
@@ -778,7 +778,7 @@ export function ClientModal({
 
   return (
     <Drawer open={isOpen} onOpenChange={onClose} shouldScaleBackground={false}>
-      <DrawerContent className="max-h-[90vh] flex flex-col outline-none">
+      <DrawerContent className="max-h-[92dvh] flex flex-col overflow-hidden outline-none">
         <DrawerHeader className="border-b p-4 flex-shrink-0 text-right">
           <DrawerTitle className="text-xl">
             {client ? "تعديل الحالة" : "إضافة حالة جديدة"}

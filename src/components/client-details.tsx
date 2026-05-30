@@ -148,7 +148,7 @@ export function ClientDetails({
   );
 
   const bodyContent = (
-    <Tabs defaultValue="results" className="flex-1 flex flex-col h-full" dir="rtl">
+    <Tabs defaultValue="results" className="flex-1 min-h-0 flex flex-col" dir="rtl">
       {client.patient_phone && (
         <a
           href={`tel:${client.patient_phone}`}
@@ -185,7 +185,7 @@ export function ClientDetails({
         </TabsList>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 md:p-6">
+      <div className="flex-1 min-h-0 overflow-auto p-4 md:p-6">
         <TabsContent value="info" className="space-y-6 mt-0 h-full max-w-4xl mx-auto w-full">
           {(client.patient_phone || client.insurance_number || client.entity) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
