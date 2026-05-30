@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, FlaskConical, FileText, TrendingUp, Download, X } from "lucide-react";
+import { Pencil, FlaskConical, FileText, TrendingUp, Download } from "lucide-react";
 import { Client } from "@/types";
 import { TestResultsModal } from "@/components/results/test-results-modal";
 import { ResultsHistoryViewer } from "@/components/results/results-history-viewer";
@@ -13,7 +13,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +23,7 @@ interface ClientDetailsProps {
   isOpen: boolean;
   onClose: () => void;
   onEdit: (client: Client) => void;
+  onOpenResults?: (client: Client) => void;
 }
 
 export function ClientDetails({
@@ -31,6 +31,7 @@ export function ClientDetails({
   isOpen,
   onClose,
   onEdit,
+  onOpenResults,
 }: ClientDetailsProps) {
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
@@ -61,33 +62,33 @@ export function ClientDetails({
           className="w-[98vw] max-w-[98vw] md:max-w-5xl h-[95vh] md:h-[90vh] flex flex-col p-0 gap-0 overflow-hidden text-right rounded-t-2xl md:rounded-2xl" 
           dir="rtl"
         >
-          <DialogHeader className="p-4 md:p-6 border-b shrink-0 bg-muted/20" dir="rtl">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex items-center gap-3 md:gap-4 text-right">
-                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl md:text-2xl border-2 border-primary/20 shrink-0">
+          <DialogHeader className="py-4 pr-4 pl-10 md:py-6 md:pr-6 md:pl-10 border-b shrink-0 bg-muted/20" dir="rtl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl border-2 border-primary/20 shrink-0">
                   {client.daily_id}
                 </div>
-                <div className="flex flex-col items-start overflow-hidden">
-                    <DialogTitle className="text-xl md:text-2xl font-bold mb-0.5 truncate w-full text-right">{client.patient_name}</DialogTitle>
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground text-xs md:text-sm">
+                <div className="flex flex-col items-start min-w-0">
+                    <DialogTitle className="text-lg sm:text-xl font-bold mb-0.5 truncate max-w-full text-right">{client.patient_name}</DialogTitle>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground text-xs sm:text-sm">
                       <span className="bg-primary/5 px-1.5 py-0.5 rounded">{formatDate(client.daily_date)}</span>
-                      <span>•</span>
                       {client.patient_age && (
                         <>
-                          <span>{client.patient_age} سنة</span>
                           <span>•</span>
+                          <span>{client.patient_age} سنة</span>
                         </>
                       )}
-                       {client.patient_gender && (
-                        <span>
-                          {client.patient_gender === 'male' || client.patient_gender === 'ذكر' ? 'ذكر' : 'أنثى'}
-                        </span>
+                      {client.patient_gender && (
+                        <>
+                          <span>•</span>
+                          <span>{client.patient_gender === 'male' || client.patient_gender === 'ذكر' ? 'ذكر' : 'أنثى'}</span>
+                        </>
                       )}
                     </div>
                 </div>
               </div>
-              
-              <div className="flex items-center gap-2 self-end md:self-auto">
+
+              <div className="flex items-center gap-2 shrink-0">
                    <Button
                       variant="outline"
                       size="sm"
@@ -95,19 +96,31 @@ export function ClientDetails({
                           onClose();
                           onEdit(client);
                       }}
-                      className="h-9 px-3 gap-2"
+                      className="h-9 gap-2"
                    >
-                      <Pencil className="w-3.5 h-3.5" />
+                      <Pencil className="w-3.5 h-3.5 shrink-0" />
                       <span className="hidden sm:inline">تعديل البيانات</span>
-                      <span className="sm:hidden">تعديل</span>
                    </Button>
 
-                   <DialogClose asChild>
-                      <Button type="button" variant="ghost" className="h-9 w-9 p-0 hover:bg-destructive/10 hover:text-destructive transition-colors">
-                          <X className="h-5 w-5" />
-                          <span className="sr-only">Close</span>
-                      </Button>
-                   </DialogClose>
+                   {client.selected_tests && client.selected_tests.length > 0 && (
+                     <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => {
+                          if (onOpenResults) {
+                            onClose();
+                            onOpenResults(client);
+                          } else {
+                            setShowResultsModal(true);
+                          }
+                        }}
+                        className="h-9 gap-2"
+                     >
+                        <FlaskConical className="w-3.5 h-3.5 shrink-0" />
+                        <span className="hidden sm:inline">تعديل النتائج</span>
+                     </Button>
+                   )}
+
               </div>
             </div>
             

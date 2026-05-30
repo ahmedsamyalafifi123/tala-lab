@@ -1774,6 +1774,11 @@ export default function LabDashboard() {
         setEditingClient(client);
         setShowAddModal(true);
       }}
+      onOpenResults={(client) => {
+        setShowDetailsSheet(false);
+        setDetailsClient(null);
+        openResultsForClient(client);
+      }}
     />
     
     {/* Import Modal */}
