@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, FlaskConical, FileText, TrendingUp, Download, Phone } from "lucide-react";
+import { Pencil, FlaskConical, FileText, TrendingUp, Download, Phone, Barcode } from "lucide-react";
 import { Client } from "@/types";
 import { TestResultsModal } from "@/components/results/test-results-modal";
 import { ResultsHistoryViewer } from "@/components/results/results-history-viewer";
 import { ClientTrendChart } from "@/components/analytics/client-trend-chart";
 import { ExportResultsDialog } from "@/components/analytics/export-results-dialog";
+import { BarcodeLabelDialog } from "@/components/barcode-label-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -42,6 +43,7 @@ export function ClientDetails({
 }: ClientDetailsProps) {
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showBarcodeDialog, setShowBarcodeDialog] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   if (!client) return null;
@@ -65,7 +67,7 @@ export function ClientDetails({
 
   const headerContent = (
     <div dir="rtl">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl border-2 border-primary/20 shrink-0">
             {client.daily_id}
@@ -90,30 +92,42 @@ export function ClientDetails({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+        <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
           <Button
             variant="outline"
             size="sm"
             onClick={() => { onClose(); onEdit(client); }}
-            className="h-9 gap-2"
+            className="h-auto min-h-9 min-w-0 gap-1.5 px-2 py-2 text-[11px] leading-tight sm:h-9 sm:min-w-[132px] sm:gap-2 sm:px-3 sm:text-sm"
           >
             <Pencil className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden sm:inline">تعديل البيانات</span>
+            <span className="whitespace-normal text-center sm:whitespace-nowrap">تعديل البيانات</span>
           </Button>
 
           {client.selected_tests && client.selected_tests.length > 0 && (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => {
-                if (onOpenResults) { onClose(); onOpenResults(client); }
-                else setShowResultsModal(true);
-              }}
-              className="h-9 gap-2"
-            >
-              <FlaskConical className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">تعديل النتائج</span>
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowBarcodeDialog(true)}
+                className="h-auto min-h-9 min-w-0 gap-1.5 px-2 py-2 text-[11px] leading-tight sm:h-9 sm:min-w-[132px] sm:gap-2 sm:px-3 sm:text-sm"
+              >
+                <Barcode className="w-3.5 h-3.5 shrink-0" />
+                <span className="whitespace-normal text-center sm:whitespace-nowrap">طباعة باركود</span>
+              </Button>
+
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  if (onOpenResults) { onClose(); onOpenResults(client); }
+                  else setShowResultsModal(true);
+                }}
+                className="h-auto min-h-9 min-w-0 gap-1.5 px-2 py-2 text-[11px] leading-tight sm:h-9 sm:min-w-[132px] sm:gap-2 sm:px-3 sm:text-sm"
+              >
+                <FlaskConical className="w-3.5 h-3.5 shrink-0" />
+                <span className="whitespace-normal text-center sm:whitespace-nowrap">تعديل النتائج</span>
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -333,6 +347,12 @@ export function ClientDetails({
         clientAge={client.patient_age}
         insuranceNumber={client.insurance_number}
         entity={client.entity}
+      />
+
+      <BarcodeLabelDialog
+        client={client}
+        isOpen={showBarcodeDialog}
+        onClose={() => setShowBarcodeDialog(false)}
       />
     </>
   );
