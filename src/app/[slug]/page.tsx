@@ -585,9 +585,9 @@ export default function LabDashboard() {
             font-weight: 400;
             font-style: normal;
           }
-          @page { size: auto; margin: 5mm; }
+          @page { size: A4 portrait; margin: 0; }
           * { box-sizing: border-box; font-family: 'Cairo', sans-serif !important; }
-          body { direction: rtl; background: #fff; color: #111827; padding: 5mm; font-size: 13px; line-height: 1.45; }
+          body { direction: rtl; background: #fff; color: #111827; padding: 0; font-size: 12px; line-height: 1.4; }
           .print-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid #2563eb; }
           .brand { display: flex; align-items: center; gap: 10px; }
           .brand img { width: 52px; height: 52px; object-fit: contain; border-radius: 8px; }
@@ -595,18 +595,18 @@ export default function LabDashboard() {
           .brand p, .meta p { margin: 0; color: #475569; font-size: 11px; font-weight: 600; }
           .meta { border: 1px solid #dbe3ef; background: #f8fafc; border-radius: 8px; padding: 8px 12px; min-width: 180px; }
           .meta strong { color: #2563eb; font-size: 13px; }
-          .details-page { break-after: auto; page-break-after: auto; padding: 5mm; min-height: 287mm; }
+          .details-page { break-before: auto; page-break-before: auto; break-after: auto; page-break-after: auto; width: 210mm; margin: 0 auto; padding: 8mm; overflow: hidden; }
           .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; align-items: start; }
-          .measure-area { position: absolute; visibility: hidden; pointer-events: none; left: -9999px; top: 0; width: calc((100% - 6mm) / 2); }
+          .measure-area { position: absolute; visibility: hidden; pointer-events: none; left: -9999px; top: 0; width: 94mm; }
           table { width: 100%; border-collapse: collapse; table-layout: fixed; }
           th, td { border: 1px solid #cbd5e1; padding: 5px 6px; vertical-align: middle; text-align: center; }
-          th { background: #f1f5f9; color: #0f172a; font-size: 13px; font-weight: 700; text-align: center; }
+          th { background: #f1f5f9; color: #0f172a; font-size: 12px; font-weight: 700; text-align: center; }
           tr { break-inside: avoid; page-break-inside: avoid; }
           tbody tr:nth-child(even) td { background: #f8fafc; }
           .serial { width: 28px; text-align: center; font-weight: 700; }
           .patient { width: 180px; text-align: center; vertical-align: middle; }
-          .patient-name { font-weight: 700; font-size: 17px; color: #0f172a; line-height: 1.3; }
-          .patient-info { margin-top: 3px; font-size: 11px; font-weight: 600; color: #475569; line-height: 1.3; }
+          .patient-name { font-weight: 700; font-size: 15px; color: #0f172a; line-height: 1.25; }
+          .patient-info { margin-top: 3px; font-size: 10px; font-weight: 600; color: #475569; line-height: 1.25; }
           .patient-info div { display: flex; align-items: center; justify-content: flex-start; gap: 4px; direction: rtl; text-align: right; border-top: 1px dotted #cbd5e1; padding-top: 2px; margin-top: 2px; }
           .patient-info div:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
           .patient-info-icon { width: 11px; height: 11px; color: #0f172a; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
@@ -614,13 +614,13 @@ export default function LabDashboard() {
           .results { width: 62px; direction: ltr; text-align: center; }
           .test-name, .test-result { height: 24px; min-height: 24px; padding: 3px 4px; border-bottom: 1px dashed #e2e8f0; display: flex; align-items: center; justify-content: center; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .test-name:last-child, .test-result:last-child { border-bottom: 0; }
-          .test-name { font-weight: 700; color: #0f172a; font-size: 15px; }
-          .test-result { font-weight: 700; color: #0f172a; font-size: 13px; }
+          .test-name { font-weight: 700; color: #0f172a; font-size: 13px; }
+          .test-result { font-weight: 700; color: #0f172a; font-size: 12px; }
           .empty-tests { color: #94a3b8; }
           @media print {
             body { padding: 0; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-            .details-page:not(.is-last) { break-after: page !important; page-break-after: always !important; }
-            .details-page.is-last { break-after: auto !important; page-break-after: auto !important; }
+            .details-page:not(.is-first) { break-before: page !important; page-break-before: always !important; }
+            .details-page { break-after: auto !important; page-break-after: auto !important; }
             .details-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 6mm !important; }
             .measure-area { display: none !important; }
             th { background: #f1f5f9 !important; }
@@ -641,7 +641,7 @@ export default function LabDashboard() {
         <script>
           (() => {
             const MM_TO_PX = 96 / 25.4;
-            const pageContentHeight = 277 * MM_TO_PX;
+            const pageContentHeight = 281 * MM_TO_PX;
             const tableHeader = ${JSON.stringify(tableHeaderHtml)};
             const pageHeader = ${JSON.stringify(pageHeaderHtml)};
             const emptyRow = ${JSON.stringify(emptyRowHtml)};
@@ -664,6 +664,28 @@ export default function LabDashboard() {
               return table;
             };
 
+            const balanceLastPageColumns = (columns, rowHeights) => {
+              const totalRows = columns[0].length + columns[1].length;
+              if (totalRows <= 1 || Math.abs(columns[0].length - columns[1].length) <= 1) return columns;
+
+              const allRows = [...columns[0], ...columns[1]];
+              const targetFirstColumnCount = Math.ceil(totalRows / 2);
+              const balanced = [
+                allRows.slice(0, targetFirstColumnCount),
+                allRows.slice(targetFirstColumnCount),
+              ];
+              const originalTallest = Math.max(
+                columns[0].reduce((total, rowIndex) => total + (rowHeights[rowIndex] || 40), 0),
+                columns[1].reduce((total, rowIndex) => total + (rowHeights[rowIndex] || 40), 0)
+              );
+              const balancedTallest = Math.max(
+                balanced[0].reduce((total, rowIndex) => total + (rowHeights[rowIndex] || 40), 0),
+                balanced[1].reduce((total, rowIndex) => total + (rowHeights[rowIndex] || 40), 0)
+              );
+
+              return balancedTallest <= originalTallest ? balanced : columns;
+            };
+
             const paginateDetails = () => {
               const root = document.getElementById("details-pages");
               const measureAreas = Array.from(document.querySelectorAll(".measure-area"));
@@ -676,7 +698,7 @@ export default function LabDashboard() {
 
               if (sourceRows.length === 0) {
                 const page = document.createElement("div");
-                page.className = "details-page";
+                page.className = "details-page is-first is-last";
                 page.innerHTML = pageHeader;
                 const grid = document.createElement("div");
                 grid.className = "details-grid";
@@ -696,7 +718,7 @@ export default function LabDashboard() {
               );
 
               let rowIndex = 0;
-              let pageIndex = 0;
+              const pageColumns = [];
 
               while (rowIndex < sourceRows.length) {
                 const columns = [[], []];
@@ -713,20 +735,27 @@ export default function LabDashboard() {
                   }
                 }
 
+                pageColumns.push(columns);
+              }
+
+              pageColumns.forEach((columns, pageIndex) => {
+                const printableColumns = pageIndex === pageColumns.length - 1
+                  ? balanceLastPageColumns(columns, rowHeights)
+                  : columns;
                 const page = document.createElement("div");
                 page.className = "details-page";
                 page.innerHTML = pageHeader;
                 const grid = document.createElement("div");
                 grid.className = "details-grid";
-                grid.appendChild(makeTable(columns[0], sourceRows));
-                grid.appendChild(makeTable(columns[1], sourceRows));
+                grid.appendChild(makeTable(printableColumns[0], sourceRows));
+                grid.appendChild(makeTable(printableColumns[1], sourceRows));
                 page.appendChild(grid);
                 root.appendChild(page);
-                pageIndex += 1;
-              }
+              });
 
               const createdPages = Array.from(root.querySelectorAll(".details-page"));
               createdPages.forEach((page, index) => {
+                page.classList.toggle("is-first", index === 0);
                 page.classList.toggle("is-last", index === createdPages.length - 1);
               });
               measureAreas.forEach((area) => area.remove());
