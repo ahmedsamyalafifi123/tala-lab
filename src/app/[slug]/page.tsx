@@ -496,9 +496,12 @@ export default function LabDashboard() {
       recorded_at?: string;
       tests?: Record<string, { value?: string | number; unit?: string }>;
     };
+    type PrintableRow = {
+      html: string;
+    };
 
     const sortedData = printReversed ? [...filteredClients].reverse() : filteredClients;
-    const rows = sortedData.map((client, index) => {
+    const rows = sortedData.map<PrintableRow>((client, index) => {
       const entries = Array.isArray(client.results?.entries)
         ? (client.results.entries as PrintableResult[])
         : [];
@@ -520,19 +523,39 @@ export default function LabDashboard() {
         ? testCodes.map(() => `<div class="test-result">&nbsp;</div>`).join("")
         : `<span class="empty-tests">&nbsp;</span>`;
 
-      return `
-        <tr>
-          <td class="serial">${useSequentialTestNumbers ? index + 1 : client.daily_id}</td>
-          <td class="patient">${escapeHtml(client.patient_name)}</td>
-          <td class="tests">${testsHtml}</td>
-          <td class="results">${resultsHtml}</td>
-        </tr>
-      `;
+      const infoParts: string[] = [];
+      if (client.patient_age !== undefined && client.patient_age !== null) infoParts.push(`${escapeHtml(String(client.patient_age))} سنة`);
+      if (client.patient_phone) infoParts.push(escapeHtml(client.patient_phone));
+      const clientInfoHtml = infoParts.length > 0
+        ? `<div class="patient-info">${infoParts.join(' • ')}</div>`
+        : '';
+
+      return {
+        html: `
+          <tr>
+            <td class="serial">${useSequentialTestNumbers ? index + 1 : client.daily_id}</td>
+            <td class="patient">
+              <div class="patient-name">${escapeHtml(client.patient_name)}</div>
+              ${clientInfoHtml}
+            </td>
+            <td class="tests">${testsHtml}</td>
+            <td class="results">${resultsHtml}</td>
+          </tr>
+        `,
+      };
     });
-    const midpoint = Math.ceil(rows.length / 2);
-    const columns = [rows.slice(0, midpoint), rows.slice(midpoint)];
-    const renderRows = (columnRows: string[]) =>
-      columnRows.join("") || `<tr><td colspan="4" style="text-align:center; padding: 20px;">لا توجد بيانات</td></tr>`;
+    const emptyRowHtml = `<tr><td colspan="4" style="text-align:center; padding: 20px;">لا توجد بيانات</td></tr>`;
+    const rowsHtml = rows.length > 0 ? rows.map((row) => row.html).join("") : emptyRowHtml;
+    const tableHeaderHtml = `
+      <thead>
+        <tr>
+          <th style="width: 28px;">م</th>
+          <th style="width: 180px;">الاسم</th>
+          <th>التحاليل</th>
+          <th style="width: 62px;">النتائج</th>
+        </tr>
+      </thead>
+    `;
 
     return `
       <!DOCTYPE html>
@@ -549,7 +572,7 @@ export default function LabDashboard() {
           }
           @page { size: auto; margin: 5mm; }
           * { box-sizing: border-box; font-family: 'Cairo', sans-serif !important; }
-          body { direction: rtl; background: #fff; color: #111827; padding: 5mm; font-size: 11px; line-height: 1.4; }
+          body { direction: rtl; background: #fff; color: #111827; padding: 5mm; font-size: 13px; line-height: 1.45; }
           .print-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid #2563eb; }
           .brand { display: flex; align-items: center; gap: 10px; }
           .brand img { width: 52px; height: 52px; object-fit: contain; border-radius: 8px; }
@@ -557,25 +580,32 @@ export default function LabDashboard() {
           .brand p, .meta p { margin: 0; color: #475569; font-size: 11px; font-weight: 600; }
           .meta { border: 1px solid #dbe3ef; background: #f8fafc; border-radius: 8px; padding: 8px 12px; min-width: 180px; }
           .meta strong { color: #2563eb; font-size: 13px; }
+          .details-page { break-after: auto; page-break-after: auto; }
+          .details-page + .details-page { padding-top: 8mm; }
           .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; align-items: start; }
+          .measure-area { position: absolute; visibility: hidden; pointer-events: none; left: -9999px; top: 0; width: calc((100% - 6mm) / 2); }
           table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-          th, td { border: 1px solid #cbd5e1; padding: 4px 5px; vertical-align: top; }
-          th { background: #f1f5f9; color: #0f172a; font-size: 11px; font-weight: 700; text-align: center; }
+          th, td { border: 1px solid #cbd5e1; padding: 5px 6px; vertical-align: middle; text-align: center; }
+          th { background: #f1f5f9; color: #0f172a; font-size: 13px; font-weight: 700; text-align: center; }
           tr { break-inside: avoid; page-break-inside: avoid; }
           tbody tr:nth-child(even) td { background: #f8fafc; }
           .serial { width: 28px; text-align: center; font-weight: 700; }
-          .patient { width: 180px; text-align: center; font-weight: 700; }
+          .patient { width: 180px; text-align: center; vertical-align: middle; }
+          .patient-name { font-weight: 700; font-size: 17px; color: #0f172a; line-height: 1.3; }
+          .patient-info { margin-top: 3px; font-size: 11px; font-weight: 600; color: #475569; line-height: 1.3; }
           .tests { width: auto; text-align: center; }
           .results { width: 62px; direction: ltr; text-align: center; }
-          .test-name, .test-result { min-height: 20px; padding: 2px 3px; border-bottom: 1px dashed #e2e8f0; display: flex; align-items: center; justify-content: center; overflow-wrap: anywhere; }
+          .test-name, .test-result { height: 24px; min-height: 24px; padding: 3px 4px; border-bottom: 1px dashed #e2e8f0; display: flex; align-items: center; justify-content: center; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .test-name:last-child, .test-result:last-child { border-bottom: 0; }
-          .test-name { font-weight: 700; color: #0f172a; font-size: 10px; line-height: 1.25; }
-          .test-result { font-weight: 700; color: #0f172a; white-space: nowrap; }
+          .test-name { font-weight: 700; color: #0f172a; font-size: 15px; }
+          .test-result { font-weight: 700; color: #0f172a; font-size: 13px; }
           .empty-tests { color: #94a3b8; }
-          .print-footer { margin-top: 14px; padding-top: 8px; border-top: 1px solid #e2e8f0; text-align: center; color: #64748b; font-size: 10px; }
           @media print {
             body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            .details-page:not(.is-last) { break-after: page !important; page-break-after: always !important; }
+            .details-page.is-last { break-after: auto !important; page-break-after: auto !important; }
             .details-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 6mm !important; }
+            .measure-area { display: none !important; }
             th { background: #f1f5f9 !important; }
             tbody tr:nth-child(even) td { background: #f8fafc !important; }
           }
@@ -596,23 +626,122 @@ export default function LabDashboard() {
           </div>
         </div>
 
-        <div class="details-grid">
-          ${columns.map((columnRows) => `
-            <table>
-              <thead>
-                <tr>
-                  <th style="width: 28px;">م</th>
-                  <th style="width: 180px;">الاسم</th>
-                  <th>التحاليل</th>
-                  <th style="width: 62px;">النتائج</th>
-                </tr>
-              </thead>
-              <tbody>${renderRows(columnRows)}</tbody>
-            </table>
-          `).join("")}
+        <div id="details-pages"></div>
+        <div class="measure-area" aria-hidden="true">
+          <table>
+            ${tableHeaderHtml}
+            <tbody id="measure-rows">${rowsHtml}</tbody>
+          </table>
         </div>
 
-        <div class="print-footer">تم الطباعة في ${escapeHtml(format(new Date(), "EEEE d/M/yyyy - h:mm a", { locale: ar }))}</div>
+        <script>
+          (() => {
+            const MM_TO_PX = 96 / 25.4;
+            const pageContentHeight = 277 * MM_TO_PX;
+            const continuedPageTopPadding = 8 * MM_TO_PX;
+            const tableHeader = ${JSON.stringify(tableHeaderHtml)};
+            const emptyRow = ${JSON.stringify(emptyRowHtml)};
+            let hasPaginated = false;
+
+            const makeTable = (rowIndexes, sourceRows) => {
+              const table = document.createElement("table");
+              table.innerHTML = tableHeader + "<tbody></tbody>";
+              const tbody = table.querySelector("tbody");
+              if (!tbody) return table;
+
+              if (rowIndexes.length === 0 && sourceRows.length === 0) {
+                tbody.innerHTML = emptyRow;
+                return table;
+              }
+
+              rowIndexes.forEach((rowIndex) => {
+                tbody.appendChild(sourceRows[rowIndex].cloneNode(true));
+              });
+              return table;
+            };
+
+            const paginateDetails = () => {
+              const root = document.getElementById("details-pages");
+              const measureArea = document.querySelector(".measure-area");
+              const sourceRows = Array.from(document.querySelectorAll("#measure-rows tr"));
+              const header = document.querySelector(".print-header");
+              const measureTable = document.querySelector(".measure-area table");
+              if (!root || !measureTable) return;
+
+              root.innerHTML = "";
+
+              if (sourceRows.length === 0) {
+                const page = document.createElement("div");
+                page.className = "details-page";
+                const grid = document.createElement("div");
+                grid.className = "details-grid";
+                grid.appendChild(makeTable([], []));
+                grid.appendChild(makeTable([], sourceRows));
+                page.appendChild(grid);
+                root.appendChild(page);
+                return;
+              }
+
+              const rowHeights = sourceRows.map((row) => Math.ceil(row.getBoundingClientRect().height));
+              const tableHeadHeight = Math.ceil(measureTable.querySelector("thead")?.getBoundingClientRect().height || 34);
+              const firstPageHeaderHeight = Math.ceil(header?.getBoundingClientRect().height || 0) + 18;
+              const getColumnLimit = (isFirstPage) => Math.max(
+                220,
+                pageContentHeight - tableHeadHeight - (isFirstPage ? firstPageHeaderHeight : continuedPageTopPadding)
+              );
+
+              let rowIndex = 0;
+              let pageIndex = 0;
+
+              while (rowIndex < sourceRows.length) {
+                const columnLimit = getColumnLimit(pageIndex === 0);
+                const columns = [[], []];
+
+                for (let columnIndex = 0; columnIndex < 2 && rowIndex < sourceRows.length; columnIndex += 1) {
+                  let usedHeight = 0;
+
+                  while (rowIndex < sourceRows.length) {
+                    const rowHeight = rowHeights[rowIndex] || 40;
+                    if (columns[columnIndex].length > 0 && usedHeight + rowHeight > columnLimit) break;
+                    columns[columnIndex].push(rowIndex);
+                    usedHeight += rowHeight;
+                    rowIndex += 1;
+                  }
+                }
+
+                const page = document.createElement("div");
+                page.className = "details-page";
+                const grid = document.createElement("div");
+                grid.className = "details-grid";
+                grid.appendChild(makeTable(columns[0], sourceRows));
+                grid.appendChild(makeTable(columns[1], sourceRows));
+                page.appendChild(grid);
+                root.appendChild(page);
+                pageIndex += 1;
+              }
+
+              const createdPages = Array.from(root.querySelectorAll(".details-page"));
+              createdPages.forEach((page, index) => {
+                page.classList.toggle("is-last", index === createdPages.length - 1);
+              });
+              measureArea?.remove();
+            };
+
+            const ready = () => {
+              if (hasPaginated) return;
+              hasPaginated = true;
+              paginateDetails();
+              window.__detailsPrintReady = true;
+            };
+
+            if (document.fonts?.ready) {
+              document.fonts.ready.then(ready);
+            } else {
+              window.addEventListener("load", ready);
+            }
+            setTimeout(ready, 500);
+          })();
+        </script>
       </body>
       </html>
     `;
@@ -625,10 +754,16 @@ export default function LabDashboard() {
     printWindow.document.write(getDetailedPrintHtml());
     printWindow.document.close();
     printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-      // don't close — mobile needs the window open for the print dialog to appear
-    }, 1000);
+    const startedAt = Date.now();
+    const printWhenReady = () => {
+      if ((printWindow as Window & { __detailsPrintReady?: boolean }).__detailsPrintReady || Date.now() - startedAt > 2500) {
+        printWindow.print();
+        // don't close — mobile needs the window open for the print dialog to appear
+        return;
+      }
+      setTimeout(printWhenReady, 100);
+    };
+    printWhenReady();
   };
 
   const handleBulkExportPDF = () => {
