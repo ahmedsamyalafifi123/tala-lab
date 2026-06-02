@@ -67,7 +67,7 @@ export function TestResultsModal({
 }: TestResultsModalProps) {
   const { toast } = useToast();
   const { tests, loading: testsLoading } = useLabTests();
-  const { selectedTests, results, addResultEntry, updateResultEntry, loading: resultsLoading } = useClientResults(clientUuid);
+  const { selectedTests, results, addResultEntry, updateResultEntry, deleteResultEntry, loading: resultsLoading } = useClientResults(clientUuid);
   const [saving, setSaving] = useState(false);
   const [testValues, setTestValues] = useState<Record<string, { value: string; notes?: string }>>({});
   const [overallNotes, setOverallNotes] = useState("");
@@ -88,9 +88,17 @@ export function TestResultsModal({
     getUserId();
   }, []);
 
-  // Filter tests based on selected_tests
+  const editingEntry = editingEntryId
+    ? results.entries?.find((entry) => entry.entry_id === editingEntryId)
+    : null;
+
+  const editableTestCodes = editingEntry
+    ? Array.from(new Set([...selectedTests, ...Object.keys(editingEntry.tests || {})]))
+    : selectedTests;
+
+  // Filter tests based on selected_tests, plus saved result codes while editing.
   const availableTests = tests.filter((test) =>
-    selectedTests.includes(test.test_code)
+    editableTestCodes.includes(test.test_code)
   );
 
   const groupedTests = groupTestsByCategory(availableTests);
@@ -151,6 +159,38 @@ export function TestResultsModal({
   const handleSubmit = async () => {
     // Validate at least one test has a value
     const filledTests = Object.entries(testValues).filter(([, data]) => data.value && data.value.trim());
+
+    if (filledTests.length === 0 && editingEntryId) {
+      setSaving(true);
+
+      try {
+        const result = await deleteResultEntry(editingEntryId);
+
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        toast({
+          title: "تم الحذف",
+          description: "تم حذف نتائج التحاليل بنجاح",
+        });
+
+        setViewMode("history");
+        setTestValues({});
+        setOverallNotes("");
+        setEditingEntryId(null);
+      } catch (error: unknown) {
+        toast({
+          title: "خطأ",
+          description: error instanceof Error ? error.message : "حدث خطأ أثناء الحذف",
+          variant: "destructive",
+        });
+      } finally {
+        setSaving(false);
+      }
+
+      return;
+    }
 
     if (filledTests.length === 0) {
       toast({
@@ -531,6 +571,12 @@ export function TestResultsModal({
                   </div>
                );
             })}
+          </div>
+        )}
+
+        {viewMode === "history" && (!results.entries || results.entries.length === 0) && (
+          <div className="flex min-h-[280px] flex-col items-center justify-center gap-3 py-12 text-center">
+            <h3 className="text-lg font-semibold">لا توجد نتائج مسجلة</h3>
           </div>
         )}
 
