@@ -494,17 +494,27 @@ export default function LabDashboard() {
   const getDetailedPrintHtml = () => {
     type PrintableResult = {
       recorded_at?: string;
-      tests?: Record<string, { value?: string | number; unit?: string }>;
+      tests?: Record<string, { value?: string | number; unit?: string } | string | number>;
     };
     type PrintableRow = {
       html: string;
     };
 
     const sortedData = printReversed ? [...filteredClients].reverse() : filteredClients;
-    const rows = sortedData.map<PrintableRow>((client, index) => {
+    const clientGroupKey = (client: Client) => client.client_group_id || client.uuid;
+    const resultEntriesByClientGroup = new Map<string, PrintableResult[]>();
+    clients.forEach((client) => {
       const entries = Array.isArray(client.results?.entries)
         ? (client.results.entries as PrintableResult[])
         : [];
+      if (entries.length === 0) return;
+
+      const key = clientGroupKey(client);
+      resultEntriesByClientGroup.set(key, [...(resultEntriesByClientGroup.get(key) || []), ...entries]);
+    });
+
+    const rows = sortedData.map<PrintableRow>((client, index) => {
+      const entries = resultEntriesByClientGroup.get(clientGroupKey(client)) || [];
       const latestEntry = [...entries].sort(
         (a, b) => new Date(b.recorded_at || 0).getTime() - new Date(a.recorded_at || 0).getTime()
       )[0];
@@ -520,7 +530,14 @@ export default function LabDashboard() {
           }).join("")
         : `<span class="empty-tests">No tests selected</span>`;
       const resultsHtml = testCodes.length > 0
-        ? testCodes.map(() => `<div class="test-result">&nbsp;</div>`).join("")
+        ? testCodes.map((code) => {
+            const result = latestEntry?.tests?.[code] ?? Object.entries(latestEntry?.tests || {}).find(([resultCode]) => resultCode.trim() === code.trim())?.[1];
+            const resultValue = result && typeof result === "object" && "value" in result ? result.value : result;
+            const displayValue = resultValue !== undefined && resultValue !== null && String(resultValue).trim() !== ""
+              ? escapeHtml(resultValue)
+              : "&nbsp;";
+            return `<div class="test-result">${displayValue}</div>`;
+          }).join("")
         : `<span class="empty-tests">&nbsp;</span>`;
 
       const insuranceIcon = `<svg class="patient-info-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M7 9h4M7 13h7M16 9h1"></path></svg>`;
