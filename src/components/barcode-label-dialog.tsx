@@ -6,6 +6,7 @@ import { Check, Printer, Search, X } from "lucide-react";
 import { Client } from "@/types";
 import { useLabContext } from "@/contexts/LabContext";
 import { useLabTests } from "@/hooks/use-lab-tests";
+import { getLabDisplayName } from "@/lib/lab-display-name";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -181,7 +182,7 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
   const matchingPresetId = LABEL_SIZE_PRESETS.find(
     (preset) => preset.widthMm === normalizedLabelSize.widthMm && preset.heightMm === normalizedLabelSize.heightMm
   )?.id;
-  const labDisplayName = labName || (labSlug ? `معمل ${labSlug}` : "المعمل");
+  const labDisplayName = getLabDisplayName(labName, labSlug);
   const barcodeValue = sanitizeBarcodeValue(`${client.daily_id}-${client.uuid.slice(0, 8).toUpperCase()}`);
   const patientGender = client.patient_gender
     ? (client.patient_gender === "male" || client.patient_gender === "ذكر" ? "Male" : "Female")

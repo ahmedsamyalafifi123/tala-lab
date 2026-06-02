@@ -35,6 +35,7 @@ import { Client, Category } from "@/types";
 import { useLabContext } from "@/contexts/LabContext";
 import { useLabTests } from "@/hooks/use-lab-tests";
 import { fuzzyMatchArabic } from "@/lib/arabic-utils";
+import { getLabDisplayName } from "@/lib/lab-display-name";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ClientModal } from "@/components/client-modal";
 import { SettingsModal } from "@/components/settings-modal";
@@ -474,8 +475,7 @@ export default function LabDashboard() {
   };
 
   const getDisplayLabName = () => {
-    const name = labName || (labSlug === "shohada" ? "الشهداء" : labSlug) || "المعمل";
-    return name.startsWith("معمل") ? name : `معمل ${name}`;
+    return getLabDisplayName(labName, labSlug);
   };
 
   const escapeHtml = (value: unknown) =>
