@@ -1148,21 +1148,137 @@ export default function LabDashboard() {
     }
   };
 
+  const joinForExcel = (values?: unknown[]) =>
+    Array.isArray(values) ? values.filter(Boolean).map(String).join(", ") : "";
+
+  const stringifyForExcel = (value: unknown) => {
+    if (value === undefined || value === null || value === "") return "";
+    if (typeof value === "string") return value;
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  };
+
+  const getExcelCell = (row: Record<string, unknown>, keys: string[]) => {
+    for (const key of keys) {
+      const value = row[key];
+      if (value !== undefined && value !== null && String(value).trim() !== "") return value;
+    }
+    return undefined;
+  };
+
+  const parseExcelString = (value: unknown) => {
+    if (value === undefined || value === null) return "";
+    return String(value).trim();
+  };
+
+  const parseExcelNumber = (value: unknown) => {
+    if (value === undefined || value === null || value === "") return undefined;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
+
+  const parseExcelList = (value: unknown) => {
+    if (Array.isArray(value)) return value.map(String).map((item) => item.trim()).filter(Boolean);
+    const text = parseExcelString(value);
+    if (!text) return [];
+    if (text.startsWith("[") && text.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) return parsed.map(String).map((item) => item.trim()).filter(Boolean);
+      } catch {
+        // Fall through to delimiter parsing.
+      }
+    }
+    return text.split(/[,،;\n]/).map((item) => item.trim()).filter(Boolean);
+  };
+
+  const parseExcelJson = (value: unknown) => {
+    const text = parseExcelString(value);
+    if (!text) return undefined;
+    try {
+      return JSON.parse(text);
+    } catch {
+      return undefined;
+    }
+  };
+
+  const parseExcelDate = (value: unknown) => {
+    if (typeof value === "number") {
+      const excelDate = new Date((value - 25569) * 86400 * 1000);
+      return format(excelDate, "yyyy-MM-dd");
+    }
+    if (typeof value === "string" && value.trim()) {
+      const parsedDate = new Date(value);
+      if (!isNaN(parsedDate.getTime())) return format(parsedDate, "yyyy-MM-dd");
+    }
+    return format(new Date(), "yyyy-MM-dd");
+  };
+
   const exportToExcel = () => {
     setIsExporting(true);
     try {
       const exportData = filteredClients.map((client, index) => ({
         "#": index + 1,
+        "uuid": client.uuid,
+        "client_group_id": client.client_group_id || "",
+        "lab_id": client.lab_id,
         "الرقم اليومي": client.daily_id,
+        "daily_id": client.daily_id,
         "التاريخ": format(new Date(client.daily_date), "yyyy-MM-dd"),
+        "daily_date": format(new Date(client.daily_date), "yyyy-MM-dd"),
         "الاسم": client.patient_name,
+        "patient_name": client.patient_name,
+        "النوع": client.patient_gender || "",
+        "patient_gender": client.patient_gender || "",
+        "السن": client.patient_age ?? "",
+        "patient_age": client.patient_age ?? "",
+        "الهاتف": client.patient_phone || "",
+        "patient_phone": client.patient_phone || "",
+        "الرقم التأميني": client.insurance_number || "",
+        "insurance_number": client.insurance_number || "",
+        "الجهة": client.entity || "",
+        "entity": client.entity || "",
         "التصنيف": (client.categories || []).join(", "),
+        "categories": joinForExcel(client.categories),
+        "primary_category": client.primary_category || "",
+        "selected_tests": joinForExcel(client.selected_tests),
+        "selected_tests_json": stringifyForExcel(client.selected_tests || []),
+        "أسماء التحاليل": joinForExcel((client.selected_tests || []).map((code) => getTestLabel(code))),
+        "results_json": stringifyForExcel(client.results || {}),
         "الملاحظات": client.notes || "-",
+        "notes": client.notes || "",
+        "created_at": client.created_at || "",
+        "updated_at": client.updated_at || "",
+      }));
+      const testsData = labTests.map((test, index) => ({
+        "#": index + 1,
+        "test_code": test.test_code,
+        "test_name_ar": test.test_name_ar,
+        "test_name_en": test.test_name_en,
+        "category": test.category,
+        "unit": test.unit || "",
+        "display_order": test.display_order,
+        "is_active": test.is_active,
+        "reference_ranges_json": stringifyForExcel(test.reference_ranges || {}),
+      }));
+      const categoriesData = categories.map((category, index) => ({
+        "#": index + 1,
+        "id": category.id,
+        "name": category.name,
+        "name_en": category.name_en || "",
+        "display_order": category.display_order,
+        "is_active": category.is_active,
+        "tests_json": stringifyForExcel(category.tests || []),
       }));
 
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "العملاء");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(testsData), "التحاليل");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(categoriesData), "التصنيفات");
       
       const filename = `clients_${labSlug || 'lab'}_${format(new Date(), "yyyy-MM-dd")}.xlsx`;
       XLSX.writeFile(wb, filename);
@@ -1191,59 +1307,45 @@ export default function LabDashboard() {
         return;
       }
 
+      const validCategoryNames = new Set(categories.map(c => c.name));
+      const dummyCategories = ['-', 'ص.م', '_', '.', 'null', 'N/A', 'NA'];
       const importedClients = jsonData.map((row) => {
-        const dailyId = row["id"] || row["daily_id"] || row["الرقم اليومي"] || row["رقم"];
-        const dateValue = row["date"] || row["client_date"] || row["daily_date"] || row["التاريخ"] || row["تاريخ"];
-        const name = row["name"] || row["patient_name"] || row["الاسم"] || row["اسم"];
-        const notes = row["notes"] || row["الملاحظات"] || row["ملاحظات"] || "";
-        const categoryRaw = row["category"] || row["categories"] || row["التصنيف"] || null;
+        const dailyId = getExcelCell(row, ["daily_id", "id", "الرقم اليومي", "رقم"]);
+        const dateValue = getExcelCell(row, ["daily_date", "date", "client_date", "التاريخ", "تاريخ"]);
+        const name = getExcelCell(row, ["patient_name", "name", "الاسم", "اسم"]);
+        const notes = getExcelCell(row, ["notes", "الملاحظات", "ملاحظات"]);
+        const categoryRaw = getExcelCell(row, ["categories", "category", "التصنيف"]);
+        const selectedTestsRaw = getExcelCell(row, ["selected_tests_json", "selected_tests", "التحاليل", "أكواد التحاليل"]);
+        const resultsRaw = getExcelCell(row, ["results_json", "results", "النتائج"]);
+        if (!name) return null;
 
-        // Get valid category names from the lab
-        const validCategoryNames = new Set(categories.map(c => c.name));
-
-        let categoryVal: string[] = [];
-        if (categoryRaw) {
-           const catStr = String(categoryRaw).trim();
-           categoryVal = catStr.split(/,|،/).map(s => s.trim()).filter(Boolean);
-        }
-
-        // Filter out invalid/dummy category values and replace with "عام"
-        // Invalid values: -, ص.م, _, null, empty strings, or any category not in the lab
-        const dummyCategories = ['-', 'ص.م', '_', '.', 'null', 'N/A', 'NA'];
+        let categoryVal = parseExcelList(categoryRaw);
         categoryVal = categoryVal.filter(cat =>
           cat && !dummyCategories.includes(cat) && validCategoryNames.has(cat)
         );
+        if (categoryVal.length === 0) categoryVal = ['عام'];
 
-        // Default to "عام" if no valid categories remain
-        if (categoryVal.length === 0) {
-          categoryVal = ['عام'];
-        }
-
-        let clientDate: string;
-        if (typeof dateValue === "number") {
-          const excelDate = new Date((dateValue - 25569) * 86400 * 1000);
-          clientDate = format(excelDate, "yyyy-MM-dd");
-        } else if (typeof dateValue === "string") {
-          const parsedDate = new Date(dateValue);
-          if (!isNaN(parsedDate.getTime())) {
-            clientDate = format(parsedDate, "yyyy-MM-dd");
-          } else {
-            clientDate = format(new Date(), "yyyy-MM-dd");
-          }
-        } else {
-          clientDate = format(new Date(), "yyyy-MM-dd");
-        }
-
-        if (!name) return null;
+        const patientGender = parseExcelString(getExcelCell(row, ["patient_gender", "gender", "النوع"])) || "ذكر";
+        const patientPhone = parseExcelString(getExcelCell(row, ["patient_phone", "phone", "الهاتف", "رقم الهاتف"]));
+        const insuranceNumber = parseExcelString(getExcelCell(row, ["insurance_number", "الرقم التأميني", "رقم تأميني"]));
+        const entity = parseExcelString(getExcelCell(row, ["entity", "الجهة"]));
+        const patientAge = parseExcelNumber(getExcelCell(row, ["patient_age", "age", "السن", "العمر"]));
+        const selectedTests = parseExcelList(selectedTestsRaw);
+        const results = parseExcelJson(resultsRaw);
 
         return {
-          lab_id: labId,
           patient_name: String(name).trim(),
-          notes: notes ? String(notes).trim() : null,
+          notes: parseExcelString(notes),
           categories: categoryVal,
-          daily_date: clientDate,
-          created_by: currentUserId,
-          // daily_id: handled by DB trigger typically
+          daily_date: parseExcelDate(dateValue),
+          daily_id: parseExcelNumber(dailyId) ?? null,
+          selected_tests: selectedTests,
+          patient_gender: patientGender,
+          patient_phone: patientPhone || null,
+          insurance_number: insuranceNumber || null,
+          entity: entity || null,
+          patient_age: patientAge ?? null,
+          results,
         };
       }).filter(Boolean);
 
@@ -1252,20 +1354,67 @@ export default function LabDashboard() {
         return;
       }
 
-      // For imports, use the direct insert method (much faster)
-      // We'll let the database trigger handle daily_id assignment
-      // The trigger already handles conflicts by shifting IDs
-      const { error } = await supabase
-        .from("clients")
-        .insert(importedClients);
+      let importedCount = 0;
+      for (const importedClient of importedClients) {
+        const clientData = importedClient as {
+          patient_name: string;
+          notes: string;
+          categories: string[];
+          daily_date: string;
+          daily_id: number | null;
+          selected_tests: string[];
+          patient_gender: string;
+          patient_phone: string | null;
+          insurance_number: string | null;
+          entity: string | null;
+          patient_age: number | null;
+          results?: unknown;
+        };
 
-      if (error) {
-        console.error("Error importing:", error);
-        alert(`حدث خطأ أثناء الاستيراد: ${error.message || 'Unknown error'}`);
-      } else {
-        await fetchClients();
-        alert(`تم استيراد ${importedClients.length} حالة بنجاح`);
+        const { data: insertedRows, error } = await supabase.rpc('insert_client_multi_category', {
+          p_lab_id: labId,
+          p_patient_name: clientData.patient_name,
+          p_notes: clientData.notes || '',
+          p_categories: clientData.categories,
+          p_daily_date: clientData.daily_date,
+          p_manual_id: clientData.daily_id,
+          p_created_by: currentUserId,
+          p_selected_tests: clientData.selected_tests,
+          p_patient_gender: clientData.patient_gender,
+          p_patient_phone: clientData.patient_phone,
+          p_insurance_number: clientData.insurance_number,
+          p_entity: clientData.entity,
+          p_patient_age: clientData.patient_age
+        });
+
+        if (error) throw error;
+
+        if (clientData.results !== undefined) {
+          const insertedGroupId = Array.isArray(insertedRows) && insertedRows[0]?.ret_client_group_id
+            ? insertedRows[0].ret_client_group_id
+            : null;
+          const insertedUuid = Array.isArray(insertedRows) && insertedRows[0]?.ret_uuid
+            ? insertedRows[0].ret_uuid
+            : null;
+
+          let updateQuery = supabase.from("clients").update({ results: clientData.results });
+          if (insertedGroupId) {
+            updateQuery = updateQuery.eq("client_group_id", insertedGroupId);
+          } else if (insertedUuid) {
+            updateQuery = updateQuery.eq("uuid", insertedUuid);
+          } else {
+            throw new Error("Import created a client but did not return an id for restoring results");
+          }
+
+          const { error: resultsError } = await updateQuery;
+          if (resultsError) throw resultsError;
+        }
+
+        importedCount += 1;
       }
+
+      await fetchClients();
+      alert(`تم استيراد ${importedCount} حالة بنجاح`);
     } catch (error) {
       console.error("Error importing:", error);
       alert("حدث خطأ أثناء الاستيراد");
