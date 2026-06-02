@@ -71,6 +71,44 @@ const normalizeLabelSize = (size: LabelSize): LabelSize => ({
   heightMm: clampLabelDimension(Math.round(size.heightMm), 15, 80),
 });
 
+const clampNumber = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const roundCss = (value: number) => Number(value.toFixed(2));
+
+const getLabelMetrics = (size: LabelSize) => {
+  const { widthMm, heightMm } = normalizeLabelSize(size);
+  const widthScale = widthMm / DEFAULT_LABEL_SIZE.widthMm;
+  const heightScale = heightMm / DEFAULT_LABEL_SIZE.heightMm;
+  const scale = clampNumber(Math.sqrt(widthScale * heightScale), 0.68, 1.65);
+  const compact = widthMm <= 50 || heightMm <= 25;
+
+  const marginMm = roundCss(clampNumber(heightMm * 0.028, 0.35, 1.2));
+  const paddingX = roundCss(clampNumber(widthMm * 0.032, 0.75, 2.6));
+  const paddingY = roundCss(clampNumber(heightMm * 0.036, 0.45, 1.8));
+  const gapMm = roundCss(clampNumber(heightMm * 0.018, 0.18, 0.75));
+  const testsHeight = roundCss(clampNumber(heightMm * 0.22, 3.2, 10));
+
+  return {
+    marginMm,
+    paddingX,
+    paddingY,
+    gapMm,
+    topGapMm: roundCss(clampNumber(widthMm * 0.026, 0.8, 2.5)),
+    nameFont: roundCss(clampNumber(8.2 * scale, 6.8, 13.5)),
+    labFont: roundCss(clampNumber(5.7 * scale, 4.6, 9.4)),
+    metaFont: roundCss(clampNumber(6.2 * scale, 4.9, 9.8)),
+    testsFont: roundCss(clampNumber(7.1 * scale, 5.6, 11.5)),
+    codeFont: roundCss(clampNumber(6 * scale, 4.8, 9.7)),
+    testsHeight,
+    barcodeWidth: roundCss(Math.max(18, widthMm - (paddingX * 2))),
+    barcodeHeight: roundCss(clampNumber(
+      heightMm - (paddingY * 2) - testsHeight - (gapMm * 3) - (compact ? 8.8 : 10.5),
+      5,
+      heightMm * 0.42
+    )),
+  };
+};
+
 const formatCm = (mm: number) => (mm / 10).toFixed(1).replace(/\.0$/, "");
 
 const readStoredLabelSize = () => {
@@ -105,7 +143,7 @@ function renderBarcodeSvg(value: string, height = 52) {
     .map((bit, index) => bit === "1" ? `<rect x="${index}" y="0" width="1" height="${height}" />` : "")
     .join("");
 
-  return `<svg class="barcode-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${bars}</svg>`;
+  return `<svg class="barcode-svg" style="width:100%;height:100%;display:block;" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${bars}</svg>`;
 }
 
 export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDialogProps) {
@@ -139,6 +177,7 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
 
   const selectedTests = selectionByClient[client.uuid] || client.selected_tests || [];
   const normalizedLabelSize = normalizeLabelSize(labelSize);
+  const labelMetrics = getLabelMetrics(normalizedLabelSize);
   const matchingPresetId = LABEL_SIZE_PRESETS.find(
     (preset) => preset.widthMm === normalizedLabelSize.widthMm && preset.heightMm === normalizedLabelSize.heightMm
   )?.id;
@@ -174,19 +213,7 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
     const testsText = selectedLabels.length > 0 ? selectedLabels.join(", ") : "No tests selected";
     const widthMm = normalizedLabelSize.widthMm;
     const heightMm = normalizedLabelSize.heightMm;
-    const compact = widthMm <= 50 || heightMm <= 25;
-    const verySmall = widthMm <= 42 || heightMm <= 20;
-    const marginMm = verySmall ? 0.5 : compact ? 0.7 : 1;
-    const paddingX = verySmall ? 0.9 : compact ? 1.1 : 1.7;
-    const paddingY = verySmall ? 0.7 : compact ? 0.85 : 1.2;
-    const gapMm = verySmall ? 0.22 : compact ? 0.32 : 0.55;
-    const nameFont = verySmall ? 7.2 : compact ? 8 : 10;
-    const metaFont = verySmall ? 5.4 : compact ? 6.2 : 7.4;
-    const testsFont = verySmall ? 6.2 : compact ? 7.1 : 8.3;
-    const testsHeight = Math.max(3.3, Math.min(verySmall ? 4.2 : compact ? 5 : 7, heightMm * 0.22));
-    const codeFont = verySmall ? 5.2 : compact ? 6 : 7.2;
-    const barcodeHeight = Math.max(5.8, Math.min(verySmall ? 7.2 : compact ? 8.2 : 11.5, heightMm - testsHeight - (verySmall ? 9 : compact ? 10.3 : 13.5)));
-    const barcodeWidth = Math.max(22, widthMm - (verySmall ? 3 : compact ? 4 : 7));
+    const metrics = getLabelMetrics(normalizedLabelSize);
 
     return `<!DOCTYPE html>
 <html dir="rtl" lang="ar">
@@ -195,7 +222,7 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
   <title>Barcode Label - ${escapeHtml(client.patient_name)}</title>
   <style>
     @font-face { font-family: 'Cairo'; src: url('/assets/Cairo.ttf') format('truetype'); font-weight: 400; }
-    @page { size: ${widthMm}mm ${heightMm}mm; margin: ${marginMm}mm; }
+    @page { size: ${widthMm}mm ${heightMm}mm; margin: ${metrics.marginMm}mm; }
     * { box-sizing: border-box; }
     body {
       margin: 0;
@@ -210,52 +237,52 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
     .label {
       width: ${widthMm}mm;
       height: ${heightMm}mm;
-      padding: ${paddingY}mm ${paddingX}mm;
+      padding: ${metrics.paddingY}mm ${metrics.paddingX}mm;
       overflow: hidden;
       display: grid;
-      grid-template-rows: auto auto ${testsHeight}mm minmax(0, 1fr);
-      gap: ${gapMm}mm;
+      grid-template-rows: auto auto minmax(${metrics.testsHeight}mm, auto) minmax(0, 1fr);
+      gap: ${metrics.gapMm}mm;
       border: 0.25mm solid #000;
     }
     .top {
       display: grid;
       grid-template-columns: 1fr auto;
-      gap: ${compact ? 1 : 2}mm;
+      gap: ${metrics.topGapMm}mm;
       align-items: end;
-      padding-bottom: ${compact ? 0.1 : 0.25}mm;
+      padding-bottom: ${metrics.gapMm / 2}mm;
     }
     .name {
       font-family: 'Cairo', Arial, sans-serif;
-      font-size: ${nameFont}px;
+      font-size: ${metrics.nameFont}px;
       font-weight: 800;
       line-height: 1.15;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .lab { font-size: ${verySmall ? 4.8 : compact ? 5.5 : 7}px; font-weight: 700; white-space: nowrap; }
+    .lab { font-size: ${metrics.labFont}px; font-weight: 700; white-space: nowrap; }
     .meta {
       direction: ltr;
       text-align: left;
       display: flex;
       justify-content: space-between;
-      gap: ${compact ? 1 : 2}mm;
-      font-size: ${metaFont}px;
+      gap: ${metrics.topGapMm}mm;
+      font-size: ${metrics.metaFont}px;
       font-weight: 800;
       line-height: 1;
     }
     .tests {
       direction: ltr;
       text-align: left;
-      font-size: ${testsFont}px;
+      font-size: ${metrics.testsFont}px;
       font-weight: 800;
       line-height: 1.2;
-      min-height: ${testsHeight}mm;
-      max-height: ${testsHeight}mm;
+      min-height: ${metrics.testsHeight}mm;
+      max-height: ${metrics.testsHeight}mm;
       overflow: hidden;
       overflow-wrap: anywhere;
       border-top: 0.2mm solid #000;
-      padding: ${verySmall ? 0.15 : 0.25}mm 0;
+      padding: ${metrics.gapMm / 2}mm 0;
     }
     .barcode-wrap {
       direction: ltr;
@@ -266,21 +293,21 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
       overflow: hidden;
     }
     .barcode-svg {
-      width: ${barcodeWidth}mm;
-      height: ${barcodeHeight}mm;
+      width: ${metrics.barcodeWidth}mm;
+      height: ${metrics.barcodeHeight}mm;
       display: block;
       fill: #000;
       shape-rendering: crispEdges;
     }
     .code {
       direction: ltr;
-      font-size: ${codeFont}px;
+      font-size: ${metrics.codeFont}px;
       font-weight: 800;
       font-family: Arial, sans-serif;
       letter-spacing: 0;
       text-align: center;
       line-height: 1;
-      margin-top: ${verySmall ? 0.05 : 0.15}mm;
+      margin-top: ${metrics.gapMm / 2}mm;
     }
     @media print {
       html, body { width: ${widthMm}mm; height: ${heightMm}mm; }
@@ -346,31 +373,86 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
             <div className="overflow-x-auto pb-1">
               <div className="rounded-lg border bg-white p-3 text-black shadow-sm min-w-[260px]">
                 <div
-                  className="mx-auto border border-black p-2 text-[10px]"
+                  className="mx-auto border border-black text-black"
                   dir="rtl"
                   style={{
                     width: "100%",
                     maxWidth: `${Math.min(360, normalizedLabelSize.widthMm * 4.4)}px`,
                     aspectRatio: `${normalizedLabelSize.widthMm} / ${normalizedLabelSize.heightMm}`,
+                    display: "grid",
+                    gridTemplateRows: `auto auto minmax(${labelMetrics.testsHeight}mm, auto) minmax(0, 1fr)`,
+                    gap: `${labelMetrics.gapMm}mm`,
                     overflow: "hidden",
+                    padding: `${labelMetrics.paddingY}mm ${labelMetrics.paddingX}mm`,
                   }}
                 >
-                  <div className="flex items-end justify-between pb-0.5">
-                    <strong className="truncate">{client.patient_name}</strong>
-                    <span className="text-[8px] font-bold">{labDisplayName}</span>
+                  <div
+                    className="grid items-end"
+                    style={{
+                      gridTemplateColumns: "minmax(0, 1fr) auto",
+                      gap: `${labelMetrics.topGapMm}mm`,
+                      paddingBottom: `${labelMetrics.gapMm / 2}mm`,
+                    }}
+                  >
+                    <strong
+                      className="truncate leading-tight"
+                      style={{ fontSize: `${labelMetrics.nameFont}px`, fontWeight: 800 }}
+                    >
+                      {client.patient_name}
+                    </strong>
+                    <span
+                      className="whitespace-nowrap font-bold leading-none"
+                      style={{ fontSize: `${labelMetrics.labFont}px` }}
+                    >
+                      {labDisplayName}
+                    </span>
                   </div>
-                  <div className="mt-1 flex justify-between gap-2 font-bold" dir="ltr">
+                  <div
+                    className="flex justify-between font-extrabold leading-none"
+                    dir="ltr"
+                    style={{ gap: `${labelMetrics.topGapMm}mm`, fontSize: `${labelMetrics.metaFont}px` }}
+                  >
                     <span className="truncate">{[patientGender, patientAge].filter(Boolean).join(" - ")}</span>
                     <span>#{client.daily_id}</span>
                   </div>
-                  <div className="mt-1 text-left text-[8px] font-bold" dir="ltr">
+                  <div
+                    className="text-left font-extrabold leading-none"
+                    dir="ltr"
+                    style={{ fontSize: `${labelMetrics.metaFont}px` }}
+                  >
                     Date: {sampleDateTime}
                   </div>
-                  <div className="mt-1 min-h-[18px] max-h-[34px] overflow-hidden border-t border-black py-0.5 text-left text-[9px] font-bold leading-tight" dir="ltr">
+                  <div
+                    className="overflow-hidden border-t border-black text-left font-extrabold leading-tight"
+                    dir="ltr"
+                    style={{
+                      minHeight: `${labelMetrics.testsHeight}mm`,
+                      maxHeight: `${labelMetrics.testsHeight}mm`,
+                      padding: `${labelMetrics.gapMm / 2}mm 0`,
+                      fontSize: `${labelMetrics.testsFont}px`,
+                      overflowWrap: "anywhere",
+                    }}
+                  >
                     {selectedLabels.join(", ") || "No tests selected"}
                   </div>
-                  <div className="mt-1" dangerouslySetInnerHTML={{ __html: renderBarcodeSvg(barcodeValue, 42) }} />
-                  <div className="text-center font-mono text-[9px] font-bold" dir="ltr">{barcodeValue}</div>
+                  <div className="flex min-h-0 items-center justify-center overflow-hidden" dir="ltr">
+                    <div>
+                      <div
+                        dangerouslySetInnerHTML={{ __html: renderBarcodeSvg(barcodeValue) }}
+                        style={{
+                          width: `${labelMetrics.barcodeWidth}mm`,
+                          height: `${labelMetrics.barcodeHeight}mm`,
+                        }}
+                      />
+                      <div
+                        className="text-center font-mono font-extrabold leading-none"
+                        dir="ltr"
+                        style={{ fontSize: `${labelMetrics.codeFont}px`, marginTop: `${labelMetrics.gapMm / 2}mm` }}
+                      >
+                        {barcodeValue}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
