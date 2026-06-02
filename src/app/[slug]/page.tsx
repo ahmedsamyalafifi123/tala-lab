@@ -523,11 +523,11 @@ export default function LabDashboard() {
         ? testCodes.map(() => `<div class="test-result">&nbsp;</div>`).join("")
         : `<span class="empty-tests">&nbsp;</span>`;
 
+      const insuranceIcon = `<svg class="patient-info-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M7 9h4M7 13h7M16 9h1"></path></svg>`;
       const infoParts: string[] = [];
-      if (client.patient_age !== undefined && client.patient_age !== null) infoParts.push(`${escapeHtml(String(client.patient_age))} سنة`);
-      if (client.patient_phone) infoParts.push(escapeHtml(client.patient_phone));
+      if (client.insurance_number) infoParts.push(`<div>${insuranceIcon}<span>رقم تأميني: ${escapeHtml(client.insurance_number)}</span></div>`);
       const clientInfoHtml = infoParts.length > 0
-        ? `<div class="patient-info">${infoParts.join(' • ')}</div>`
+        ? `<div class="patient-info">${infoParts.join("")}</div>`
         : '';
 
       return {
@@ -556,6 +556,21 @@ export default function LabDashboard() {
         </tr>
       </thead>
     `;
+    const pageHeaderHtml = `
+      <div class="print-header">
+        <div class="brand">
+          <img src="/logo.png" alt="Logo" onerror="this.style.display='none'" />
+          <div>
+            <h1>${escapeHtml(getDisplayLabName())}</h1>
+            <p>كشف التحاليل والنتائج</p>
+          </div>
+        </div>
+        <div class="meta">
+          <p>${escapeHtml(getPrintDateLabel())}</p>
+          <p>إجمالي الحالات: <strong>${filteredClients.length}</strong></p>
+        </div>
+      </div>
+    `;
 
     return `
       <!DOCTYPE html>
@@ -580,8 +595,7 @@ export default function LabDashboard() {
           .brand p, .meta p { margin: 0; color: #475569; font-size: 11px; font-weight: 600; }
           .meta { border: 1px solid #dbe3ef; background: #f8fafc; border-radius: 8px; padding: 8px 12px; min-width: 180px; }
           .meta strong { color: #2563eb; font-size: 13px; }
-          .details-page { break-after: auto; page-break-after: auto; }
-          .details-page + .details-page { padding-top: 8mm; }
+          .details-page { break-after: auto; page-break-after: auto; padding: 5mm; min-height: 287mm; }
           .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; align-items: start; }
           .measure-area { position: absolute; visibility: hidden; pointer-events: none; left: -9999px; top: 0; width: calc((100% - 6mm) / 2); }
           table { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -593,6 +607,9 @@ export default function LabDashboard() {
           .patient { width: 180px; text-align: center; vertical-align: middle; }
           .patient-name { font-weight: 700; font-size: 17px; color: #0f172a; line-height: 1.3; }
           .patient-info { margin-top: 3px; font-size: 11px; font-weight: 600; color: #475569; line-height: 1.3; }
+          .patient-info div { display: flex; align-items: center; justify-content: flex-start; gap: 4px; direction: rtl; text-align: right; border-top: 1px dotted #cbd5e1; padding-top: 2px; margin-top: 2px; }
+          .patient-info div:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+          .patient-info-icon { width: 11px; height: 11px; color: #0f172a; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
           .tests { width: auto; text-align: center; }
           .results { width: 62px; direction: ltr; text-align: center; }
           .test-name, .test-result { height: 24px; min-height: 24px; padding: 3px 4px; border-bottom: 1px dashed #e2e8f0; display: flex; align-items: center; justify-content: center; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -601,7 +618,7 @@ export default function LabDashboard() {
           .test-result { font-weight: 700; color: #0f172a; font-size: 13px; }
           .empty-tests { color: #94a3b8; }
           @media print {
-            body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            body { padding: 0; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
             .details-page:not(.is-last) { break-after: page !important; page-break-after: always !important; }
             .details-page.is-last { break-after: auto !important; page-break-after: auto !important; }
             .details-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 6mm !important; }
@@ -612,21 +629,8 @@ export default function LabDashboard() {
         </style>
       </head>
       <body>
-        <div class="print-header">
-          <div class="brand">
-            <img src="/logo.png" alt="Logo" onerror="this.style.display='none'" />
-            <div>
-              <h1>${escapeHtml(getDisplayLabName())}</h1>
-              <p>كشف التحاليل والنتائج</p>
-            </div>
-          </div>
-          <div class="meta">
-            <p>${escapeHtml(getPrintDateLabel())}</p>
-            <p>إجمالي الحالات: <strong>${filteredClients.length}</strong></p>
-          </div>
-        </div>
-
         <div id="details-pages"></div>
+        <div id="measure-header" class="measure-area" aria-hidden="true">${pageHeaderHtml}</div>
         <div class="measure-area" aria-hidden="true">
           <table>
             ${tableHeaderHtml}
@@ -638,8 +642,8 @@ export default function LabDashboard() {
           (() => {
             const MM_TO_PX = 96 / 25.4;
             const pageContentHeight = 277 * MM_TO_PX;
-            const continuedPageTopPadding = 8 * MM_TO_PX;
             const tableHeader = ${JSON.stringify(tableHeaderHtml)};
+            const pageHeader = ${JSON.stringify(pageHeaderHtml)};
             const emptyRow = ${JSON.stringify(emptyRowHtml)};
             let hasPaginated = false;
 
@@ -662,9 +666,9 @@ export default function LabDashboard() {
 
             const paginateDetails = () => {
               const root = document.getElementById("details-pages");
-              const measureArea = document.querySelector(".measure-area");
+              const measureAreas = Array.from(document.querySelectorAll(".measure-area"));
               const sourceRows = Array.from(document.querySelectorAll("#measure-rows tr"));
-              const header = document.querySelector(".print-header");
+              const header = document.getElementById("measure-header");
               const measureTable = document.querySelector(".measure-area table");
               if (!root || !measureTable) return;
 
@@ -673,6 +677,7 @@ export default function LabDashboard() {
               if (sourceRows.length === 0) {
                 const page = document.createElement("div");
                 page.className = "details-page";
+                page.innerHTML = pageHeader;
                 const grid = document.createElement("div");
                 grid.className = "details-grid";
                 grid.appendChild(makeTable([], []));
@@ -684,17 +689,16 @@ export default function LabDashboard() {
 
               const rowHeights = sourceRows.map((row) => Math.ceil(row.getBoundingClientRect().height));
               const tableHeadHeight = Math.ceil(measureTable.querySelector("thead")?.getBoundingClientRect().height || 34);
-              const firstPageHeaderHeight = Math.ceil(header?.getBoundingClientRect().height || 0) + 18;
-              const getColumnLimit = (isFirstPage) => Math.max(
+              const pageHeaderHeight = Math.ceil(header?.getBoundingClientRect().height || 0) + 18;
+              const columnLimit = Math.max(
                 220,
-                pageContentHeight - tableHeadHeight - (isFirstPage ? firstPageHeaderHeight : continuedPageTopPadding)
+                pageContentHeight - tableHeadHeight - pageHeaderHeight
               );
 
               let rowIndex = 0;
               let pageIndex = 0;
 
               while (rowIndex < sourceRows.length) {
-                const columnLimit = getColumnLimit(pageIndex === 0);
                 const columns = [[], []];
 
                 for (let columnIndex = 0; columnIndex < 2 && rowIndex < sourceRows.length; columnIndex += 1) {
@@ -711,6 +715,7 @@ export default function LabDashboard() {
 
                 const page = document.createElement("div");
                 page.className = "details-page";
+                page.innerHTML = pageHeader;
                 const grid = document.createElement("div");
                 grid.className = "details-grid";
                 grid.appendChild(makeTable(columns[0], sourceRows));
@@ -724,7 +729,7 @@ export default function LabDashboard() {
               createdPages.forEach((page, index) => {
                 page.classList.toggle("is-last", index === createdPages.length - 1);
               });
-              measureArea?.remove();
+              measureAreas.forEach((area) => area.remove());
             };
 
             const ready = () => {
