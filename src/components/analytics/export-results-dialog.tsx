@@ -203,14 +203,15 @@ export function ExportResultsDialog({
         <title>Medical Report - ${clientName}</title>
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-          
+          @font-face { font-family: 'Cairo'; src: url('${window.location.origin}/assets/Cairo.ttf') format('truetype'); font-weight: 200 1000; }
+
           @media print {
             @page { size: A4; margin: 1.5cm; }
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           }
-          
+
           body {
-            font-family: 'Inter', -apple-system, sans-serif;
+            font-family: 'Inter', 'Cairo', sans-serif;
             line-height: 1.5;
             color: #1a202c;
             margin: 0;
@@ -294,6 +295,7 @@ export function ExportResultsDialog({
             color: #718096;
             font-weight: 600;
             width: 110px;
+            white-space: nowrap;
           }
 
           .patient-info-table .value {
@@ -393,10 +395,10 @@ export function ExportResultsDialog({
           <div class="patient-info-section">
             <table class="patient-info-table">
               <tr>
-                <td class="label">Patient Name</td>
-                <td class="value" style="font-weight: 700; font-size: 15px;">${clientName}</td>
-                <td class="label">Report ID</td>
-                <td class="value" style="font-family: monospace;">${clientUuid.substring(0, 8).toUpperCase()}</td>
+                <td class="label" style="width: 14%;">Patient Name</td>
+                <td class="value" style="width: 50%; font-weight: 700; font-size: 15px;">${clientName}</td>
+                <td class="label" style="width: 14%;">Report ID</td>
+                <td class="value" style="width: 22%; font-family: monospace;">${clientUuid.substring(0, 8).toUpperCase()}</td>
               </tr>
               ${(clientAge !== undefined || clientGender) ? `
                 <tr>

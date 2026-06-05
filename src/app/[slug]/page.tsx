@@ -845,10 +845,10 @@ export default function LabDashboard() {
           <div class="patient-info-section">
             <table class="patient-info-table">
               <tr>
-                <td class="label">Patient Name</td>
-                <td class="value" style="font-weight: 700; font-size: 15px;">${escapeHtml(client.patient_name)}</td>
-                <td class="label">Report ID</td>
-                <td class="value" style="font-family: monospace;">${escapeHtml(String(client.daily_id))}</td>
+                <td class="label" style="width: 14%;">Patient Name</td>
+                <td class="value" style="width: 50%; font-weight: 700; font-size: 15px;">${escapeHtml(client.patient_name)}</td>
+                <td class="label" style="width: 14%;">Report ID</td>
+                <td class="value" style="width: 22%; font-family: monospace;">${escapeHtml(String(client.daily_id))}</td>
               </tr>
               ${(client.patient_age !== undefined || client.patient_gender) ? `
                 <tr>
@@ -1006,7 +1006,7 @@ export default function LabDashboard() {
     .patient-info-section { margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
     .patient-info-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .patient-info-table td { padding: 6px 12px; border: 1px solid #e2e8f0; font-size: 12px; }
-    .patient-info-table .label { background: #f8fafc; color: #718096; font-weight: 600; width: 110px; }
+    .patient-info-table .label { background: #f8fafc; color: #718096; font-weight: 600; width: 110px; white-space: nowrap; }
     .patient-info-table .value { color: #1a202c; font-weight: 500; }
     .entry { margin-bottom: 25px; }
     .entry-date { font-size: 13px; font-weight: 700; color: #2d3748; background: #edf2f7; padding: 5px 12px; border-radius: 4px; display: inline-block; margin-bottom: 10px; }
