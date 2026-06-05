@@ -60,7 +60,7 @@ interface ClientModalProps {
     daily_date: string; 
     daily_id?: number | null; 
     selected_tests?: string[];
-    patient_gender?: string;
+    patient_gender?: string | null;
     patient_phone?: string;
     insurance_number?: string;
     entity?: string;
@@ -80,7 +80,7 @@ export function ClientModal({
   isLoading = false,
 }: ClientModalProps) {
   const [name, setName] = useState("");
-  const [gender, setGender] = useState<string>("ذكر");
+  const [gender, setGender] = useState<string>("none");
   const [age, setAge] = useState<string>("");
   const [phone, setPhone] = useState("");
   const [insuranceNumber, setInsuranceNumber] = useState("");
@@ -176,7 +176,7 @@ export function ClientModal({
       });
 
       setName(client.patient_name);
-      setGender(client.patient_gender || "");
+      setGender(client.patient_gender || "none");
       setAge(client.patient_age?.toString() || "");
       setPhone(client.patient_phone || "");
       setInsuranceNumber(client.insurance_number || "");
@@ -213,7 +213,7 @@ export function ClientModal({
       console.log('✅ Loaded groups:', Array.from(matchedGroups));
     } else {
       setName("");
-      setGender("ذكر");
+      setGender("none");
       setAge("");
       setPhone("");
       setInsuranceNumber("");
@@ -302,7 +302,7 @@ export function ClientModal({
       daily_date: format(date, "yyyy-MM-dd"),
       daily_id: isManualId && manualId ? parseInt(manualId) : null,
       selected_tests: testsToSave,
-      patient_gender: (gender && gender !== "none") ? gender : undefined,
+      patient_gender: (gender && gender !== "none") ? gender : null,
       patient_phone: phone.trim() || undefined,
       insurance_number: insuranceNumber.trim() || undefined,
       entity: (entity && entity !== "none") ? entity : undefined,
@@ -312,7 +312,7 @@ export function ClientModal({
     // If we are adding a new client (not editing), reset the form (except date and category)
     if (!client) {
       setName("");
-      setGender("ذكر");
+      setGender("none");
       setAge("");
       setPhone("");
       setInsuranceNumber("");

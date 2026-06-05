@@ -1056,7 +1056,7 @@ export default function LabDashboard() {
     daily_date: string; 
     daily_id?: number | null; 
     selected_tests?: string[];
-    patient_gender?: string;
+    patient_gender?: string | null;
     patient_phone?: string;
     insurance_number?: string;
     entity?: string;
@@ -1081,7 +1081,7 @@ export default function LabDashboard() {
           p_daily_date: data.daily_date,
           p_manual_id: data.daily_id ?? null,
           p_selected_tests: data.selected_tests || [],
-          p_patient_gender: data.patient_gender || 'ذكر',
+          p_patient_gender: data.patient_gender ?? null,
           p_patient_phone: data.patient_phone ?? null,
           p_insurance_number: data.insurance_number ?? null,
           p_entity: data.entity ?? null,
@@ -1103,7 +1103,7 @@ export default function LabDashboard() {
           p_manual_id: data.daily_id ?? null,
           p_created_by: currentUserId,
           p_selected_tests: data.selected_tests || [],
-          p_patient_gender: data.patient_gender || 'ذكر',
+          p_patient_gender: data.patient_gender ?? null,
           p_patient_phone: data.patient_phone ?? null,
           p_insurance_number: data.insurance_number ?? null,
           p_entity: data.entity ?? null,
@@ -1371,7 +1371,7 @@ export default function LabDashboard() {
         );
         if (categoryVal.length === 0) categoryVal = ['عام'];
 
-        const patientGender = parseExcelString(getExcelCell(row, ["patient_gender", "gender", "النوع"])) || "ذكر";
+        const patientGender = parseExcelString(getExcelCell(row, ["patient_gender", "gender", "النوع"])) || null;
         const patientPhone = parseExcelString(getExcelCell(row, ["patient_phone", "phone", "الهاتف", "رقم الهاتف"]));
         const insuranceNumber = parseExcelString(getExcelCell(row, ["insurance_number", "الرقم التأميني", "رقم تأميني"]));
         const entity = parseExcelString(getExcelCell(row, ["entity", "الجهة"]));
@@ -1409,7 +1409,7 @@ export default function LabDashboard() {
           daily_date: string;
           daily_id: number | null;
           selected_tests: string[];
-          patient_gender: string;
+          patient_gender: string | null;
           patient_phone: string | null;
           insurance_number: string | null;
           entity: string | null;
