@@ -1,0 +1,87 @@
+"use client";
+
+import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { TestsManagement } from "@/components/manager/tests-management";
+import { TestGroupsManagement } from "@/components/manager/test-groups-management";
+import { CategoriesManagement } from "@/components/manager/categories-management";
+import { FlaskConical, Layers, Tag } from "lucide-react";
+
+export default function TestsManagementPage() {
+  const [activeTab, setActiveTab] = useState("tests");
+
+  return (
+    <div className="space-y-6" dir="rtl">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-right">إدارة التحاليل والفحوصات</h1>
+        <p className="text-muted-foreground mt-2 text-right">
+          إدارة جميع التحاليل والمجموعات المتاحة لجميع المعامل
+        </p>
+      </div>
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6" dir="rtl">
+        <TabsList className="grid w-full max-w-2xl grid-cols-3" dir="rtl">
+          <TabsTrigger value="tests" className="gap-2 justify-start">
+            <FlaskConical className="h-4 w-4" />
+            التحاليل الفردية
+          </TabsTrigger>
+          <TabsTrigger value="groups" className="gap-2 justify-start">
+            <Layers className="h-4 w-4" />
+            مجموعات التحاليل
+          </TabsTrigger>
+          <TabsTrigger value="categories" className="gap-2 justify-start">
+            <Tag className="h-4 w-4" />
+            الفئات
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Individual Tests Tab */}
+        <TabsContent value="tests" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>التحاليل الفردية</CardTitle>
+              <CardDescription>
+                إضافة وتعديل وحذف التحاليل المتاحة لجميع المعامل
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TestsManagement />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Test Groups Tab */}
+        <TabsContent value="groups" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>مجموعات التحاليل</CardTitle>
+              <CardDescription>
+                إنشاء مجموعات تحاليل (مثل: صورة دم كاملة، فحص السكري) لتسهيل الاختيار
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TestGroupsManagement />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        {/* Categories Tab */}
+        <TabsContent value="categories" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>فئات التحاليل</CardTitle>
+              <CardDescription>
+                إضافة وتعديل وحذف فئات التحاليل المتاحة لجميع المعامل
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CategoriesManagement />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
