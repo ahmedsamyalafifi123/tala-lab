@@ -98,14 +98,14 @@ const getLabelMetrics = (size: LabelSize) => {
     nameFont: roundCss(clampNumber(8.2 * scale, 6.8, 13.5)),
     labFont: roundCss(clampNumber(5.7 * scale, 4.6, 9.4)),
     metaFont: roundCss(clampNumber(6.2 * scale, 4.9, 9.8)),
-    testsFont: roundCss(clampNumber(7.1 * scale, 5.6, 11.5)),
+    testsFont: roundCss(clampNumber(6.3 * scale, 4.8, 10)),
     codeFont: roundCss(clampNumber(6 * scale, 4.8, 9.7)),
     testsHeight,
-    barcodeWidth: roundCss(Math.max(18, widthMm - (paddingX * 2))),
+    barcodeWidth: roundCss(Math.max(16, (widthMm - (paddingX * 2)) * 0.82)),
     barcodeHeight: roundCss(clampNumber(
       heightMm - (paddingY * 2) - testsHeight - (gapMm * 3) - (compact ? 8.8 : 10.5),
-      5,
-      heightMm * 0.42
+      4,
+      heightMm * 0.22
     )),
   };
 };
@@ -185,7 +185,7 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
   const labDisplayName = getLabDisplayName(labName, labSlug);
   const barcodeValue = sanitizeBarcodeValue(`${client.daily_id}-${client.uuid.slice(0, 8).toUpperCase()}`);
   const patientGender = client.patient_gender
-    ? (client.patient_gender === "male" || client.patient_gender === "ذكر" ? "Male" : "Female")
+    ? (client.patient_gender === "male" || client.patient_gender === "ذكر" ? "M" : "F")
     : "";
   const patientAge = typeof client.patient_age === "number" ? `${client.patient_age} Years` : "";
   const sampleDateTime = format(new Date(client.created_at || client.daily_date), "yyyy-MM-dd h:mm a");
@@ -222,13 +222,16 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
   <meta charset="UTF-8">
   <title>Barcode Label - ${escapeHtml(client.patient_name)}</title>
   <style>
-    @font-face { font-family: 'Cairo'; src: url('/assets/Cairo.ttf') format('truetype'); font-weight: 400; }
-    @page { size: ${widthMm}mm ${heightMm}mm; margin: ${metrics.marginMm}mm; }
+    @font-face { font-family: 'Cairo'; src: url('/assets/Cairo.ttf') format('truetype'); font-weight: 200 1000; }
+    @font-face { font-family: 'Qatar Bold'; src: url('/assets/Qatar-Bold.ttf') format('truetype'); font-weight: 100 900; }
+    @page { size: ${widthMm}mm ${heightMm}mm; margin: 0; }
     * { box-sizing: border-box; }
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
       width: ${widthMm}mm;
-      min-height: ${heightMm}mm;
+      height: ${heightMm}mm;
+      overflow: hidden;
       background: #fff;
       color: #000;
       font-family: Arial, 'Cairo', sans-serif;
@@ -241,32 +244,27 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
       padding: ${metrics.paddingY}mm ${metrics.paddingX}mm;
       overflow: hidden;
       display: grid;
-      grid-template-rows: auto auto minmax(${metrics.testsHeight}mm, auto) minmax(0, 1fr);
+      grid-template-rows: auto auto auto minmax(${metrics.testsHeight}mm, auto) minmax(0, 1fr);
       gap: ${metrics.gapMm}mm;
-      border: 0.25mm solid #000;
-    }
-    .top {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: ${metrics.topGapMm}mm;
-      align-items: end;
-      padding-bottom: ${metrics.gapMm / 2}mm;
     }
     .name {
-      font-family: 'Cairo', Arial, sans-serif;
+      font-family: 'Qatar Bold', 'Cairo', Arial, sans-serif;
       font-size: ${metrics.nameFont}px;
-      font-weight: 800;
+      font-weight: 700;
       line-height: 1.15;
+      text-align: center;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      padding-bottom: ${metrics.gapMm / 2}mm;
     }
-    .lab { font-size: ${metrics.labFont}px; font-weight: 700; white-space: nowrap; }
+    .lab { font-weight: 700; white-space: nowrap; }
     .meta {
       direction: ltr;
       text-align: left;
       display: flex;
       justify-content: space-between;
+      align-items: center;
       gap: ${metrics.topGapMm}mm;
       font-size: ${metrics.metaFont}px;
       font-weight: 800;
@@ -311,21 +309,21 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
       margin-top: ${metrics.gapMm / 2}mm;
     }
     @media print {
-      html, body { width: ${widthMm}mm; height: ${heightMm}mm; }
-      .label { page-break-after: always; }
+      html, body { width: ${widthMm}mm; height: ${heightMm}mm; overflow: hidden; }
+      .label { break-inside: avoid; page-break-inside: avoid; }
     }
   </style>
 </head>
 <body>
   <div class="label">
-    <div class="top">
-      <div class="name">${escapeHtml(client.patient_name)}</div>
-      <div class="lab">${escapeHtml(labDisplayName)}</div>
+    <div class="name">${escapeHtml(client.patient_name)}</div>
+    <div class="meta">
+      <span class="lab">${escapeHtml(labDisplayName)}</span>
+      <span>#${escapeHtml(String(client.daily_id))}</span>
     </div>
     <div class="meta">
       <span>${escapeHtml([patientGender, patientAge].filter(Boolean).join(" - "))}</span>
-      <span>Date: ${escapeHtml(sampleDateTime)}</span>
-      <span>#${escapeHtml(String(client.daily_id))}</span>
+      <span>${escapeHtml(sampleDateTime)}</span>
     </div>
     <div class="tests">${escapeHtml(testsText)}</div>
     <div class="barcode-wrap">
@@ -351,6 +349,7 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <style dangerouslySetInnerHTML={{ __html: `@font-face { font-family: 'Qatar Bold'; src: url('/assets/Qatar-Bold.ttf') format('truetype'); font-weight: 100 900; }` }} />
       <DialogContent className="flex max-h-[92dvh] w-[96vw] max-w-3xl flex-col overflow-hidden p-0" dir="rtl">
         <DialogHeader className="px-5 pt-5 pb-3 border-b text-right">
           <DialogTitle className="flex items-center justify-between gap-3">
@@ -374,54 +373,45 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
             <div className="overflow-x-auto pb-1">
               <div className="rounded-lg border bg-white p-3 text-black shadow-sm min-w-[260px]">
                 <div
-                  className="mx-auto border border-black text-black"
+                  className="mx-auto text-black"
                   dir="rtl"
                   style={{
                     width: "100%",
                     maxWidth: `${Math.min(360, normalizedLabelSize.widthMm * 4.4)}px`,
                     aspectRatio: `${normalizedLabelSize.widthMm} / ${normalizedLabelSize.heightMm}`,
                     display: "grid",
-                    gridTemplateRows: `auto auto minmax(${labelMetrics.testsHeight}mm, auto) minmax(0, 1fr)`,
+                    gridTemplateRows: `auto auto auto minmax(${labelMetrics.testsHeight}mm, auto) minmax(0, 1fr)`,
                     gap: `${labelMetrics.gapMm}mm`,
                     overflow: "hidden",
                     padding: `${labelMetrics.paddingY}mm ${labelMetrics.paddingX}mm`,
                   }}
                 >
-                  <div
-                    className="grid items-end"
+                  <strong
+                    className="block truncate text-center leading-tight"
                     style={{
-                      gridTemplateColumns: "minmax(0, 1fr) auto",
-                      gap: `${labelMetrics.topGapMm}mm`,
+                      fontFamily: "'Qatar Bold', 'Cairo', sans-serif",
+                      fontSize: `${labelMetrics.nameFont}px`,
+                      fontWeight: 700,
                       paddingBottom: `${labelMetrics.gapMm / 2}mm`,
                     }}
                   >
-                    <strong
-                      className="truncate leading-tight"
-                      style={{ fontSize: `${labelMetrics.nameFont}px`, fontWeight: 800 }}
-                    >
-                      {client.patient_name}
-                    </strong>
-                    <span
-                      className="whitespace-nowrap font-bold leading-none"
-                      style={{ fontSize: `${labelMetrics.labFont}px` }}
-                    >
-                      {labDisplayName}
-                    </span>
+                    {client.patient_name}
+                  </strong>
+                  <div
+                    className="flex items-center justify-between font-extrabold leading-none"
+                    dir="ltr"
+                    style={{ gap: `${labelMetrics.topGapMm}mm`, fontSize: `${labelMetrics.metaFont}px` }}
+                  >
+                    <span className="truncate font-bold">{labDisplayName}</span>
+                    <span>#{client.daily_id}</span>
                   </div>
                   <div
-                    className="flex justify-between font-extrabold leading-none"
+                    className="flex items-center justify-between font-extrabold leading-none"
                     dir="ltr"
                     style={{ gap: `${labelMetrics.topGapMm}mm`, fontSize: `${labelMetrics.metaFont}px` }}
                   >
                     <span className="truncate">{[patientGender, patientAge].filter(Boolean).join(" - ")}</span>
-                    <span>#{client.daily_id}</span>
-                  </div>
-                  <div
-                    className="text-left font-extrabold leading-none"
-                    dir="ltr"
-                    style={{ fontSize: `${labelMetrics.metaFont}px` }}
-                  >
-                    Date: {sampleDateTime}
+                    <span>{sampleDateTime}</span>
                   </div>
                   <div
                     className="overflow-hidden border-t border-black text-left font-extrabold leading-tight"

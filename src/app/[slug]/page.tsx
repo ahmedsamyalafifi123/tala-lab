@@ -599,7 +599,7 @@ export default function LabDashboard() {
           @font-face {
             font-family: 'Cairo';
             src: url('/assets/Cairo.ttf') format('truetype');
-            font-weight: 400;
+            font-weight: 200 1000;
             font-style: normal;
           }
           @page { size: A4 portrait; margin: 0; }
@@ -989,7 +989,7 @@ export default function LabDashboard() {
   <title>Medical Reports - ${escapeHtml(labDisplayName)}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    @font-face { font-family: 'Cairo'; src: url('${origin}/assets/Cairo.ttf') format('truetype'); font-weight: 400; }
+    @font-face { font-family: 'Cairo'; src: url('${origin}/assets/Cairo.ttf') format('truetype'); font-weight: 200 1000; }
     @media print {
       @page { size: A4; margin: 1.5cm; }
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -2226,7 +2226,7 @@ export default function LabDashboard() {
                               @font-face {
                                 font-family: 'Cairo';
                                 src: url('/assets/Cairo.ttf') format('truetype');
-                                font-weight: 400; font-style: normal;
+                                font-weight: 200 1000; font-style: normal;
                               }
                               @page { size: auto; margin: 5mm; }
                               * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif !important; font-weight: 500 !important; }
@@ -2294,7 +2294,7 @@ export default function LabDashboard() {
               @font-face {
                 font-family: 'Cairo';
                 src: url('/assets/Cairo.ttf') format('truetype');
-                font-weight: 400; font-style: normal;
+                font-weight: 200 1000; font-style: normal;
               }
             `}} />
             <div 
