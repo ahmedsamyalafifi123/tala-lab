@@ -97,8 +97,8 @@ const getLabelMetrics = (size: LabelSize) => {
     topGapMm: roundCss(clampNumber(widthMm * 0.026, 0.8, 2.5)),
     nameFont: roundCss(clampNumber(8.2 * scale, 6.8, 13.5)),
     labFont: roundCss(clampNumber(5.7 * scale, 4.6, 9.4)),
-    metaFont: roundCss(clampNumber(6.2 * scale, 4.9, 9.8)),
-    testsFont: roundCss(clampNumber(6.3 * scale, 4.8, 10)),
+    metaFont: roundCss(clampNumber(5.2 * scale, 4.2, 8)),
+    testsFont: roundCss(clampNumber(5.2 * scale, 4.2, 8)),
     codeFont: roundCss(clampNumber(6 * scale, 4.8, 9.7)),
     testsHeight,
     barcodeWidth: roundCss(Math.max(16, (widthMm - (paddingX * 2)) * 0.82)),
@@ -187,7 +187,7 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
   const patientGender = client.patient_gender
     ? (client.patient_gender === "male" || client.patient_gender === "ذكر" ? "M" : "F")
     : "";
-  const patientAge = typeof client.patient_age === "number" ? `${client.patient_age} Years` : "";
+  const patientAge = typeof client.patient_age === "number" ? `${client.patient_age}Y` : "";
   const sampleDateTime = format(new Date(client.created_at || client.daily_date), "yyyy-MM-dd h:mm a");
   const selectedLabels = selectedTests.map((code) => {
     const test = availableTests.find((item) => item.code === code);
@@ -276,8 +276,9 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
       font-size: ${metrics.testsFont}px;
       font-weight: 800;
       line-height: 1.2;
-      min-height: ${metrics.testsHeight}mm;
-      max-height: ${metrics.testsHeight}mm;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
       overflow: hidden;
       overflow-wrap: anywhere;
       border-top: 0.2mm solid #000;
@@ -417,10 +418,12 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
                     className="overflow-hidden border-t border-black text-left font-extrabold leading-tight"
                     dir="ltr"
                     style={{
-                      minHeight: `${labelMetrics.testsHeight}mm`,
-                      maxHeight: `${labelMetrics.testsHeight}mm`,
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
                       padding: `${labelMetrics.gapMm / 2}mm 0`,
                       fontSize: `${labelMetrics.testsFont}px`,
+                      lineHeight: 1.2,
                       overflowWrap: "anywhere",
                     }}
                   >
