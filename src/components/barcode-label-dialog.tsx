@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface BarcodeLabelDialogProps {
   client: Client | null;
@@ -63,6 +64,11 @@ const escapeHtml = (value: unknown) =>
     .replace(/'/g, "&#039;");
 
 const sanitizeBarcodeValue = (value: string) => value.replace(/[^\x20-\x7f]/g, "").slice(0, 32) || "0";
+
+const EDITA_TERMS = ["cbc", "hba1c", "abo", "film"];
+const CTREAT_TERMS = ["pt", "ptt", "esr"];
+const GROUP_EXCLUDE_TERMS = [...EDITA_TERMS, ...CTREAT_TERMS];
+const normalizeMatch = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 const clampLabelDimension = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
@@ -151,6 +157,7 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
   const { labName, labSlug } = useLabContext();
   const { tests } = useLabTests();
   const [selectionByClient, setSelectionByClient] = useState<Record<string, string[]>>({});
+  const [activeGroups, setActiveGroups] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [labelSize, setLabelSizeState] = useState<LabelSize>(() => readStoredLabelSize());
 
@@ -194,6 +201,40 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
     return test?.name || code;
   });
 
+  const testMatchesAny = (test: { code: string; name: string }, terms: string[]) => {
+    const code = normalizeMatch(test.code);
+    const name = normalizeMatch(test.name);
+    return terms.some((term) => code.includes(term) || name.includes(term));
+  };
+
+  const groups = [
+    { id: "edita", label: "EDITA", codes: availableTests.filter((t) => testMatchesAny(t, EDITA_TERMS)).map((t) => t.code) },
+    { id: "ctreat", label: "CTREAT", codes: availableTests.filter((t) => testMatchesAny(t, CTREAT_TERMS)).map((t) => t.code) },
+    { id: "serum", label: "SERUM", codes: availableTests.filter((t) => !testMatchesAny(t, GROUP_EXCLUDE_TERMS)).map((t) => t.code) },
+  ];
+
+  const getGroupCodes = (id: string) => groups.find((g) => g.id === id)?.codes || [];
+  const codesToText = (codes: string[]) => {
+    const names = codes.map((code) => availableTests.find((t) => t.code === code)?.name || code);
+    return names.length > 0 ? names.join(", ") : "No tests selected";
+  };
+
+  const toggleGroup = (id: string) => {
+    const next = activeGroups.includes(id) ? activeGroups.filter((x) => x !== id) : [...activeGroups, id];
+    setActiveGroups(next);
+    const unionCodes = Array.from(new Set(next.flatMap((gid) => getGroupCodes(gid))));
+    setSelectionByClient((prev) => ({
+      ...prev,
+      [client.uuid]: unionCodes.length > 0 ? unionCodes : (client.selected_tests || []),
+    }));
+  };
+
+  const quickPrintGroup = (id: string) => {
+    const codes = getGroupCodes(id);
+    if (codes.length === 0) return;
+    printPages([codesToText(codes)]);
+  };
+
   const toggleTest = (code: string) => {
     setSelectionByClient((prev) => {
       const current = prev[client.uuid] || client.selected_tests || [];
@@ -210,11 +251,30 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
     }
   };
 
-  const getPrintHtml = () => {
-    const testsText = selectedLabels.length > 0 ? selectedLabels.join(", ") : "No tests selected";
+  const getPrintHtml = (testsTextPages: string[]) => {
     const widthMm = normalizedLabelSize.widthMm;
     const heightMm = normalizedLabelSize.heightMm;
     const metrics = getLabelMetrics(normalizedLabelSize);
+
+    const renderLabel = (testsText: string) => `
+  <div class="label">
+    <div class="name">${escapeHtml(client.patient_name)}</div>
+    <div class="meta">
+      <span class="lab">${escapeHtml(labDisplayName)}</span>
+      <span>#${escapeHtml(String(client.daily_id))}</span>
+    </div>
+    <div class="meta">
+      <span>${escapeHtml([patientGender, patientAge].filter(Boolean).join(" - "))}</span>
+      <span>${escapeHtml(sampleDateTime)}</span>
+    </div>
+    <div class="tests">${escapeHtml(testsText)}</div>
+    <div class="barcode-wrap">
+      <div>
+        ${renderBarcodeSvg(barcodeValue)}
+        <div class="code">${escapeHtml(barcodeValue)}</div>
+      </div>
+    </div>
+  </div>`;
 
     return `<!DOCTYPE html>
 <html dir="rtl" lang="ar">
@@ -230,8 +290,6 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
       margin: 0;
       padding: 0;
       width: ${widthMm}mm;
-      height: ${heightMm}mm;
-      overflow: hidden;
       background: #fff;
       color: #000;
       font-family: Arial, 'Cairo', sans-serif;
@@ -246,7 +304,10 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
       display: grid;
       grid-template-rows: auto auto auto minmax(${metrics.testsHeight}mm, auto) minmax(0, 1fr);
       gap: ${metrics.gapMm}mm;
+      break-after: page;
+      page-break-after: always;
     }
+    .label:last-child { break-after: auto; page-break-after: auto; }
     .name {
       font-family: 'Qatar Bold', 'Cairo', Arial, sans-serif;
       font-size: ${metrics.nameFont}px;
@@ -310,42 +371,32 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
       margin-top: ${metrics.gapMm / 2}mm;
     }
     @media print {
-      html, body { width: ${widthMm}mm; height: ${heightMm}mm; overflow: hidden; }
+      html, body { width: ${widthMm}mm; overflow: hidden; }
       .label { break-inside: avoid; page-break-inside: avoid; }
     }
   </style>
 </head>
 <body>
-  <div class="label">
-    <div class="name">${escapeHtml(client.patient_name)}</div>
-    <div class="meta">
-      <span class="lab">${escapeHtml(labDisplayName)}</span>
-      <span>#${escapeHtml(String(client.daily_id))}</span>
-    </div>
-    <div class="meta">
-      <span>${escapeHtml([patientGender, patientAge].filter(Boolean).join(" - "))}</span>
-      <span>${escapeHtml(sampleDateTime)}</span>
-    </div>
-    <div class="tests">${escapeHtml(testsText)}</div>
-    <div class="barcode-wrap">
-      <div>
-        ${renderBarcodeSvg(barcodeValue)}
-        <div class="code">${escapeHtml(barcodeValue)}</div>
-      </div>
-    </div>
-  </div>
+${testsTextPages.map((page) => renderLabel(page)).join("\n")}
 </body>
 </html>`;
   };
 
-  const printLabel = () => {
+  const printPages = (testsTextPages: string[]) => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
-    printWindow.document.write(getPrintHtml());
+    printWindow.document.write(getPrintHtml(testsTextPages));
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => printWindow.print(), 500);
+  };
+
+  const printLabel = () => {
+    const pages = activeGroups.length > 0
+      ? activeGroups.map((id) => codesToText(getGroupCodes(id)))
+      : [selectedLabels.length > 0 ? selectedLabels.join(", ") : "No tests selected"];
+    printPages(pages);
   };
 
   return (
@@ -552,15 +603,58 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
                 <div className="py-10 text-center text-sm text-muted-foreground">لا توجد تحاليل</div>
               )}
             </div>
+            </div>
           </div>
+
+          <div className="rounded-lg border bg-muted/30 p-3 sm:p-4">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold">مجموعات سريعة</span>
+              <span className="text-[11px] text-muted-foreground">حدد للمجموعات ثم اطبع، أو اضغط المجموعة لطباعتها فوراً</span>
+            </div>
+            <div className="space-y-2">
+              {groups.map((g) => {
+                const active = activeGroups.includes(g.id);
+                const disabled = g.codes.length === 0;
+                return (
+                  <div key={g.id} className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-9 flex-1 justify-start gap-2"
+                      onClick={() => quickPrintGroup(g.id)}
+                      disabled={disabled}
+                      title={disabled ? "لا توجد تحاليل مطابقة" : `طباعة ${g.label} فوراً`}
+                    >
+                      <Printer className="h-4 w-4 shrink-0" />
+                      <span className="font-bold tracking-wide">{g.label}</span>
+                      <span className="ms-auto text-[11px] text-muted-foreground">{g.codes.length} تحاليل</span>
+                    </Button>
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={active}
+                      onClick={() => toggleGroup(g.id)}
+                      disabled={disabled}
+                      className={cn(
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-colors",
+                        active ? "border-primary bg-primary text-primary-foreground" : "border-input bg-background text-muted-foreground hover:bg-muted"
+                      )}
+                      title={active ? "إلغاء تحديد المجموعة" : "تحديد المجموعة للطباعة المتعددة"}
+                    >
+                      <Check className="h-4 w-4" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
         <div className="flex shrink-0 items-center justify-end gap-2 border-t p-4">
           <Button variant="outline" onClick={onClose}>إلغاء</Button>
-          <Button onClick={printLabel} disabled={selectedTests.length === 0} className="gap-2">
+          <Button onClick={printLabel} disabled={activeGroups.length === 0 && selectedTests.length === 0} className="gap-2">
             <Printer className="h-4 w-4" />
-            طباعة
+            {activeGroups.length > 1 ? `طباعة (${activeGroups.length} صفحات)` : "طباعة"}
           </Button>
         </div>
       </DialogContent>
