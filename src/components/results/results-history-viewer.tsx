@@ -27,11 +27,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Loader2, Trash2, Calendar, FileText, Beaker, ClipboardList } from "lucide-react";
 import { getFlagColor, getFlagIcon, getFlagLabel } from "@/lib/test-utils";
-import type { ResultEntry, ResultFlag } from "@/types/results";
+import type { ResultEntry, ResultFlag, TestResult, LabTest } from "@/types/results";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { groupTestsByCategory } from "@/lib/test-utils";
 
 interface ResultsHistoryViewerProps {
   clientUuid: string;
@@ -45,16 +44,6 @@ export function ResultsHistoryViewer({ clientUuid }: ResultsHistoryViewerProps) 
   const [entryToDelete, setEntryToDelete] = useState<ResultEntry | null>(null);
 
   const sortedEntries = getSortedEntries();
-
-  const getTestName = (testCode: string) => {
-    const test = tests.find((t) => t.test_code === testCode);
-    return test ? (test.test_name_en || test.test_name_ar) : testCode;
-  };
-
-  const getTestUnit = (testCode: string) => {
-    const test = tests.find((t) => t.test_code === testCode);
-    return test?.unit;
-  };
 
   const normalizeFlag = (flag: ResultFlag): ResultFlag =>
     flag === "critical_high" ? "high" : flag === "critical_low" ? "low" : flag;
@@ -79,6 +68,87 @@ export function ResultsHistoryViewer({ clientUuid }: ResultsHistoryViewerProps) 
     setEntryToDelete(null);
   };
 
+  type TestItem = { code: string; result?: TestResult; test?: LabTest };
+
+  const buildGrouped = (testCodes: string[], entryTests?: Record<string, TestResult>) => {
+    const items: TestItem[] = Array.from(new Set(testCodes)).map((code) => ({
+      code,
+      result: entryTests?.[code],
+      test: tests.find((t) => t.test_code === code),
+    }));
+    const grouped: Record<string, TestItem[]> = {};
+    items.forEach((item) => {
+      const category = item.test?.category || "عام";
+      if (!grouped[category]) grouped[category] = [];
+      grouped[category].push(item);
+    });
+    return grouped;
+  };
+
+  const renderCategoryBlock = (category: string, items: TestItem[]) => (
+    <div key={category} className="p-4 md:p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+          <Beaker className="h-4 w-4" />
+        </div>
+        <h4 className="font-semibold text-base">{category}</h4>
+        <Badge variant="secondary" className="mr-auto text-xs font-normal">
+          {items.length} تحليل
+        </Badge>
+      </div>
+
+      <div className="bg-card border rounded-lg overflow-hidden" dir="ltr">
+        <Table>
+          <TableHeader className="bg-muted/40">
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-[30%] text-left font-medium">Test</TableHead>
+              <TableHead className="w-[20%] text-center font-medium">Result</TableHead>
+              <TableHead className="w-[15%] text-center font-medium">Unit</TableHead>
+              <TableHead className="w-[20%] text-center font-medium">Flag</TableHead>
+              <TableHead className="w-[15%] text-left font-medium">Notes</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map(({ code, result, test }) => {
+              const displayFlag = result?.flag ? normalizeFlag(result.flag) : null;
+              return (
+                <TableRow key={code} className="hover:bg-muted/20">
+                  <TableCell className="font-medium text-left py-3">
+                    {test?.test_name_en || test?.test_name_ar || code}
+                  </TableCell>
+                  <TableCell className="text-center font-mono font-semibold py-3">
+                    {result?.value ?? ""}
+                  </TableCell>
+                  <TableCell className="text-center text-muted-foreground text-xs py-3">
+                    {result?.unit || test?.unit || "-"}
+                  </TableCell>
+                  <TableCell className="text-center py-3">
+                    {displayFlag && (
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "font-normal border-0 items-center gap-1.5 px-2.5 py-1 justify-center min-w-[90px]",
+                          getFlagColor(displayFlag)
+                        )}
+                      >
+                        <span>{getFlagIcon(displayFlag)}</span>
+                        <span>{getFlagLabel(displayFlag)}</span>
+                      </Badge>
+                    )}
+                    {!displayFlag && <span className="block min-h-6" />}
+                  </TableCell>
+                  <TableCell className="text-left text-sm text-muted-foreground py-3 max-w-[150px] truncate">
+                    {result?.notes || "-"}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -88,17 +158,46 @@ export function ResultsHistoryViewer({ clientUuid }: ResultsHistoryViewerProps) 
   }
 
   if (sortedEntries.length === 0) {
+    const pendingGrouped = buildGrouped(selectedTests);
+
+    // No selected tests and no results — show the original empty state
+    if (Object.keys(pendingGrouped).length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 text-center space-y-4 border-2 border-dashed rounded-xl bg-muted/30">
+          <div className="bg-primary/10 p-4 rounded-full">
+            <FileText className="h-8 w-8 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold">لا توجد نتائج مسجلة</h3>
+            <p className="text-muted-foreground text-sm max-w-xs mx-auto mt-1">
+              لم يتم تسجيل أي نتائج تحاليل لهذا العميل حتى الآن.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center space-y-4 border-2 border-dashed rounded-xl bg-muted/30">
-        <div className="bg-primary/10 p-4 rounded-full">
-          <FileText className="h-8 w-8 text-primary" />
-        </div>
-        <div>
-          <h3 className="text-lg font-semibold">لا توجد نتائج مسجلة</h3>
-          <p className="text-muted-foreground text-sm max-w-xs mx-auto mt-1">
-            لم يتم تسجيل أي نتائج تحاليل لهذا العميل حتى الآن.
-          </p>
-        </div>
+      <div className="space-y-6 relative">
+        <Card className="overflow-hidden border-dashed border-primary/40">
+          <CardHeader className="bg-muted/30 border-b pb-4">
+            <div className="space-y-1">
+              <CardTitle className="text-lg flex items-center gap-2">
+                بانتظار إدخال النتائج
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                لم يتم تسجيل أي نتائج تحاليل لهذا العميل حتى الآن. التحاليل المطلوبة معروضة أدناه.
+              </p>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {Object.entries(pendingGrouped).map(([category, items]) =>
+                renderCategoryBlock(category, items)
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -109,29 +208,11 @@ export function ResultsHistoryViewer({ clientUuid }: ResultsHistoryViewerProps) 
         <div className="absolute right-[19px] top-4 bottom-4 w-0.5 bg-border -z-10 hidden md:block" />
         
         {sortedEntries.map((entry, index) => {
-          // Group tests by category for this entry
-          const entryTestCodes = Array.from(new Set([
-             ...selectedTests,
-             ...Object.keys(entry.tests || {}),
-          ]));
-          const entryTests = entryTestCodes.map((code) => {
-             const test = tests.find(t => t.test_code === code);
-             const result = entry.tests?.[code];
-             return { code, result, test };
-          });
-          
-          // Re-group using our helper logic manually since the data structure is slightly different
-          const groupedTests: Record<string, typeof entryTests> = {};
-          
-          entryTests.forEach(item => {
-            const category = item.test?.category || "عام";
-            if (!groupedTests[category]) {
-              groupedTests[category] = [];
-            }
-            groupedTests[category].push(item);
-          });
-
-          const isLatest = index === 0;
+           const groupedTests = buildGrouped(
+             [...selectedTests, ...Object.keys(entry.tests || {})],
+             entry.tests
+           );
+           const isLatest = index === 0;
 
           return (
             <div key={entry.entry_id} className="relative group">
@@ -183,75 +264,11 @@ export function ResultsHistoryViewer({ clientUuid }: ResultsHistoryViewerProps) 
                   </CardHeader>
                   
                   <CardContent className="p-0">
-                    {/* Render grouped tests */}
-                    <div className="divide-y">
-                      {Object.entries(groupedTests).map(([category, items]) => (
-                        <div key={category} className="p-4 md:p-6">
-                           <div className="flex items-center gap-2 mb-4">
-                              <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                                 <Beaker className="h-4 w-4" />
-                              </div>
-                              <h4 className="font-semibold text-base">{category}</h4>
-                              <Badge variant="secondary" className="mr-auto text-xs font-normal">
-                                 {items.length} تحليل
-                              </Badge>
-                           </div>
-
-                           <div className="bg-card border rounded-lg overflow-hidden" dir="ltr">
-                              <Table>
-                                 <TableHeader className="bg-muted/40">
-                                    <TableRow className="hover:bg-transparent">
-                                       <TableHead className="w-[30%] text-left font-medium">Test</TableHead>
-                                       <TableHead className="w-[20%] text-center font-medium">Result</TableHead>
-                                       <TableHead className="w-[15%] text-center font-medium">Unit</TableHead>
-                                       <TableHead className="w-[20%] text-center font-medium">Flag</TableHead>
-                                       <TableHead className="w-[15%] text-left font-medium">Notes</TableHead>
-                                    </TableRow>
-                                 </TableHeader>
-                                 <TableBody>
-                                    {items.map(({ code, result, test }) => {
-                                       const displayFlag = result?.flag ? normalizeFlag(result.flag) : null;
-
-                                       return (
-                                       <TableRow key={code} className="hover:bg-muted/20">
-                                          <TableCell className="font-medium text-left py-3">
-                                             {test?.test_name_en || test?.test_name_ar || code}
-                                          </TableCell>
-                                          <TableCell className="text-center font-mono font-semibold py-3">
-                                             {result?.value ?? ""}
-                                          </TableCell>
-                                          <TableCell className="text-center text-muted-foreground text-xs py-3">
-                                             {result?.unit || test?.unit || "-"}
-                                          </TableCell>
-                                          <TableCell className="text-center py-3">
-                                             {displayFlag && (
-                                                <Badge 
-                                                   variant="outline" 
-                                                   className={cn(
-                                                      "font-normal border-0 items-center gap-1.5 px-2.5 py-1 justify-center min-w-[90px]",
-                                                      getFlagColor(displayFlag)
-                                                   )}
-                                                >
-                                                   <span>{getFlagIcon(displayFlag)}</span>
-                                                   <span>{getFlagLabel(displayFlag)}</span>
-                                                </Badge>
-                                             )}
-                                             {!displayFlag && (
-                                                <span className="block min-h-6" />
-                                             )}
-                                          </TableCell>
-                                          <TableCell className="text-left text-sm text-muted-foreground py-3 max-w-[150px] truncate">
-                                             {result?.notes || "-"}
-                                          </TableCell>
-                                       </TableRow>
-                                    );
-                                    })}
-                                 </TableBody>
-                              </Table>
-                           </div>
-                        </div>
-                      ))}
-                    </div>
+                     <div className="divide-y">
+                       {Object.entries(groupedTests).map(([category, items]) =>
+                         renderCategoryBlock(category, items)
+                       )}
+                     </div>
 
                     {entry.notes && (
                       <div className="bg-amber-50/50 dark:bg-amber-950/10 border-t border-amber-100 dark:border-amber-900/30 p-4 flex gap-3">
