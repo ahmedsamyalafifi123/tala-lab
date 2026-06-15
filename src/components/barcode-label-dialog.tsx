@@ -65,10 +65,12 @@ const escapeHtml = (value: unknown) =>
 
 const sanitizeBarcodeValue = (value: string) => value.replace(/[^\x20-\x7f]/g, "").slice(0, 32) || "0";
 
-const EDITA_TERMS = ["cbc", "hba1c", "abo", "film"];
-const CTREAT_TERMS = ["pt", "ptt", "esr"];
-const GROUP_EXCLUDE_TERMS = [...EDITA_TERMS, ...CTREAT_TERMS];
+const EDITA_TERMS = ["cbc", "abo", "rh", "film", "retic"];
+const PT_TERMS = ["pt", "activity", "inr", "ptt", "ct", "bt", "dimer"];
+const ESR_TERMS = ["esr", "1sthr", "2ndhr", "1hr", "2hr"];
+const GROUP_EXCLUDE_TERMS = [...EDITA_TERMS, ...PT_TERMS, ...ESR_TERMS];
 const normalizeMatch = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+const tokenizeMatch = (value: string) => normalizeMatch(value).split(/[_\s,./-]+/).filter(Boolean);
 
 const clampLabelDimension = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
@@ -201,15 +203,22 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
     return test?.name || code;
   });
 
-  const testMatchesAny = (test: { code: string; name: string }, terms: string[]) => {
+  const matchesTerm = (test: { code: string; name: string }, term: string) => {
     const code = normalizeMatch(test.code);
     const name = normalizeMatch(test.name);
-    return terms.some((term) => code.includes(term) || name.includes(term));
+    if (code === term || name === term) return true;
+    if (tokenizeMatch(test.code).includes(term) || tokenizeMatch(test.name).includes(term)) return true;
+    if (term.length >= 4 && (code.includes(term) || name.includes(term))) return true;
+    return false;
   };
+
+  const testMatchesAny = (test: { code: string; name: string }, terms: string[]) =>
+    terms.some((term) => matchesTerm(test, term));
 
   const groups = [
     { id: "edita", label: "EDITA", codes: availableTests.filter((t) => testMatchesAny(t, EDITA_TERMS)).map((t) => t.code) },
-    { id: "ctreat", label: "CTREAT", codes: availableTests.filter((t) => testMatchesAny(t, CTREAT_TERMS)).map((t) => t.code) },
+    { id: "pt", label: "P.T", codes: availableTests.filter((t) => testMatchesAny(t, PT_TERMS)).map((t) => t.code) },
+    { id: "esr", label: "ESR", codes: availableTests.filter((t) => testMatchesAny(t, ESR_TERMS)).map((t) => t.code) },
     { id: "serum", label: "SERUM", codes: availableTests.filter((t) => !testMatchesAny(t, GROUP_EXCLUDE_TERMS)).map((t) => t.code) },
   ];
 
