@@ -68,7 +68,9 @@ const sanitizeBarcodeValue = (value: string) => value.replace(/[^\x20-\x7f]/g, "
 const EDITA_TERMS = ["cbc", "abo", "rh", "film", "retic"];
 const PT_TERMS = ["pt", "activity", "inr", "ptt", "ct", "bt", "dimer"];
 const ESR_TERMS = ["esr", "1sthr", "2ndhr", "1hr", "2hr"];
-const GROUP_EXCLUDE_TERMS = [...EDITA_TERMS, ...PT_TERMS, ...ESR_TERMS];
+const URINE_TERMS = ["urine"];
+const STOOL_TERMS = ["stool", "pylori"];
+const GROUP_EXCLUDE_TERMS = [...EDITA_TERMS, ...PT_TERMS, ...ESR_TERMS, ...URINE_TERMS, ...STOOL_TERMS];
 const normalizeMatch = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
 const tokenizeMatch = (value: string) => normalizeMatch(value).split(/[_\s,./-]+/).filter(Boolean);
 
@@ -220,7 +222,22 @@ export function BarcodeLabelDialog({ client, isOpen, onClose }: BarcodeLabelDial
     { id: "pt", label: "P.T", codes: availableTests.filter((t) => testMatchesAny(t, PT_TERMS)).map((t) => t.code) },
     { id: "esr", label: "ESR", codes: availableTests.filter((t) => testMatchesAny(t, ESR_TERMS)).map((t) => t.code) },
     { id: "serum", label: "SERUM", codes: availableTests.filter((t) => !testMatchesAny(t, GROUP_EXCLUDE_TERMS)).map((t) => t.code) },
+    { id: "urine", label: "URINE", codes: availableTests.filter((t) => testMatchesAny(t, URINE_TERMS)).map((t) => t.code) },
+    { id: "stool", label: "STOOL", codes: availableTests.filter((t) => testMatchesAny(t, STOOL_TERMS)).map((t) => t.code) },
   ];
+
+  const selectableGroupIds = groups.filter((g) => g.codes.length > 0).map((g) => g.id);
+  const allGroupsSelected = selectableGroupIds.length > 0 && selectableGroupIds.every((id) => activeGroups.includes(id));
+
+  const toggleAllGroups = () => {
+    if (allGroupsSelected) {
+      setActiveGroups([]);
+      setSelectionByClient((prev) => ({ ...prev, [client.uuid]: client.selected_tests || [] }));
+    } else {
+      setActiveGroups(selectableGroupIds);
+      setSelectionByClient((prev) => ({ ...prev, [client.uuid]: availableTests.map((t) => t.code) }));
+    }
+  };
 
   const getGroupCodes = (id: string) => groups.find((g) => g.id === id)?.codes || [];
   const codesToText = (codes: string[]) => {
@@ -618,7 +635,17 @@ ${testsTextPages.map((page) => renderLabel(page)).join("\n")}
           <div className="rounded-lg border bg-muted/30 p-3 sm:p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
               <span className="text-sm font-semibold">مجموعات سريعة</span>
-              <span className="text-[11px] text-muted-foreground">حدد للمجموعات ثم اطبع، أو اضغط المجموعة لطباعتها فوراً</span>
+              <Button
+                type="button"
+                size="sm"
+                variant={allGroupsSelected ? "default" : "outline"}
+                className="h-7 gap-1.5 text-xs"
+                onClick={toggleAllGroups}
+                disabled={selectableGroupIds.length === 0}
+              >
+                <Check className="h-3.5 w-3.5" />
+                {allGroupsSelected ? "إلغاء تحديد الكل" : "تحديد الكل"}
+              </Button>
             </div>
             <div className="space-y-2">
               {groups.map((g) => {
