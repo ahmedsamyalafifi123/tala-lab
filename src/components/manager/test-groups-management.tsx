@@ -29,24 +29,26 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ArrowUp, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { groupTestsByCategory } from "@/lib/test-utils";
 import type { TestGroup } from "@/types/results";
 
 export function TestGroupsManagement() {
-  const { groups, loading, createGroup, updateGroup, deleteGroup } = useTestGroups();
+  const { groups, loading, createGroup, updateGroup, deleteGroup, reorderGroups } = useTestGroups();
   const { tests, loading: testsLoading } = useLabTests();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<TestGroup | null>(null);
   const [saving, setSaving] = useState(false);
+  const [reordering, setReordering] = useState(false);
 
   const [formData, setFormData] = useState({
     group_code: "",
     group_name_ar: "",
     group_name_en: "",
     test_codes: [] as string[],
+    display_order: "",
   });
 
   const resetForm = () => {
@@ -55,8 +57,31 @@ export function TestGroupsManagement() {
       group_name_ar: "",
       group_name_en: "",
       test_codes: [],
+      display_order: "",
     });
     setEditingGroup(null);
+  };
+
+  // Move a group up or down: renumber the list sequentially and persist
+  // only the rows whose display_order actually changed.
+  const handleMove = async (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= groups.length || reordering) return;
+
+    const reordered = [...groups];
+    [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+
+    const updates = reordered
+      .map((group, i) => ({ uuid: group.uuid, display_order: i }))
+      .filter((u, i) => groups[i]?.display_order !== u.display_order || groups[i]?.uuid !== u.uuid);
+
+    setReordering(true);
+    const result = await reorderGroups(updates);
+    setReordering(false);
+
+    if (result.error) {
+      toast({ title: "خطأ", description: result.error, variant: "destructive" });
+    }
   };
 
   const handleAdd = () => {
@@ -71,6 +96,7 @@ export function TestGroupsManagement() {
       group_name_ar: group.group_name_ar,
       group_name_en: group.group_name_en,
       test_codes: group.test_codes,
+      display_order: group.display_order?.toString() ?? "",
     });
     setIsDialogOpen(true);
   };
@@ -115,7 +141,9 @@ export function TestGroupsManagement() {
         test_codes: formData.test_codes,
         is_predefined: false,
         is_active: true,
-        display_order: editingGroup?.display_order || groups.length,
+        display_order: formData.display_order !== ""
+          ? parseInt(formData.display_order, 10)
+          : editingGroup?.display_order ?? groups.length,
       };
 
       let result;
@@ -192,10 +220,11 @@ export function TestGroupsManagement() {
         </Button>
       </div>
 
-      <div className="border rounded-lg">
+      <div className="border rounded-lg overflow-x-auto">
         <Table dir="rtl">
           <TableHeader>
             <TableRow>
+              <TableHead className="text-right w-[90px]">الترتيب</TableHead>
               <TableHead className="text-right">الكود</TableHead>
               <TableHead className="text-right">الاسم بالعربية</TableHead>
               <TableHead className="text-right">الاسم بالإنجليزية</TableHead>
@@ -206,13 +235,37 @@ export function TestGroupsManagement() {
           <TableBody>
             {groups.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   لا توجد مجموعات. أضف مجموعة جديدة للبدء.
                 </TableCell>
               </TableRow>
             ) : (
-              groups.map((group) => (
+              groups.map((group, index) => (
                 <TableRow key={group.uuid}>
+                  <TableCell className="text-right">
+                    <div className="flex items-center gap-0.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={index === 0 || reordering}
+                        onClick={() => handleMove(index, -1)}
+                        title="تحريك لأعلى"
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={index === groups.length - 1 || reordering}
+                        onClick={() => handleMove(index, 1)}
+                        title="تحريك لأسفل"
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                   <TableCell className="font-mono text-xs text-right">{group.group_code}</TableCell>
                   <TableCell className="font-medium text-right">{group.group_name_ar}</TableCell>
                   <TableCell className="text-muted-foreground text-right">{group.group_name_en}</TableCell>
@@ -257,7 +310,7 @@ export function TestGroupsManagement() {
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="group_code">كود المجموعة *</Label>
                 <Input
@@ -297,6 +350,23 @@ export function TestGroupsManagement() {
                 placeholder="Routine Panel"
                 className="text-right"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="display_order">الترتيب</Label>
+              <Input
+                id="display_order"
+                type="number"
+                value={formData.display_order}
+                onChange={(e) =>
+                  setFormData({ ...formData, display_order: e.target.value })
+                }
+                placeholder="0"
+                className="text-right"
+              />
+              <p className="text-xs text-muted-foreground">
+                الرقم الأصغر يظهر أولاً في قوائم المعامل
+              </p>
             </div>
 
             <div className="space-y-2">

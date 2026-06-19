@@ -13,17 +13,40 @@ import {
   Dialog, DialogContent, DialogDescription,
   DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ArrowUp, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { LabTestCategory } from "@/types/results";
 
 export function CategoriesManagement() {
-  const { categories, loading, createCategory, updateCategory, deleteCategory } =
+  const { categories, loading, createCategory, updateCategory, deleteCategory, reorderCategories } =
     useLabTestCategories();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<LabTestCategory | null>(null);
   const [saving, setSaving] = useState(false);
+  const [reordering, setReordering] = useState(false);
+
+  // Move a category up or down: renumber the list sequentially and persist
+  // only the rows whose display_order actually changed.
+  const handleMove = async (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= categories.length || reordering) return;
+
+    const reordered = [...categories];
+    [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+
+    const updates = reordered
+      .map((cat, i) => ({ uuid: cat.uuid, display_order: i }))
+      .filter((u, i) => categories[i]?.display_order !== u.display_order || categories[i]?.uuid !== u.uuid);
+
+    setReordering(true);
+    const result = await reorderCategories(updates);
+    setReordering(false);
+
+    if (result.error) {
+      toast({ title: "خطأ", description: result.error, variant: "destructive" });
+    }
+  };
 
   const [formData, setFormData] = useState({
     value: "",
@@ -126,7 +149,7 @@ export function CategoriesManagement() {
         </Button>
       </div>
 
-      <div className="border rounded-lg">
+      <div className="border rounded-lg overflow-x-auto">
         <Table dir="rtl">
           <TableHeader>
             <TableRow>
@@ -145,9 +168,35 @@ export function CategoriesManagement() {
                 </TableCell>
               </TableRow>
             ) : (
-              categories.map((cat) => (
+              categories.map((cat, index) => (
                 <TableRow key={cat.uuid}>
-                  <TableCell className="text-right">{cat.display_order}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center gap-0.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={index === 0 || reordering}
+                        onClick={() => handleMove(index, -1)}
+                        title="تحريك لأعلى"
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={index === categories.length - 1 || reordering}
+                        onClick={() => handleMove(index, 1)}
+                        title="تحريك لأسفل"
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </Button>
+                      <span className="text-xs text-muted-foreground tabular-nums w-5 text-center">
+                        {cat.display_order}
+                      </span>
+                    </div>
+                  </TableCell>
                   <TableCell className="font-mono text-xs text-right">{cat.value}</TableCell>
                   <TableCell className="font-medium text-right">{cat.label_ar}</TableCell>
                   <TableCell className="text-muted-foreground text-right">{cat.label_en}</TableCell>
@@ -195,7 +244,7 @@ export function CategoriesManagement() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="label_ar">الاسم بالعربية *</Label>
                 <Input

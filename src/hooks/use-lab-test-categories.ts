@@ -96,6 +96,28 @@ export function useLabTestCategories() {
     }
   };
 
+  // Reorder categories
+  const reorderCategories = async (
+    categoryUpdates: Array<{ uuid: string; display_order: number }>
+  ) => {
+    try {
+      const promises = categoryUpdates.map(({ uuid, display_order }) =>
+        supabase
+          .from('lab_test_categories')
+          .update({ display_order })
+          .eq('uuid', uuid)
+      );
+
+      await Promise.all(promises);
+
+      await fetchCategories();
+      return { error: null };
+    } catch (err: any) {
+      console.error('Error reordering categories:', err);
+      return { error: err.message };
+    }
+  };
+
   useEffect(() => {
     fetchCategories();
   }, []);
@@ -108,5 +130,6 @@ export function useLabTestCategories() {
     createCategory,
     updateCategory,
     deleteCategory,
+    reorderCategories,
   };
 }

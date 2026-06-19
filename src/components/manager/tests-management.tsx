@@ -29,18 +29,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ArrowUp, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLabTestCategories } from "@/hooks/use-lab-test-categories";
 import type { LabTest } from "@/types/results";
 
 export function TestsManagement() {
-  const { tests, loading, createTest, updateTest, deleteTest } = useLabTests();
+  const { tests, loading, createTest, updateTest, deleteTest, reorderTests } = useLabTests();
   const { toast } = useToast();
   const { categories } = useLabTestCategories();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTest, setEditingTest] = useState<LabTest | null>(null);
   const [saving, setSaving] = useState(false);
+  const [reordering, setReordering] = useState(false);
 
   const [formData, setFormData] = useState({
     test_code: "",
@@ -50,6 +51,7 @@ export function TestsManagement() {
     unit: "",
     reference_min: "",
     reference_max: "",
+    display_order: "",
   });
 
   const resetForm = () => {
@@ -61,8 +63,31 @@ export function TestsManagement() {
       unit: "",
       reference_min: "",
       reference_max: "",
+      display_order: "",
     });
     setEditingTest(null);
+  };
+
+  // Move a test up or down: renumber the list sequentially and persist
+  // only the rows whose display_order actually changed.
+  const handleMove = async (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= tests.length || reordering) return;
+
+    const reordered = [...tests];
+    [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+
+    const updates = reordered
+      .map((test, i) => ({ uuid: test.uuid, display_order: i }))
+      .filter((u, i) => tests[i]?.display_order !== u.display_order || tests[i]?.uuid !== u.uuid);
+
+    setReordering(true);
+    const result = await reorderTests(updates);
+    setReordering(false);
+
+    if (result.error) {
+      toast({ title: "خطأ", description: result.error, variant: "destructive" });
+    }
   };
 
   const handleAdd = () => {
@@ -81,6 +106,7 @@ export function TestsManagement() {
       unit: test.unit || "",
       reference_min: defaultRange?.min?.toString() ?? "",
       reference_max: defaultRange?.max?.toString() ?? "",
+      display_order: test.display_order?.toString() ?? "",
     });
     setIsDialogOpen(true);
   };
@@ -114,7 +140,9 @@ export function TestsManagement() {
             : {},
         },
         is_active: true,
-        display_order: editingTest?.display_order || tests.length,
+        display_order: formData.display_order !== ""
+          ? parseInt(formData.display_order, 10)
+          : editingTest?.display_order ?? tests.length,
       };
 
       let result;
@@ -189,10 +217,11 @@ export function TestsManagement() {
         </Button>
       </div>
 
-      <div className="border rounded-lg">
+      <div className="border rounded-lg overflow-x-auto">
         <Table dir="rtl">
           <TableHeader>
             <TableRow>
+              <TableHead className="text-right w-[90px]">الترتيب</TableHead>
               <TableHead className="text-right">الكود</TableHead>
               <TableHead className="text-right">الاسم بالعربية</TableHead>
               <TableHead className="text-right">الاسم بالإنجليزية</TableHead>
@@ -205,13 +234,37 @@ export function TestsManagement() {
           <TableBody>
             {tests.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   لا توجد تحاليل. أضف تحليل جديد للبدء.
                 </TableCell>
               </TableRow>
             ) : (
-              tests.map((test) => (
+              tests.map((test, index) => (
                 <TableRow key={test.uuid}>
+                  <TableCell className="text-right">
+                    <div className="flex items-center gap-0.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={index === 0 || reordering}
+                        onClick={() => handleMove(index, -1)}
+                        title="تحريك لأعلى"
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        disabled={index === tests.length - 1 || reordering}
+                        onClick={() => handleMove(index, 1)}
+                        title="تحريك لأسفل"
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                   <TableCell className="font-mono text-xs text-right">{test.test_code}</TableCell>
                   <TableCell className="font-medium text-right">{test.test_name_ar}</TableCell>
                   <TableCell className="text-muted-foreground text-right">{test.test_name_en}</TableCell>
@@ -266,7 +319,7 @@ export function TestsManagement() {
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="test_code">كود التحليل *</Label>
                 <Input
@@ -303,7 +356,7 @@ export function TestsManagement() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="test_name_ar">الاسم بالعربية *</Label>
                 <Input
@@ -344,7 +397,7 @@ export function TestsManagement() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="reference_min">الحد الأدنى للقيم الطبيعية</Label>
                 <Input
@@ -374,6 +427,23 @@ export function TestsManagement() {
                   className="text-right"
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="display_order">الترتيب</Label>
+              <Input
+                id="display_order"
+                type="number"
+                value={formData.display_order}
+                onChange={(e) =>
+                  setFormData({ ...formData, display_order: e.target.value })
+                }
+                placeholder="0"
+                className="text-right"
+              />
+              <p className="text-xs text-muted-foreground">
+                الرقم الأصغر يظهر أولاً في قوائم المعامل
+              </p>
             </div>
           </div>
 

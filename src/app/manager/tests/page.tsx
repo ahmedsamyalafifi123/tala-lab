@@ -15,25 +15,25 @@ export default function TestsManagementPage() {
     <div className="space-y-6" dir="rtl">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-right">إدارة التحاليل والفحوصات</h1>
-        <p className="text-muted-foreground mt-2 text-right">
+        <h1 className="text-2xl sm:text-3xl font-bold text-right">إدارة التحاليل والفحوصات</h1>
+        <p className="text-muted-foreground mt-2 text-right text-sm sm:text-base">
           إدارة جميع التحاليل والمجموعات المتاحة لجميع المعامل
         </p>
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6" dir="rtl">
-        <TabsList className="grid w-full max-w-2xl grid-cols-3" dir="rtl">
-          <TabsTrigger value="tests" className="gap-2 justify-start">
-            <FlaskConical className="h-4 w-4" />
+        <TabsList className="grid w-full max-w-2xl grid-cols-3 h-auto" dir="rtl">
+          <TabsTrigger value="tests" className="gap-1.5 sm:gap-2 justify-center sm:justify-start text-xs sm:text-sm py-2 px-1 sm:px-3 flex-col sm:flex-row">
+            <FlaskConical className="h-4 w-4 shrink-0" />
             التحاليل الفردية
           </TabsTrigger>
-          <TabsTrigger value="groups" className="gap-2 justify-start">
-            <Layers className="h-4 w-4" />
+          <TabsTrigger value="groups" className="gap-1.5 sm:gap-2 justify-center sm:justify-start text-xs sm:text-sm py-2 px-1 sm:px-3 flex-col sm:flex-row">
+            <Layers className="h-4 w-4 shrink-0" />
             مجموعات التحاليل
           </TabsTrigger>
-          <TabsTrigger value="categories" className="gap-2 justify-start">
-            <Tag className="h-4 w-4" />
+          <TabsTrigger value="categories" className="gap-1.5 sm:gap-2 justify-center sm:justify-start text-xs sm:text-sm py-2 px-1 sm:px-3 flex-col sm:flex-row">
+            <Tag className="h-4 w-4 shrink-0" />
             الفئات
           </TabsTrigger>
         </TabsList>
