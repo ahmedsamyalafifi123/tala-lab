@@ -95,8 +95,22 @@ export function useTestGroups() {
     }
   };
 
-  // Reorder groups
+  // Reorder groups — optimistic local update, persist in background.
+  // Avoids toggling loading / refetching so the table doesn't remount
+  // and the scroll position is preserved.
   const reorderGroups = async (groupUpdates: Array<{ uuid: string; display_order: number }>) => {
+    const orderMap = new Map(groupUpdates.map((u) => [u.uuid, u.display_order]));
+
+    setGroups((prev) =>
+      prev
+        .map((group) =>
+          orderMap.has(group.uuid)
+            ? { ...group, display_order: orderMap.get(group.uuid)! }
+            : group
+        )
+        .sort((a, b) => a.display_order - b.display_order)
+    );
+
     try {
       const promises = groupUpdates.map(({ uuid, display_order }) =>
         supabase
@@ -106,12 +120,10 @@ export function useTestGroups() {
       );
 
       await Promise.all(promises);
-
-      // Refresh groups
-      await fetchGroups();
       return { error: null };
     } catch (err: any) {
       console.error('Error reordering groups:', err);
+      await fetchGroups();
       return { error: err.message };
     }
   };

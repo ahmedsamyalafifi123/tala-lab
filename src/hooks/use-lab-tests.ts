@@ -98,8 +98,22 @@ export function useLabTests() {
     }
   };
 
-  // Reorder tests
+  // Reorder tests — optimistic local update, persist in background.
+  // Avoids toggling loading / refetching so the table doesn't remount
+  // and the scroll position is preserved.
   const reorderTests = async (testUpdates: Array<{ uuid: string; display_order: number }>) => {
+    const orderMap = new Map(testUpdates.map((u) => [u.uuid, u.display_order]));
+
+    setTests((prev) =>
+      prev
+        .map((test) =>
+          orderMap.has(test.uuid)
+            ? { ...test, display_order: orderMap.get(test.uuid)! }
+            : test
+        )
+        .sort((a, b) => a.display_order - b.display_order)
+    );
+
     try {
       const promises = testUpdates.map(({ uuid, display_order }) =>
         supabase
@@ -109,12 +123,11 @@ export function useLabTests() {
       );
 
       await Promise.all(promises);
-
-      // Refresh tests
-      await fetchTests();
       return { error: null };
     } catch (err: any) {
       console.error('Error reordering tests:', err);
+      // Resync from server on failure to undo the optimistic change
+      await fetchTests();
       return { error: err.message };
     }
   };

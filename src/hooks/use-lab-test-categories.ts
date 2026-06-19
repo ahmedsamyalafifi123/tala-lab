@@ -96,10 +96,24 @@ export function useLabTestCategories() {
     }
   };
 
-  // Reorder categories
+  // Reorder categories — optimistic local update, persist in background.
+  // Avoids toggling loading / refetching so the table doesn't remount
+  // and the scroll position is preserved.
   const reorderCategories = async (
     categoryUpdates: Array<{ uuid: string; display_order: number }>
   ) => {
+    const orderMap = new Map(categoryUpdates.map((u) => [u.uuid, u.display_order]));
+
+    setCategories((prev) =>
+      prev
+        .map((cat) =>
+          orderMap.has(cat.uuid)
+            ? { ...cat, display_order: orderMap.get(cat.uuid)! }
+            : cat
+        )
+        .sort((a, b) => a.display_order - b.display_order)
+    );
+
     try {
       const promises = categoryUpdates.map(({ uuid, display_order }) =>
         supabase
@@ -109,11 +123,10 @@ export function useLabTestCategories() {
       );
 
       await Promise.all(promises);
-
-      await fetchCategories();
       return { error: null };
     } catch (err: any) {
       console.error('Error reordering categories:', err);
+      await fetchCategories();
       return { error: err.message };
     }
   };
