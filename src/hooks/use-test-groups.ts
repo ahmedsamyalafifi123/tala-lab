@@ -6,6 +6,11 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
 import type { TestGroup } from '@/types/results';
 
+// Deterministic ordering: display_order, then uuid as a stable tiebreaker
+// so duplicate display_order values sort identically on client and server.
+const byOrder = (a: TestGroup, b: TestGroup) =>
+  a.display_order - b.display_order || a.uuid.localeCompare(b.uuid);
+
 export function useTestGroups() {
   const [groups, setGroups] = useState<TestGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +27,8 @@ export function useTestGroups() {
         .from('test_groups')
         .select('*')
         .eq('is_active', true)
-        .order('display_order', { ascending: true });
+        .order('display_order', { ascending: true })
+        .order('uuid', { ascending: true });
 
       if (fetchError) throw fetchError;
 
@@ -46,7 +52,7 @@ export function useTestGroups() {
 
       if (createError) throw createError;
 
-      setGroups((prev) => [...prev, data].sort((a, b) => a.display_order - b.display_order));
+      setGroups((prev) => [...prev, data].sort(byOrder));
       return { data, error: null };
     } catch (err: any) {
       console.error('Error creating group:', err);
@@ -68,7 +74,7 @@ export function useTestGroups() {
 
       setGroups((prev) =>
         prev.map((group) => (group.uuid === uuid ? data : group))
-          .sort((a, b) => a.display_order - b.display_order)
+          .sort(byOrder)
       );
       return { data, error: null };
     } catch (err: any) {
@@ -108,7 +114,7 @@ export function useTestGroups() {
             ? { ...group, display_order: orderMap.get(group.uuid)! }
             : group
         )
-        .sort((a, b) => a.display_order - b.display_order)
+        .sort(byOrder)
     );
 
     try {

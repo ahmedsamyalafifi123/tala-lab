@@ -6,6 +6,12 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
 import type { LabTest } from '@/types/results';
 
+// Deterministic ordering: display_order, then uuid as a stable tiebreaker
+// so duplicate display_order values sort identically on the client and the
+// server (Postgres ORDER BY is not stable for ties).
+const byOrder = (a: LabTest, b: LabTest) =>
+  a.display_order - b.display_order || a.uuid.localeCompare(b.uuid);
+
 export function useLabTests() {
   const [tests, setTests] = useState<LabTest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +28,8 @@ export function useLabTests() {
         .from('lab_tests')
         .select('*')
         .eq('is_active', true)
-        .order('display_order', { ascending: true });
+        .order('display_order', { ascending: true })
+        .order('uuid', { ascending: true });
 
       if (fetchError) throw fetchError;
 
@@ -46,7 +53,7 @@ export function useLabTests() {
 
       if (createError) throw createError;
 
-      setTests((prev) => [...prev, data].sort((a, b) => a.display_order - b.display_order));
+      setTests((prev) => [...prev, data].sort(byOrder));
       return { data, error: null };
     } catch (err: any) {
       console.error('Error creating test:', err);
@@ -68,7 +75,7 @@ export function useLabTests() {
 
       setTests((prev) =>
         prev.map((test) => (test.uuid === uuid ? data : test))
-          .sort((a, b) => a.display_order - b.display_order)
+          .sort(byOrder)
       );
       return { data, error: null };
     } catch (err: any) {
@@ -111,7 +118,7 @@ export function useLabTests() {
             ? { ...test, display_order: orderMap.get(test.uuid)! }
             : test
         )
-        .sort((a, b) => a.display_order - b.display_order)
+        .sort(byOrder)
     );
 
     try {

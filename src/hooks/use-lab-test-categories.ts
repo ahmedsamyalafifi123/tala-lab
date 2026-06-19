@@ -3,6 +3,11 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
 import type { LabTestCategory } from '@/types/results';
 
+// Deterministic ordering: display_order, then uuid as a stable tiebreaker
+// so duplicate display_order values sort identically on client and server.
+const byOrder = (a: LabTestCategory, b: LabTestCategory) =>
+  a.display_order - b.display_order || a.uuid.localeCompare(b.uuid);
+
 export function useLabTestCategories() {
   const [categories, setCategories] = useState<LabTestCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +23,8 @@ export function useLabTestCategories() {
         .from('lab_test_categories')
         .select('*')
         .eq('is_active', true)
-        .order('display_order', { ascending: true });
+        .order('display_order', { ascending: true })
+        .order('uuid', { ascending: true });
 
       if (fetchError) throw fetchError;
       setCategories(data || []);
@@ -43,7 +49,7 @@ export function useLabTestCategories() {
       if (createError) throw createError;
 
       setCategories((prev) =>
-        [...prev, data].sort((a, b) => a.display_order - b.display_order)
+        [...prev, data].sort(byOrder)
       );
       return { data, error: null };
     } catch (err: any) {
@@ -66,7 +72,7 @@ export function useLabTestCategories() {
       setCategories((prev) =>
         prev
           .map((cat) => (cat.uuid === uuid ? data : cat))
-          .sort((a, b) => a.display_order - b.display_order)
+          .sort(byOrder)
       );
       return { data, error: null };
     } catch (err: any) {
@@ -111,7 +117,7 @@ export function useLabTestCategories() {
             ? { ...cat, display_order: orderMap.get(cat.uuid)! }
             : cat
         )
-        .sort((a, b) => a.display_order - b.display_order)
+        .sort(byOrder)
     );
 
     try {

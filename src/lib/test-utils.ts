@@ -254,7 +254,9 @@ export function groupTestsByCategory(tests: LabTest[]): GroupedTests {
  * @returns Sorted array
  */
 export function sortTestsByOrder(tests: LabTest[]): LabTest[] {
-  return [...tests].sort((a, b) => a.display_order - b.display_order);
+  return [...tests].sort(
+    (a, b) => a.display_order - b.display_order || a.uuid.localeCompare(b.uuid)
+  );
 }
 
 /**
