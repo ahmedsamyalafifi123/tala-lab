@@ -65,7 +65,7 @@ const escapeHtml = (value: unknown) =>
 
 const sanitizeBarcodeValue = (value: string) => value.replace(/[^\x20-\x7f]/g, "").slice(0, 32) || "0";
 
-const EDITA_TERMS = ["cbc", "abo", "rh", "film", "retic"];
+const EDITA_TERMS = ["cbc", "hba1c", "abo", "rh", "film", "retic"];
 const PT_TERMS = ["pt", "activity", "inr", "ptt", "ct", "bt", "dimer"];
 const ESR_TERMS = ["esr", "1sthr", "2ndhr", "1hr", "2hr"];
 const URINE_TERMS = ["urine"];
