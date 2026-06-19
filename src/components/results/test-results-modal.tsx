@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useLabTests } from "@/hooks/use-lab-tests";
+import { useLabTestCategories } from "@/hooks/use-lab-test-categories";
 import { useClientResults } from "@/hooks/use-client-results";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,6 +68,7 @@ export function TestResultsModal({
 }: TestResultsModalProps) {
   const { toast } = useToast();
   const { tests, loading: testsLoading } = useLabTests();
+  const { categories: labTestCategories } = useLabTestCategories();
   const { selectedTests, results, addResultEntry, updateResultEntry, deleteResultEntry, loading: resultsLoading } = useClientResults(clientUuid);
   const [saving, setSaving] = useState(false);
   const [testValues, setTestValues] = useState<Record<string, { value: string; notes?: string }>>({});
@@ -101,7 +103,7 @@ export function TestResultsModal({
     editableTestCodes.includes(test.test_code)
   );
 
-  const groupedTests = groupTestsByCategory(availableTests);
+  const groupedTests = groupTestsByCategory(availableTests, labTestCategories);
 
   // Reset local editing state whenever we switch client or close the modal.
   useEffect(() => {

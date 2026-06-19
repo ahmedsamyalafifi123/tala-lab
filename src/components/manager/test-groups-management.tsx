@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTestGroups } from "@/hooks/use-test-groups";
 import { useLabTests } from "@/hooks/use-lab-tests";
+import { useLabTestCategories } from "@/hooks/use-lab-test-categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +38,7 @@ import type { TestGroup } from "@/types/results";
 export function TestGroupsManagement() {
   const { groups, loading, createGroup, updateGroup, deleteGroup, reorderGroups } = useTestGroups();
   const { tests, loading: testsLoading } = useLabTests();
+  const { categories: labTestCategories } = useLabTestCategories();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<TestGroup | null>(null);
@@ -198,7 +200,7 @@ export function TestGroupsManagement() {
     }
   };
 
-  const groupedTests = groupTestsByCategory(tests);
+  const groupedTests = groupTestsByCategory(tests, labTestCategories);
 
   if (loading || testsLoading) {
     return (

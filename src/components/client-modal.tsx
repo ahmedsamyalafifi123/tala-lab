@@ -40,6 +40,7 @@ import {
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useLabTests } from "@/hooks/use-lab-tests";
 import { useTestGroups } from "@/hooks/use-test-groups";
+import { useLabTestCategories } from "@/hooks/use-lab-test-categories";
 import { groupTestsByCategory } from "@/lib/test-utils";
 import {
   Accordion,
@@ -99,8 +100,14 @@ export function ClientModal({
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const { tests, loading: testsLoading } = useLabTests();
   const { groups, loading: groupsLoading } = useTestGroups();
+  const { categories: labTestCategories } = useLabTestCategories();
 
-  const groupedTests = useMemo(() => groupTestsByCategory(tests), [tests]);
+  // Order the grouped categories by the lab-test-category display_order so
+  // reordering categories in the manager reflects here.
+  const groupedTests = useMemo(
+    () => groupTestsByCategory(tests, labTestCategories),
+    [tests, labTestCategories]
+  );
 
   const trimmedSearch = testSearch.trim().toLowerCase();
 

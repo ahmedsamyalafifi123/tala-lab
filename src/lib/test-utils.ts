@@ -236,16 +236,32 @@ export function getFlagLabel(flag: ResultFlag): string {
 /**
  * Group tests by category
  * @param tests - Array of lab tests
+ * @param categoryOrder - Optional lab-test-categories to order the groups by
+ *   their display_order. Categories not present fall back to the end.
  * @returns Tests grouped by category
  */
-export function groupTestsByCategory(tests: LabTest[]): GroupedTests {
-  return tests.reduce((acc, test) => {
+export function groupTestsByCategory(
+  tests: LabTest[],
+  categoryOrder?: Array<{ value: string; display_order: number }>
+): GroupedTests {
+  const grouped = tests.reduce((acc, test) => {
     if (!acc[test.category]) {
       acc[test.category] = [];
     }
     acc[test.category].push(test);
     return acc;
   }, {} as GroupedTests);
+
+  if (!categoryOrder?.length) return grouped;
+
+  const orderOf = new Map(categoryOrder.map((c) => [c.value, c.display_order]));
+  const ordered: GroupedTests = {};
+  Object.keys(grouped)
+    .sort((a, b) => (orderOf.get(a) ?? Infinity) - (orderOf.get(b) ?? Infinity))
+    .forEach((cat) => {
+      ordered[cat] = grouped[cat];
+    });
+  return ordered;
 }
 
 /**
