@@ -310,7 +310,10 @@ export function TestsManagement() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl text-right" dir="rtl">
+        <DialogContent
+          className="max-w-3xl text-right max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)_auto]"
+          dir="rtl"
+        >
           <DialogHeader className="text-right">
             <DialogTitle>
               {editingTest ? "تعديل تحليل" : "إضافة تحليل جديد"}
@@ -322,7 +325,7 @@ export function TestsManagement() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 overflow-y-auto px-1">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="test_code">كود التحليل *</Label>
