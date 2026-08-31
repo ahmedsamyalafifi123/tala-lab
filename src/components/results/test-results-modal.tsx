@@ -44,6 +44,13 @@ import {
   validateValue,
   type ReferenceRule,
 } from "@/lib/reference-rules";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 import type { TestResult, ResultFlag } from "@/types/results";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -864,9 +871,14 @@ export function TestResultsModal({
 /**
  * The result field for one test.
  *
- * A test whose rules are all text matches gets a dropdown of those values, so
- * the entered result can actually match a rule. Anything else gets a free
- * input, numeric when any rule compares against a number.
+ * Three shapes, decided by the test's own rules:
+ *
+ *   - only text rules  -> a dropdown, so the value can only be one the rules
+ *                         name and cannot be mistyped
+ *   - text and numeric -> a free field with those text values one click away,
+ *                         because a PCR reads either "Negative" or a titre
+ *   - only numeric     -> a number field
+ *   - no rules at all  -> free text, the behavior these tests always had
  */
 function TestValueField({
   id,
@@ -886,6 +898,8 @@ function TestValueField({
   const flagBorder = flag
     ? getFlagColor(flag).replace("text-", "border-").replace("700", "300")
     : "";
+  const textOptions = qualitativeOptions(rules);
+  const numeric = hasNumericRule(rules);
 
   if (isQualitative(rules)) {
     return (
@@ -898,7 +912,7 @@ function TestValueField({
           <SelectValue placeholder="Select result" />
         </SelectTrigger>
         <SelectContent>
-          {qualitativeOptions(rules).map((option) => (
+          {textOptions.map((option) => (
             <SelectItem key={option} value={option}>
               {option}
             </SelectItem>
@@ -908,20 +922,52 @@ function TestValueField({
     );
   }
 
-  const numeric = hasNumericRule(rules);
+  const mixed = textOptions.length > 0;
 
   return (
     <div className="relative">
       <Input
         id={id}
-        type={numeric ? "number" : "text"}
-        step={numeric ? "0.01" : undefined}
+        // A mixed test has to accept "Negative" as readily as a number, so the
+        // field stays textual and only hints at a numeric keypad.
+        type={numeric && !mixed ? "number" : "text"}
+        step={numeric && !mixed ? "0.01" : undefined}
+        inputMode={mixed ? "decimal" : undefined}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={numeric ? "Result" : "e.g. positive, 1+"}
-        className={cn("font-mono transition-colors", flagBorder, className)}
+        className={cn(
+          "font-mono transition-colors",
+          flagBorder,
+          mixed && "pl-9",
+          className
+        )}
         dir="ltr"
       />
+
+      {mixed && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="absolute inset-y-0 left-0 h-full px-2 text-muted-foreground hover:text-foreground"
+              title="Pick a reported value"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            {textOptions.map((option) => (
+              <DropdownMenuItem key={option} onSelect={() => onChange(option)}>
+                {option}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+
       {flag && (
         <div
           className={cn(

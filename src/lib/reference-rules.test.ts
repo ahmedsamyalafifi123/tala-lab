@@ -12,6 +12,7 @@ import {
   qualitativeOptions,
   validateRules,
   validateValue,
+  hasTextRule,
   TEXT_PRESETS,
   type ReferenceRule,
 } from "./reference-rules";
@@ -366,5 +367,41 @@ describe("TEXT_PRESETS", () => {
     expect(qualitativeOptions(rules)).toEqual(["Positive", "Negative"]);
     expect(evaluateRules(rules, "positive")?.flag).toBe("high");
     expect(evaluateRules(rules, "Negative")?.flag).toBe("normal");
+  });
+});
+
+describe("a test with both text and numeric rules", () => {
+  // The shape of PCR HCV in production: reports either "Negative" or a titre.
+  const viralLoad: ReferenceRule[] = [
+    rule({ op: "text_eq", text: "Negative", label: "normal", flag: "normal" }),
+    rule({ op: "lte", value: 21, label: "detection limit", flag: "detection_limit" }),
+    rule({ op: "lt", value: 100000, label: "low", flag: "low" }),
+    rule({ op: "between", min: 100000, max: 1000000, label: "moderate", flag: "moderate" }),
+    rule({ op: "gt", value: 1000000, label: "high", flag: "high" }),
+  ];
+
+  it("is not qualitative, but still offers its text values", () => {
+    expect(isQualitative(viralLoad)).toBe(false);
+    expect(hasTextRule(viralLoad)).toBe(true);
+    expect(hasNumericRule(viralLoad)).toBe(true);
+    expect(qualitativeOptions(viralLoad)).toEqual(["Negative"]);
+  });
+
+  it("accepts the text its own rules name, not only numbers", () => {
+    expect(validateValue("Negative", viralLoad).isValid).toBe(true);
+    expect(validateValue("negative", viralLoad).isValid).toBe(true);
+    expect(validateValue("5000", viralLoad).isValid).toBe(true);
+  });
+
+  it("still rejects text no rule names", () => {
+    expect(validateValue("banana", viralLoad).isValid).toBe(false);
+  });
+
+  it("flags each band, text and numeric alike", () => {
+    expect(evaluateRules(viralLoad, "Negative")?.flag).toBe("normal");
+    expect(evaluateRules(viralLoad, 20)?.flag).toBe("detection_limit");
+    expect(evaluateRules(viralLoad, 5000)?.flag).toBe("low");
+    expect(evaluateRules(viralLoad, 500000)?.flag).toBe("moderate");
+    expect(evaluateRules(viralLoad, 2000000)?.flag).toBe("high");
   });
 });

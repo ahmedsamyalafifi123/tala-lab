@@ -242,6 +242,11 @@ export function qualitativeOptions(rules: ReferenceRule[]): string[] {
   return options;
 }
 
+/** True when at least one applicable rule matches on text. */
+export function hasTextRule(rules: ReferenceRule[], ctx?: PatientContext): boolean {
+  return rules.some((rule) => rule.op === 'text_eq' && appliesTo(rule, ctx));
+}
+
 /** True when at least one applicable rule compares against a number. */
 export function hasNumericRule(rules: ReferenceRule[], ctx?: PatientContext): boolean {
   return rules.some((rule) => NUMERIC_OPS.includes(rule.op) && appliesTo(rule, ctx));
@@ -378,6 +383,13 @@ export function validateValue(
 ): { isValid: boolean; error?: string } {
   if (!value || value.trim() === '') return { isValid: true };
   if (!hasNumericRule(rules)) return { isValid: true };
+
+  // A test can carry both text and numeric rules -- a PCR reads either
+  // "Negative" or a titre. Text the rules name is valid on such a test.
+  const named = qualitativeOptions(rules).some(
+    (option) => option.toLowerCase() === value.trim().toLowerCase()
+  );
+  if (named) return { isValid: true };
 
   const numeric = parseNumeric(value);
   if (Number.isNaN(numeric)) {
