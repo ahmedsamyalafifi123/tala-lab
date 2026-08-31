@@ -83,14 +83,6 @@ const OP_SYMBOLS: Record<Exclude<RuleOp, 'between' | 'text_eq'>, string> = {
   eq: '=',
 };
 
-export const FLAG_LABELS: Record<ResultFlag, string> = {
-  normal: 'Normal',
-  high: 'High',
-  low: 'Low',
-  critical_high: 'Critical High',
-  critical_low: 'Critical Low',
-};
-
 // ---------------------------------------------------------------------------
 // Reading
 // ---------------------------------------------------------------------------

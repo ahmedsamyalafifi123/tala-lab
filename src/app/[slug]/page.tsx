@@ -94,6 +94,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { asRules, formatRules } from "@/lib/reference-rules";
+import { getFlagLabel, isAbnormalFlag } from "@/lib/test-utils";
 
 export default function LabDashboard() {
   const { labId, labSlug, labName, userRole } = useLabContext();
@@ -917,14 +918,9 @@ export default function LabDashboard() {
             });
             const hasValidRange = rules.length > 0;
 
-            let flagClass = "";
-            let flagLabel = "";
-            if (hasValidRange && result?.flag) {
-              if (["high", "low", "critical_high", "critical_low"].includes(result.flag)) flagClass = "flag-high";
-              flagLabel = result.flag === "normal" ? "Normal" :
-                result.flag === "high" || result.flag === "critical_high" ? "High" :
-                result.flag === "low" || result.flag === "critical_low" ? "Low" : "";
-            }
+            const flagClass =
+              hasValidRange && result?.flag && isAbnormalFlag(result.flag) ? "flag-high" : "";
+            const flagLabel = hasValidRange && result?.flag ? getFlagLabel(result.flag) : "";
 
             patientHtml += `
               <tr>

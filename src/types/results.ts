@@ -57,7 +57,14 @@ export interface TestGroup {
 /**
  * Result flag indicating if value is normal/high/low
  */
-export type ResultFlag = 'normal' | 'high' | 'low' | 'critical_high' | 'critical_low';
+export type ResultFlag =
+  | 'normal'
+  | 'moderate'
+  | 'high'
+  | 'low'
+  | 'critical_high'
+  | 'critical_low'
+  | 'detection_limit';
 
 /**
  * Individual test result value

@@ -5,69 +5,73 @@
 import type { ResultFlag, LabTest, GroupedTests } from '@/types/results';
 
 /**
- * Get flag color for UI display
- * @param flag - Result flag
- * @returns Tailwind color class
+ * Everything the UI needs to render a flag, in one table.
+ *
+ * Adding a flag here is the whole change: the accessors below and the print
+ * and export renderers all read from this.
  */
+const FLAG_DISPLAY: Record<ResultFlag, { color: string; icon: string; label: string }> = {
+  normal: {
+    color: 'text-green-600 bg-green-50 border-green-200',
+    icon: '✓',
+    label: 'Normal',
+  },
+  moderate: {
+    color: 'text-orange-600 bg-orange-50 border-orange-200',
+    icon: '!',
+    label: 'Moderate',
+  },
+  high: {
+    color: 'text-yellow-600 bg-yellow-50 border-yellow-200',
+    icon: '↑',
+    label: 'High',
+  },
+  low: {
+    color: 'text-yellow-600 bg-yellow-50 border-yellow-200',
+    icon: '↓',
+    label: 'Low',
+  },
+  critical_high: {
+    color: 'text-red-600 bg-red-50 border-red-200',
+    icon: '⚠↑',
+    label: 'Critical High',
+  },
+  critical_low: {
+    color: 'text-red-600 bg-red-50 border-red-200',
+    icon: '⚠↓',
+    label: 'Critical Low',
+  },
+  detection_limit: {
+    color: 'text-slate-600 bg-slate-50 border-slate-200',
+    icon: 'DL',
+    label: 'Detection Limit',
+  },
+};
+
+const UNKNOWN_FLAG = {
+  color: 'text-gray-600 bg-gray-50 border-gray-200',
+  icon: '',
+  label: '',
+};
+
+/** Tailwind classes for a flag. */
 export function getFlagColor(flag: ResultFlag): string {
-  switch (flag) {
-    case 'normal':
-      return 'text-green-600 bg-green-50 border-green-200';
-    case 'high':
-      return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-    case 'low':
-      return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-    case 'critical_high':
-      return 'text-red-600 bg-red-50 border-red-200';
-    case 'critical_low':
-      return 'text-red-600 bg-red-50 border-red-200';
-    default:
-      return 'text-gray-600 bg-gray-50 border-gray-200';
-  }
+  return (FLAG_DISPLAY[flag] ?? UNKNOWN_FLAG).color;
 }
 
-/**
- * Get flag icon for UI display
- * @param flag - Result flag
- * @returns Icon character or emoji
- */
+/** Short glyph shown inside the result field. */
 export function getFlagIcon(flag: ResultFlag): string {
-  switch (flag) {
-    case 'normal':
-      return '✓';
-    case 'high':
-      return '↑';
-    case 'low':
-      return '↓';
-    case 'critical_high':
-      return '⚠↑';
-    case 'critical_low':
-      return '⚠↓';
-    default:
-      return '';
-  }
+  return (FLAG_DISPLAY[flag] ?? UNKNOWN_FLAG).icon;
 }
 
-/**
- * Get flag label in English
- * @param flag - Result flag
- * @returns English label
- */
+/** English label for a flag. */
 export function getFlagLabel(flag: ResultFlag): string {
-  switch (flag) {
-    case 'normal':
-      return 'Normal';
-    case 'high':
-      return 'High';
-    case 'low':
-      return 'Low';
-    case 'critical_high':
-      return 'Critical High';
-    case 'critical_low':
-      return 'Critical Low';
-    default:
-      return '';
-  }
+  return (FLAG_DISPLAY[flag] ?? UNKNOWN_FLAG).label;
+}
+
+/** Flags that mark a result as needing attention, for print emphasis. */
+export function isAbnormalFlag(flag: ResultFlag): boolean {
+  return flag !== 'normal' && flag !== 'detection_limit' && flag in FLAG_DISPLAY;
 }
 
 /**

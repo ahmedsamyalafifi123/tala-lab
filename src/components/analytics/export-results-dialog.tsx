@@ -30,6 +30,7 @@ import { ar } from "date-fns/locale";
 
 import { useLabContext } from "@/contexts/LabContext";
 import { asRules, formatRules } from "@/lib/reference-rules";
+import { getFlagLabel, isAbnormalFlag } from "@/lib/test-utils";
 
 interface ExportResultsDialogProps {
   isOpen: boolean;
@@ -124,14 +125,7 @@ export function ExportResultsDialog({
             "Test": test?.test_name_en || test?.test_name_ar || testCode,
             "Result": result?.value ?? "",
             "Unit": result?.unit || test?.unit || "-",
-            "Flag":
-              result?.flag === "normal"
-                ? "Normal"
-                : result?.flag === "high" || result?.flag === "critical_high"
-                ? "High"
-                : result?.flag === "low" || result?.flag === "critical_low"
-                ? "Low"
-                : "",
+            "Flag": result?.flag ? getFlagLabel(result.flag) : "",
             ...(includeReferenceRanges && { "Reference Range": refRange }),
             "Notes": result?.notes || "-",
           });
@@ -472,18 +466,9 @@ export function ExportResultsDialog({
           const hasValidRange = rules.length > 0;
 
           // Status flag styling
-          let flagClass = "";
-          let flagLabel = "";
-          
-          if (hasValidRange && result?.flag) {
-            if (result.flag === "high" || result.flag === "low" || result.flag === "critical_high" || result.flag === "critical_low") {
-              flagClass = "flag-high";
-            }
-            
-            flagLabel = result.flag === "normal" ? "Normal" :
-                        result.flag === "high" || result.flag === "critical_high" ? "High" :
-                        result.flag === "low" || result.flag === "critical_low" ? "Low" : "";
-          }
+          const flagClass =
+            hasValidRange && result?.flag && isAbnormalFlag(result.flag) ? "flag-high" : "";
+          const flagLabel = hasValidRange && result?.flag ? getFlagLabel(result.flag) : "";
 
           html += `
             <tr>

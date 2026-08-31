@@ -17,6 +17,7 @@ import { Loader2, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { asRules, numericBand } from "@/lib/reference-rules";
+import { getFlagColor, getFlagLabel } from "@/lib/test-utils";
 
 interface ClientTrendChartProps {
   clientUuid: string;
@@ -169,23 +170,9 @@ export function ClientTrendChart({ clientUuid, clientGender, clientAge }: Client
                             <p className="text-xs mt-1">
                               الحالة:{" "}
                               <span
-                                className={
-                                  data.flag === "normal"
-                                    ? "text-green-600"
-                                    : data.flag === "high" || data.flag === "low"
-                                    ? "text-yellow-600"
-                                    : "text-red-600"
-                                }
+                                className={getFlagColor(data.flag).split(" ")[0]}
                               >
-                                {data.flag === "normal"
-                                  ? "طبيعي"
-                                  : data.flag === "high"
-                                  ? "مرتفع"
-                                  : data.flag === "low"
-                                  ? "منخفض"
-                                  : data.flag === "critical_high"
-                                  ? "مرتفع جداً"
-                                  : "منخفض جداً"}
+                                {getFlagLabel(data.flag)}
                               </span>
                             </p>
                           )}

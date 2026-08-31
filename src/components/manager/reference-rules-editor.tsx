@@ -17,9 +17,9 @@ import {
 } from "@/components/ui/popover";
 import { Plus, Trash2, ArrowUp, ArrowDown, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getFlagLabel } from "@/lib/test-utils";
 import {
   emptyRule,
-  FLAG_LABELS,
   RULE_OPS,
   RULE_OP_LABELS,
   TEXT_PRESETS,
@@ -28,7 +28,15 @@ import {
 } from "@/lib/reference-rules";
 import type { ResultFlag } from "@/types/results";
 
-const FLAGS: ResultFlag[] = ["normal", "high", "low", "critical_high", "critical_low"];
+const FLAGS: ResultFlag[] = [
+  "normal",
+  "moderate",
+  "high",
+  "low",
+  "critical_high",
+  "critical_low",
+  "detection_limit",
+];
 
 /** Sentinel for "no gender constraint" — Radix Select rejects an empty value. */
 const ANY_GENDER = "any";
@@ -142,8 +150,8 @@ export function ReferenceRulesEditor({ rules, onChange }: ReferenceRulesEditorPr
                     flag: flag as ResultFlag,
                     // Only follow the flag while the label is still the one the
                     // previous flag put there; a hand-written label is kept.
-                    ...(rule.label === FLAG_LABELS[rule.flag]
-                      ? { label: FLAG_LABELS[flag as ResultFlag] }
+                    ...(rule.label === getFlagLabel(rule.flag)
+                      ? { label: getFlagLabel(flag as ResultFlag) }
                       : {}),
                   })
                 }
@@ -154,7 +162,7 @@ export function ReferenceRulesEditor({ rules, onChange }: ReferenceRulesEditorPr
                 <SelectContent>
                   {FLAGS.map((flag) => (
                     <SelectItem key={flag} value={flag}>
-                      {FLAG_LABELS[flag]}
+                      {getFlagLabel(flag)}
                     </SelectItem>
                   ))}
                 </SelectContent>
