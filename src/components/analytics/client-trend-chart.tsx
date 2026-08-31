@@ -16,6 +16,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { Loader2, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { asRules, numericBand } from "@/lib/reference-rules";
 
 interface ClientTrendChartProps {
   clientUuid: string;
@@ -64,31 +65,14 @@ export function ClientTrendChart({ clientUuid, clientGender, clientAge }: Client
       .sort((a, b) => new Date(a.fullDate).getTime() - new Date(b.fullDate).getTime());
   }, [selectedTestCode, results]);
 
-  // Get reference range for selected test
+  // Numeric band to draw behind the trend: the first normal-flagged rule that
+  // describes a closed interval. Tests without one simply get no band.
   const referenceRange = useMemo(() => {
     if (!selectedTest) return null;
-
-    let range = selectedTest.reference_ranges.default;
-
-    // Try age-specific
-    if (clientAge !== undefined && selectedTest.reference_ranges.age_ranges) {
-      const ageRange = selectedTest.reference_ranges.age_ranges.find(
-        (r) => clientAge >= r.min_age && clientAge <= r.max_age
-      );
-      if (ageRange) {
-        range = { min: ageRange.min, max: ageRange.max };
-      }
-    }
-
-    // Try gender-specific
-    const canonicalGender = clientGender === 'ذكر' || clientGender === 'male' ? 'male' : 
-                           clientGender === 'أنثى' || clientGender === 'female' ? 'female' : undefined;
-
-    if (!range && canonicalGender && selectedTest.reference_ranges[canonicalGender]) {
-      range = selectedTest.reference_ranges[canonicalGender];
-    }
-
-    return range;
+    return numericBand(asRules(selectedTest.reference_ranges), {
+      gender: clientGender,
+      age: clientAge,
+    });
   }, [selectedTest, clientGender, clientAge]);
 
   if (loading) {

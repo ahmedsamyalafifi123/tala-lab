@@ -93,6 +93,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { asRules, formatRules } from "@/lib/reference-rules";
 
 export default function LabDashboard() {
   const { labId, labSlug, labName, userRole } = useLabContext();
@@ -909,21 +910,12 @@ export default function LabDashboard() {
 
           testsByCategory[category].forEach(([testCode, result]) => {
             const test = labTests.find((t) => t.test_code === testCode);
-            const refRanges = test?.reference_ranges || {};
-            const hasValidRange =
-              (refRanges.default && typeof refRanges.default.min === 'number' && typeof refRanges.default.max === 'number') ||
-              (refRanges.male && typeof refRanges.male.min === 'number' && typeof refRanges.male.max === 'number') ||
-              (refRanges.female && typeof refRanges.female.min === 'number' && typeof refRanges.female.max === 'number') ||
-              (refRanges.age_ranges && refRanges.age_ranges.length > 0 &&
-                refRanges.age_ranges.some((r: any) => typeof r.min === 'number' && typeof r.max === 'number'));
-
-            let displayRange = "-";
-            if (hasValidRange) {
-              const range = refRanges.default || refRanges.male || refRanges.female || refRanges.age_ranges?.[0];
-              if (range && typeof range.min === 'number' && typeof range.max === 'number') {
-                displayRange = `${range.min} - ${range.max}`;
-              }
-            }
+            const rules = asRules(test?.reference_ranges);
+            const displayRange = formatRules(rules, {
+              gender: client.patient_gender ?? undefined,
+              age: client.patient_age ?? undefined,
+            });
+            const hasValidRange = rules.length > 0;
 
             let flagClass = "";
             let flagLabel = "";

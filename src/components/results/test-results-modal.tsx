@@ -26,7 +26,24 @@ import {
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Loader2, AlertCircle, Pencil, Beaker, Calendar, Clock, ArrowRight, ChevronRight, ChevronLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { calculateFlag, formatReferenceRange, validateTestValue, getFlagColor, getFlagIcon, getFlagLabel, groupTestsByCategory } from "@/lib/test-utils";
+import { getFlagColor, getFlagIcon, getFlagLabel, groupTestsByCategory } from "@/lib/test-utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  asRules,
+  evaluateRules,
+  formatRules,
+  hasNumericRule,
+  isQualitative,
+  qualitativeOptions,
+  validateValue,
+  type ReferenceRule,
+} from "@/lib/reference-rules";
 import type { TestResult, ResultFlag } from "@/types/results";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -145,14 +162,15 @@ export function TestResultsModal({
     }));
   };
 
-  const getTestFlag = (testCode: string, value: string) => {
-    const test = tests.find((t) => t.test_code === testCode);
-    if (!test || !value) return null;
+  const patientContext = { gender: clientGender, age: clientAge };
 
-    const numValue = parseFloat(value);
-    if (isNaN(numValue)) return null;
+  const getTestRules = (testCode: string): ReferenceRule[] =>
+    asRules(tests.find((t) => t.test_code === testCode)?.reference_ranges);
 
-    return calculateFlag(numValue, test.reference_ranges, clientGender, clientAge);
+  /** First rule that applies to this patient and matches the value, if any. */
+  const getTestMatch = (testCode: string, value: string) => {
+    if (!value) return null;
+    return evaluateRules(getTestRules(testCode), value, patientContext);
   };
 
   const normalizeFlag = (flag: ResultFlag): ResultFlag =>
@@ -207,7 +225,7 @@ export function TestResultsModal({
     for (const [testCode, data] of filledTests) {
       const test = tests.find((t) => t.test_code === testCode);
       if (test) {
-        const validation = validateTestValue(data.value, test);
+        const validation = validateValue(data.value, asRules(test.reference_ranges));
         if (!validation.isValid) {
           toast({
             title: "خطأ في القيمة",
@@ -227,29 +245,15 @@ export function TestResultsModal({
       filledTests.forEach(([testCode, data]) => {
         const test = tests.find((t) => t.test_code === testCode);
         if (test) {
-          // Check if test has valid numeric reference range
-          const refRanges = test.reference_ranges || {};
-          const hasValidRange = 
-            (refRanges.default && typeof refRanges.default.min === 'number' && typeof refRanges.default.max === 'number') ||
-            (refRanges.male && typeof refRanges.male.min === 'number' && typeof refRanges.male.max === 'number') ||
-            (refRanges.female && typeof refRanges.female.min === 'number' && typeof refRanges.female.max === 'number') ||
-            (refRanges.age_ranges && refRanges.age_ranges.length > 0 && 
-             refRanges.age_ranges.some((r: { min?: number; max?: number }) => typeof r.min === 'number' && typeof r.max === 'number'));
-          
-          let value: string | number;
-          let flag: ResultFlag | undefined;
-          
-          if (hasValidRange) {
-            // For numeric tests, parse as float and calculate flag
-            const numValue = parseFloat(data.value);
-            value = numValue;
-            flag = getTestFlag(testCode, data.value) || undefined;
-          } else {
-            // For tests without range, store as string (positive, negative, 1+, etc.)
-            value = data.value.trim();
-            flag = undefined; // No flag calculation for non-numeric tests
-          }
-          
+          const rules = asRules(test.reference_ranges);
+          const match = evaluateRules(rules, data.value, patientContext);
+
+          // Numeric tests store a number so charts and comparisons work.
+          // Qualitative and rule-less tests store the text as entered.
+          const numeric = hasNumericRule(rules) ? parseFloat(data.value) : NaN;
+          const value: string | number = Number.isNaN(numeric) ? data.value.trim() : numeric;
+          const flag: ResultFlag | undefined = match?.flag;
+
           testResults[testCode] = {
             value,
             unit: test.unit,
@@ -609,11 +613,10 @@ export function TestResultsModal({
                      <div className="grid gap-6">
                          {categoryTests.map((test) => {
                             const value = testValues[test.test_code]?.value || "";
-                            const rawFlag = getTestFlag(test.test_code, value);
-                            const flag = rawFlag ? normalizeFlag(rawFlag) : null;
-                            const refRange = formatReferenceRange(test.reference_ranges, clientGender, clientAge);
-                            // Check if test has valid numeric reference range
-                            const hasValidRange = refRange && refRange !== 'N/A' && refRange !== 'undefined - undefined';
+                            const rules = getTestRules(test.test_code);
+                            const match = getTestMatch(test.test_code, value);
+                            const flag = match ? normalizeFlag(match.flag) : null;
+                            const refRange = formatRules(rules, patientContext);
 
                             return (
                                <div key={test.test_code} className={cn(
@@ -635,34 +638,17 @@ export function TestResultsModal({
                                      </div>
 
                                      <div className="flex-1 sm:max-w-[200px] space-y-2">
-                                        <div className="relative">
-                                           <Input
-                                              id={test.test_code}
-                                              type={hasValidRange ? "number" : "text"}
-                                              step={hasValidRange ? "0.01" : undefined}
-                                              value={value}
-                                              onChange={(e) => handleValueChange(test.test_code, e.target.value)}
-                                              placeholder={hasValidRange ? "النتيجة" : "مثال: positive, 1+, سالب"}
-                                              className={cn(
-                                                 "font-mono text-lg h-10 transition-colors",
-                                                 flag ? getFlagColor(flag).replace('text-', 'border-').replace('700', '300') : ""
-                                              )}
-                                              dir="ltr"
-                                           />
-                                           {flag && (
-                                              <div className={cn(
-                                                 "absolute inset-y-0 right-3 flex items-center pointer-events-none",
-                                                 getFlagColor(flag)
-                                              )}>
-                                                 {getFlagIcon(flag)}
-                                              </div>
-                                           )}
-                                        </div>
+                                        <TestValueField
+                                           id={test.test_code}
+                                           rules={rules}
+                                           value={value}
+                                           flag={flag}
+                                           onChange={(next) => handleValueChange(test.test_code, next)}
+                                           className="text-lg h-10"
+                                        />
                                         {flag && (
                                            <div className={cn("text-xs font-medium flex items-center justify-end gap-1.5", getFlagColor(flag))}>
-                                              <span>{getFlagLabel(flag)}</span>
-                                              <span>•</span>
-                                              <span>{flag === 'high' ? 'High' : 'Low'}</span>
+                                              <span>{match?.label || getFlagLabel(flag)}</span>
                                            </div>
                                         )}
                                      </div>
@@ -817,10 +803,10 @@ export function TestResultsModal({
                       <div className="grid gap-4">
                         {categoryTests.map((test) => {
                           const value = testValues[test.test_code]?.value || "";
-                          const rawFlag = getTestFlag(test.test_code, value);
-                          const flag = rawFlag ? normalizeFlag(rawFlag) : null;
-                          const refRange = formatReferenceRange(test.reference_ranges, clientGender, clientAge);
-                          const hasValidRange = refRange && refRange !== 'N/A' && refRange !== 'undefined - undefined';
+                          const rules = getTestRules(test.test_code);
+                          const match = getTestMatch(test.test_code, value);
+                          const flag = match ? normalizeFlag(match.flag) : null;
+                          const refRange = formatRules(rules, patientContext);
                           return (
                             <div key={test.test_code} className={cn(
                               "p-3 rounded-xl border transition-all",
@@ -836,23 +822,14 @@ export function TestResultsModal({
                                   {test.unit && <Badge variant="secondary" className="text-[10px] font-mono mr-auto">{test.unit}</Badge>}
                                 </div>
                               </div>
-                              <div className="relative">
-                                <Input
-                                  id={`m-${test.test_code}`}
-                                  type={hasValidRange ? "number" : "text"}
-                                  step={hasValidRange ? "0.01" : undefined}
-                                  value={value}
-                                  onChange={(e) => handleValueChange(test.test_code, e.target.value)}
-                                  placeholder={hasValidRange ? "النتيجة" : "مثال: positive, 1+"}
-                                  className={cn("font-mono h-10", flag ? getFlagColor(flag).replace('text-', 'border-').replace('700', '300') : "")}
-                                  dir="ltr"
-                                />
-                                {flag && (
-                                  <div className={cn("absolute inset-y-0 right-3 flex items-center pointer-events-none", getFlagColor(flag))}>
-                                    {getFlagIcon(flag)}
-                                  </div>
-                                )}
-                              </div>
+                              <TestValueField
+                                id={`m-${test.test_code}`}
+                                rules={rules}
+                                value={value}
+                                flag={flag}
+                                onChange={(next) => handleValueChange(test.test_code, next)}
+                                className="h-10"
+                              />
                             </div>
                           );
                         })}
@@ -881,5 +858,80 @@ export function TestResultsModal({
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
+  );
+}
+
+/**
+ * The result field for one test.
+ *
+ * A test whose rules are all text matches gets a dropdown of those values, so
+ * the entered result can actually match a rule. Anything else gets a free
+ * input, numeric when any rule compares against a number.
+ */
+function TestValueField({
+  id,
+  rules,
+  value,
+  flag,
+  onChange,
+  className,
+}: {
+  id: string;
+  rules: ReferenceRule[];
+  value: string;
+  flag: ResultFlag | null;
+  onChange: (value: string) => void;
+  className?: string;
+}) {
+  const flagBorder = flag
+    ? getFlagColor(flag).replace("text-", "border-").replace("700", "300")
+    : "";
+
+  if (isQualitative(rules)) {
+    return (
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger
+          id={id}
+          className={cn("font-mono", flagBorder, className)}
+          dir="ltr"
+        >
+          <SelectValue placeholder="اختر النتيجة" />
+        </SelectTrigger>
+        <SelectContent>
+          {qualitativeOptions(rules).map((option) => (
+            <SelectItem key={option} value={option}>
+              {option}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
+
+  const numeric = hasNumericRule(rules);
+
+  return (
+    <div className="relative">
+      <Input
+        id={id}
+        type={numeric ? "number" : "text"}
+        step={numeric ? "0.01" : undefined}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={numeric ? "النتيجة" : "مثال: positive, 1+, سالب"}
+        className={cn("font-mono transition-colors", flagBorder, className)}
+        dir="ltr"
+      />
+      {flag && (
+        <div
+          className={cn(
+            "absolute inset-y-0 right-3 flex items-center pointer-events-none",
+            getFlagColor(flag)
+          )}
+        >
+          {getFlagIcon(flag)}
+        </div>
+      )}
+    </div>
   );
 }

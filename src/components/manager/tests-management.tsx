@@ -33,6 +33,13 @@ import { Plus, Pencil, Trash2, Loader2, ArrowUp, ArrowDown } from "lucide-react"
 import { useToast } from "@/hooks/use-toast";
 import { useLabTestCategories } from "@/hooks/use-lab-test-categories";
 import type { LabTest } from "@/types/results";
+import { ReferenceRulesEditor } from "@/components/manager/reference-rules-editor";
+import {
+  asRules,
+  formatRules,
+  validateRules,
+  type ReferenceRule,
+} from "@/lib/reference-rules";
 
 export function TestsManagement() {
   const { tests, loading, createTest, updateTest, deleteTest, reorderTests } = useLabTests();
@@ -49,10 +56,9 @@ export function TestsManagement() {
     test_name_en: "",
     category: "",
     unit: "",
-    reference_min: "",
-    reference_max: "",
     display_order: "",
   });
+  const [rules, setRules] = useState<ReferenceRule[]>([]);
 
   const resetForm = () => {
     setFormData({
@@ -61,10 +67,9 @@ export function TestsManagement() {
       test_name_en: "",
       category: "",
       unit: "",
-      reference_min: "",
-      reference_max: "",
       display_order: "",
     });
+    setRules([]);
     setEditingTest(null);
   };
 
@@ -97,15 +102,13 @@ export function TestsManagement() {
 
   const handleEdit = (test: LabTest) => {
     setEditingTest(test);
-    const defaultRange = test.reference_ranges.default;
+    setRules(asRules(test.reference_ranges));
     setFormData({
       test_code: test.test_code,
       test_name_ar: test.test_name_ar,
       test_name_en: test.test_name_en,
       category: test.category,
       unit: test.unit || "",
-      reference_min: defaultRange?.min?.toString() ?? "",
-      reference_max: defaultRange?.max?.toString() ?? "",
       display_order: test.display_order?.toString() ?? "",
     });
     setIsDialogOpen(true);
@@ -122,6 +125,16 @@ export function TestsManagement() {
       return;
     }
 
+    const ruleCheck = validateRules(rules);
+    if (!ruleCheck.ok) {
+      toast({
+        title: "خطأ في القيم المرجعية",
+        description: ruleCheck.errors.join(" — "),
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -131,14 +144,7 @@ export function TestsManagement() {
         test_name_en: formData.test_name_en || formData.test_name_ar,
         category: formData.category,
         unit: formData.unit || undefined,
-        reference_ranges: {
-          default: formData.reference_min && formData.reference_max
-            ? {
-                min: parseFloat(formData.reference_min),
-                max: parseFloat(formData.reference_max),
-              }
-            : {},
-        },
+        reference_ranges: rules,
         is_active: true,
         display_order: formData.display_order !== ""
           ? parseInt(formData.display_order, 10)
@@ -275,9 +281,7 @@ export function TestsManagement() {
                   </TableCell>
                   <TableCell className="text-right">{test.unit || "-"}</TableCell>
                   <TableCell className="text-right">
-                    {test.reference_ranges.default
-                      ? `${test.reference_ranges.default.min} - ${test.reference_ranges.default.max}`
-                      : "-"}
+                    {formatRules(asRules(test.reference_ranges))}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-2 justify-start">
@@ -397,37 +401,7 @@ export function TestsManagement() {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="reference_min">الحد الأدنى للقيم الطبيعية</Label>
-                <Input
-                  id="reference_min"
-                  type="number"
-                  step="0.01"
-                  value={formData.reference_min}
-                  onChange={(e) =>
-                    setFormData({ ...formData, reference_min: e.target.value })
-                  }
-                  placeholder="70"
-                  className="text-right"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="reference_max">الحد الأقصى للقيم الطبيعية</Label>
-                <Input
-                  id="reference_max"
-                  type="number"
-                  step="0.01"
-                  value={formData.reference_max}
-                  onChange={(e) =>
-                    setFormData({ ...formData, reference_max: e.target.value })
-                  }
-                  placeholder="100"
-                  className="text-right"
-                />
-              </div>
-            </div>
+            <ReferenceRulesEditor rules={rules} onChange={setRules} />
 
             <div className="space-y-2">
               <Label htmlFor="display_order">الترتيب</Label>

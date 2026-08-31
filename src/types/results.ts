@@ -2,26 +2,9 @@
 // LAB TEST RESULTS TYPES
 // ============================================================================
 
-/**
- * Reference range structure for test values
- * Can be gender-specific or age-specific
- */
-export interface ReferenceRange {
-  min: number;
-  max: number;
-}
+import type { ReferenceRule } from '@/lib/reference-rules';
 
-export interface ReferenceRanges {
-  default?: ReferenceRange;
-  male?: ReferenceRange;
-  female?: ReferenceRange;
-  age_ranges?: Array<{
-    min_age: number;
-    max_age: number;
-    min: number;
-    max: number;
-  }>;
-}
+export type { ReferenceRule } from '@/lib/reference-rules';
 
 /**
  * Lab Test Definition (Global - shared across all labs)
@@ -33,7 +16,8 @@ export interface LabTest {
   test_name_en: string;
   category: string; // e.g., "Hematology", "Diabetes"
   unit?: string; // e.g., "mg/dL", "×10³/µL"
-  reference_ranges: ReferenceRanges;
+  /** Ordered reference rules; first applicable match decides the flag. */
+  reference_ranges: ReferenceRule[];
   is_active: boolean;
   display_order: number;
   created_at: string;

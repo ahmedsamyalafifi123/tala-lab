@@ -29,6 +29,7 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
 import { useLabContext } from "@/contexts/LabContext";
+import { asRules, formatRules } from "@/lib/reference-rules";
 
 interface ExportResultsDialogProps {
   isOpen: boolean;
@@ -114,7 +115,10 @@ export function ExportResultsDialog({
         getExportTestCodes(entry.tests).forEach((testCode) => {
           const result = entry.tests[testCode];
           const test = tests.find((t) => t.test_code === testCode);
-          const refRange = test?.reference_ranges.default;
+          const refRange = formatRules(asRules(test?.reference_ranges), {
+            gender: clientGender,
+            age: clientAge,
+          });
 
           excelData.push({
             "Test": test?.test_name_en || test?.test_name_ar || testCode,
@@ -128,10 +132,7 @@ export function ExportResultsDialog({
                 : result?.flag === "low" || result?.flag === "critical_low"
                 ? "Low"
                 : "",
-            ...(includeReferenceRanges &&
-              refRange && {
-                "Reference Range": `${refRange.min} - ${refRange.max}`,
-              }),
+            ...(includeReferenceRanges && { "Reference Range": refRange }),
             "Notes": result?.notes || "-",
           });
         });
@@ -466,25 +467,10 @@ export function ExportResultsDialog({
         // Render tests in this category
         testsByCategory[category].forEach(([testCode, result]) => {
           const test = tests.find((t) => t.test_code === testCode);
-          const refRanges = test?.reference_ranges || {};
-          
-          // Check if test has valid numeric reference range
-          const hasValidRange = 
-            (refRanges.default && typeof refRanges.default.min === 'number' && typeof refRanges.default.max === 'number') ||
-            (refRanges.male && typeof refRanges.male.min === 'number' && typeof refRanges.male.max === 'number') ||
-            (refRanges.female && typeof refRanges.female.min === 'number' && typeof refRanges.female.max === 'number') ||
-            (refRanges.age_ranges && refRanges.age_ranges.length > 0 && 
-             refRanges.age_ranges.some((r: any) => typeof r.min === 'number' && typeof r.max === 'number'));
-          
-          // Get the display range for this test
-          let displayRange = "-";
-          if (hasValidRange) {
-            const range = refRanges.default || refRanges.male || refRanges.female || refRanges.age_ranges?.[0];
-            if (range && typeof range.min === 'number' && typeof range.max === 'number') {
-              displayRange = `${range.min} - ${range.max}`;
-            }
-          }
-          
+          const rules = asRules(test?.reference_ranges);
+          const displayRange = formatRules(rules, { gender: clientGender, age: clientAge });
+          const hasValidRange = rules.length > 0;
+
           // Status flag styling
           let flagClass = "";
           let flagLabel = "";
