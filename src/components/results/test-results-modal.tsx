@@ -228,7 +228,7 @@ export function TestResultsModal({
         const validation = validateValue(data.value, asRules(test.reference_ranges));
         if (!validation.isValid) {
           toast({
-            title: "خطأ في القيمة",
+            title: "Invalid value",
             description: `${test.test_name_en || test.test_name_ar}: ${validation.error}`,
             variant: "destructive",
           });
@@ -632,7 +632,7 @@ export function TestResultsModal({
                                            {test.unit && <Badge variant="secondary" className="text-xs font-mono">{test.unit}</Badge>}
                                         </div>
                                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                           <span>المدى الطبيعي:</span>
+                                           <span>Reference:</span>
                                            <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{refRange}</span>
                                         </div>
                                      </div>
@@ -817,7 +817,7 @@ export function TestResultsModal({
                                   {test.test_name_en || test.test_name_ar}
                                 </Label>
                                 <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                  <span>المدى الطبيعي:</span>
+                                  <span>Reference:</span>
                                   <span className="font-mono bg-muted px-1 rounded">{refRange}</span>
                                   {test.unit && <Badge variant="secondary" className="text-[10px] font-mono mr-auto">{test.unit}</Badge>}
                                 </div>
@@ -895,7 +895,7 @@ function TestValueField({
           className={cn("font-mono", flagBorder, className)}
           dir="ltr"
         >
-          <SelectValue placeholder="اختر النتيجة" />
+          <SelectValue placeholder="Select result" />
         </SelectTrigger>
         <SelectContent>
           {qualitativeOptions(rules).map((option) => (
@@ -918,7 +918,7 @@ function TestValueField({
         step={numeric ? "0.01" : undefined}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={numeric ? "النتيجة" : "مثال: positive, 1+, سالب"}
+        placeholder={numeric ? "Result" : "e.g. positive, 1+"}
         className={cn("font-mono transition-colors", flagBorder, className)}
         dir="ltr"
       />

@@ -19,9 +19,10 @@ import { Plus, Trash2, ArrowUp, ArrowDown, SlidersHorizontal } from "lucide-reac
 import { cn } from "@/lib/utils";
 import {
   emptyRule,
-  FLAG_LABELS_AR,
+  FLAG_LABELS,
   RULE_OPS,
-  RULE_OP_LABELS_AR,
+  RULE_OP_LABELS,
+  TEXT_PRESETS,
   type ReferenceRule,
   type RuleOp,
 } from "@/lib/reference-rules";
@@ -31,6 +32,9 @@ const FLAGS: ResultFlag[] = ["normal", "high", "low", "critical_high", "critical
 
 /** Sentinel for "no gender constraint" — Radix Select rejects an empty value. */
 const ANY_GENDER = "any";
+
+/** Sentinel for "not one of the presets" — the row then takes free text. */
+const CUSTOM_TEXT = "__custom__";
 
 interface ReferenceRulesEditorProps {
   rules: ReferenceRule[];
@@ -81,23 +85,23 @@ export function ReferenceRulesEditor({ rules, onChange }: ReferenceRulesEditorPr
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" dir="ltr">
       <div className="flex items-center justify-between">
-        <Label>القيم المرجعية</Label>
+        <Label>Reference values</Label>
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={() => onChange([...rules, emptyRule()])}
         >
-          <Plus className="h-4 w-4 ml-1" />
-          إضافة قاعدة
+          <Plus className="h-4 w-4 mr-1" />
+          Add rule
         </Button>
       </div>
 
       {rules.length === 0 ? (
         <p className="text-xs text-muted-foreground border border-dashed rounded-md p-3">
-          لا توجد قواعد. سيتم إدخال النتيجة كنص حر بدون تقييم.
+          No rules. Results for this test are entered as free text and carry no flag.
         </p>
       ) : (
         <div className="space-y-2">
@@ -109,21 +113,21 @@ export function ReferenceRulesEditor({ rules, onChange }: ReferenceRulesEditorPr
               <Input
                 value={rule.label}
                 onChange={(e) => update(index, { label: e.target.value })}
-                placeholder="طبيعي"
-                className="h-9 w-28 text-right"
+                placeholder="Normal"
+                className="h-9 w-28"
               />
 
               <Select
                 value={rule.op}
                 onValueChange={(op) => changeOp(index, op as RuleOp)}
               >
-                <SelectTrigger className="h-9 w-36 text-right">
+                <SelectTrigger className="h-9 w-44">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {RULE_OPS.map((op) => (
                     <SelectItem key={op} value={op}>
-                      {RULE_OP_LABELS_AR[op]}
+                      {RULE_OP_LABELS[op]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -133,15 +137,24 @@ export function ReferenceRulesEditor({ rules, onChange }: ReferenceRulesEditorPr
 
               <Select
                 value={rule.flag}
-                onValueChange={(flag) => update(index, { flag: flag as ResultFlag })}
+                onValueChange={(flag) =>
+                  update(index, {
+                    flag: flag as ResultFlag,
+                    // Only follow the flag while the label is still the one the
+                    // previous flag put there; a hand-written label is kept.
+                    ...(rule.label === FLAG_LABELS[rule.flag]
+                      ? { label: FLAG_LABELS[flag as ResultFlag] }
+                      : {}),
+                  })
+                }
               >
-                <SelectTrigger className="h-9 w-32 text-right">
+                <SelectTrigger className="h-9 w-36">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {FLAGS.map((flag) => (
                     <SelectItem key={flag} value={flag}>
-                      {FLAG_LABELS_AR[flag]}
+                      {FLAG_LABELS[flag]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -154,14 +167,14 @@ export function ReferenceRulesEditor({ rules, onChange }: ReferenceRulesEditorPr
                     variant="ghost"
                     size="sm"
                     className={cn("h-9 px-2", rule.applies_to && "text-primary")}
-                    title="تخصيص حسب النوع أو العمر"
+                    title="Limit to a gender or age range"
                   >
                     <SlidersHorizontal className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64 space-y-3 text-right" dir="rtl">
+                <PopoverContent className="w-64 space-y-3 text-left" dir="ltr">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">النوع</Label>
+                    <Label className="text-xs">Gender</Label>
                     <Select
                       value={rule.applies_to?.gender ?? ANY_GENDER}
                       onValueChange={(gender) =>
@@ -173,49 +186,49 @@ export function ReferenceRulesEditor({ rules, onChange }: ReferenceRulesEditorPr
                         })
                       }
                     >
-                      <SelectTrigger className="h-9 text-right">
+                      <SelectTrigger className="h-9 text-left">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={ANY_GENDER}>الكل</SelectItem>
-                        <SelectItem value="male">ذكر</SelectItem>
-                        <SelectItem value="female">أنثى</SelectItem>
+                        <SelectItem value={ANY_GENDER}>Everyone</SelectItem>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1.5">
-                      <Label className="text-xs">من عمر</Label>
+                      <Label className="text-xs">Age from</Label>
                       <Input
                         type="number"
                         value={rule.applies_to?.min_age ?? ""}
                         onChange={(e) =>
                           setCondition(index, { min_age: toNumber(e.target.value) })
                         }
-                        className="h-9 text-right"
+                        className="h-9 text-left"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs">إلى عمر</Label>
+                      <Label className="text-xs">Age to</Label>
                       <Input
                         type="number"
                         value={rule.applies_to?.max_age ?? ""}
                         onChange={(e) =>
                           setCondition(index, { max_age: toNumber(e.target.value) })
                         }
-                        className="h-9 text-right"
+                        className="h-9 text-left"
                       />
                     </div>
                   </div>
 
                   <p className="text-[11px] text-muted-foreground">
-                    اترك الحقول فارغة لتطبيق القاعدة على الجميع.
+                    Leave blank to apply the rule to everyone.
                   </p>
                 </PopoverContent>
               </Popover>
 
-              <div className="flex items-center gap-0.5 mr-auto">
+              <div className="flex items-center gap-0.5 ml-auto">
                 <Button
                   type="button"
                   variant="ghost"
@@ -223,7 +236,7 @@ export function ReferenceRulesEditor({ rules, onChange }: ReferenceRulesEditorPr
                   className="h-9 px-2"
                   disabled={index === 0}
                   onClick={() => move(index, -1)}
-                  title="تحريك لأعلى"
+                  title="Move up"
                 >
                   <ArrowUp className="h-4 w-4" />
                 </Button>
@@ -234,7 +247,7 @@ export function ReferenceRulesEditor({ rules, onChange }: ReferenceRulesEditorPr
                   className="h-9 px-2"
                   disabled={index === rules.length - 1}
                   onClick={() => move(index, 1)}
-                  title="تحريك لأسفل"
+                  title="Move down"
                 >
                   <ArrowDown className="h-4 w-4" />
                 </Button>
@@ -244,7 +257,7 @@ export function ReferenceRulesEditor({ rules, onChange }: ReferenceRulesEditorPr
                   size="sm"
                   className="h-9 px-2"
                   onClick={() => remove(index)}
-                  title="حذف القاعدة"
+                  title="Delete rule"
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
@@ -253,7 +266,7 @@ export function ReferenceRulesEditor({ rules, onChange }: ReferenceRulesEditorPr
           ))}
 
           <p className="text-xs text-muted-foreground">
-            يتم تطبيق أول قاعدة مطابقة، لذا الترتيب مهم.
+            The first matching rule wins, so the order matters.
           </p>
         </div>
       )}
@@ -270,13 +283,43 @@ function RuleValueInputs({
   onChange: (patch: Partial<ReferenceRule>) => void;
 }) {
   if (rule.op === "text_eq") {
+    const text = rule.text ?? "";
+    const isPreset = (TEXT_PRESETS as readonly string[]).includes(text);
+    // An empty row starts on the presets; anything already typed that is not a
+    // preset keeps the free-text field open.
+    const selected = isPreset ? text : text === "" ? "" : CUSTOM_TEXT;
+
     return (
-      <Input
-        value={rule.text ?? ""}
-        onChange={(e) => onChange({ text: e.target.value })}
-        placeholder="Negative"
-        className="h-9 w-40 text-right"
-      />
+      <>
+        <Select
+          value={selected}
+          onValueChange={(next) =>
+            onChange({ text: next === CUSTOM_TEXT ? "" : next })
+          }
+        >
+          <SelectTrigger className="h-9 w-36">
+            <SelectValue placeholder="Value" />
+          </SelectTrigger>
+          <SelectContent>
+            {TEXT_PRESETS.map((preset) => (
+              <SelectItem key={preset} value={preset}>
+                {preset}
+              </SelectItem>
+            ))}
+            <SelectItem value={CUSTOM_TEXT}>Other…</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {selected === CUSTOM_TEXT && (
+          <Input
+            value={text}
+            onChange={(e) => onChange({ text: e.target.value })}
+            placeholder="e.g. 1+, 1/160"
+            className="h-9 w-32"
+            autoFocus
+          />
+        )}
+      </>
     );
   }
 
@@ -288,16 +331,16 @@ function RuleValueInputs({
           step="any"
           value={rule.min ?? ""}
           onChange={(e) => onChange({ min: toNumber(e.target.value) })}
-          placeholder="من"
-          className="h-9 w-24 text-right"
+          placeholder="Min"
+          className="h-9 w-24"
         />
         <Input
           type="number"
           step="any"
           value={rule.max ?? ""}
           onChange={(e) => onChange({ max: toNumber(e.target.value) })}
-          placeholder="إلى"
-          className="h-9 w-24 text-right"
+          placeholder="Max"
+          className="h-9 w-24"
         />
       </>
     );
@@ -309,8 +352,8 @@ function RuleValueInputs({
       step="any"
       value={rule.value ?? ""}
       onChange={(e) => onChange({ value: toNumber(e.target.value) })}
-      placeholder="القيمة"
-      className="h-9 w-28 text-right"
+      placeholder="Value"
+      className="h-9 w-28"
     />
   );
 }

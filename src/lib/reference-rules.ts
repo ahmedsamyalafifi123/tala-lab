@@ -57,15 +57,22 @@ export const RULE_OPS: RuleOp[] = ['between', 'lt', 'lte', 'gt', 'gte', 'eq', 't
 /** Operators that compare against a number and cannot match text. */
 export const NUMERIC_OPS: RuleOp[] = ['between', 'lt', 'lte', 'gt', 'gte', 'eq'];
 
-export const RULE_OP_LABELS_AR: Record<RuleOp, string> = {
-  between: 'بين',
-  lt: 'أقل من',
-  lte: 'أقل من أو يساوي',
-  gt: 'أكبر من',
-  gte: 'أكبر من أو يساوي',
-  eq: 'يساوي',
-  text_eq: 'نص يساوي',
+export const RULE_OP_LABELS: Record<RuleOp, string> = {
+  between: 'Between',
+  lt: 'Less than',
+  lte: 'Less than or equal',
+  gt: 'Greater than',
+  gte: 'Greater than or equal',
+  eq: 'Equal to',
+  text_eq: 'Equals text',
 };
+
+/**
+ * Offered as ready-made values for the Equals-text operator. Qualitative tests
+ * are overwhelmingly one of these two, and picking beats retyping a string that
+ * has to match the result exactly.
+ */
+export const TEXT_PRESETS = ['Positive', 'Negative'] as const;
 
 /** Symbol used when formatting a rule for display and print. */
 const OP_SYMBOLS: Record<Exclude<RuleOp, 'between' | 'text_eq'>, string> = {
@@ -76,12 +83,12 @@ const OP_SYMBOLS: Record<Exclude<RuleOp, 'between' | 'text_eq'>, string> = {
   eq: '=',
 };
 
-export const FLAG_LABELS_AR: Record<ResultFlag, string> = {
-  normal: 'طبيعي',
-  high: 'مرتفع',
-  low: 'منخفض',
-  critical_high: 'مرتفع حرج',
-  critical_low: 'منخفض حرج',
+export const FLAG_LABELS: Record<ResultFlag, string> = {
+  normal: 'Normal',
+  high: 'High',
+  low: 'Low',
+  critical_high: 'Critical High',
+  critical_low: 'Critical Low',
 };
 
 // ---------------------------------------------------------------------------
@@ -327,29 +334,29 @@ export function validateRules(rules: ReferenceRule[]): { ok: boolean; errors: st
     const position = index + 1;
 
     if (!rule.label || rule.label.trim() === '') {
-      errors.push(`القاعدة ${position}: الاسم مطلوب`);
+      errors.push(`Rule ${position}: label is required`);
     }
 
     if (rule.op === 'text_eq') {
       if (!rule.text || rule.text.trim() === '') {
-        errors.push(`القاعدة ${position}: النص مطلوب`);
+        errors.push(`Rule ${position}: text is required`);
       }
     } else if (rule.op === 'between') {
       if (typeof rule.min !== 'number' || Number.isNaN(rule.min)) {
-        errors.push(`القاعدة ${position}: الحد الأدنى مطلوب`);
+        errors.push(`Rule ${position}: minimum is required`);
       }
       if (typeof rule.max !== 'number' || Number.isNaN(rule.max)) {
-        errors.push(`القاعدة ${position}: الحد الأقصى مطلوب`);
+        errors.push(`Rule ${position}: maximum is required`);
       }
       if (
         typeof rule.min === 'number' &&
         typeof rule.max === 'number' &&
         rule.min > rule.max
       ) {
-        errors.push(`القاعدة ${position}: الحد الأدنى أكبر من الحد الأقصى`);
+        errors.push(`Rule ${position}: minimum is greater than maximum`);
       }
     } else if (typeof rule.value !== 'number' || Number.isNaN(rule.value)) {
-      errors.push(`القاعدة ${position}: القيمة مطلوبة`);
+      errors.push(`Rule ${position}: value is required`);
     }
 
     const condition = rule.applies_to;
@@ -359,7 +366,7 @@ export function validateRules(rules: ReferenceRule[]): { ok: boolean; errors: st
       typeof condition.max_age === 'number' &&
       condition.min_age > condition.max_age
     ) {
-      errors.push(`القاعدة ${position}: نطاق العمر غير صحيح`);
+      errors.push(`Rule ${position}: age range is inverted`);
     }
   });
 
@@ -382,10 +389,10 @@ export function validateValue(
 
   const numeric = parseNumeric(value);
   if (Number.isNaN(numeric)) {
-    return { isValid: false, error: 'يجب إدخال رقم صحيح' };
+    return { isValid: false, error: 'Must be a number' };
   }
   if (numeric < 0) {
-    return { isValid: false, error: 'لا يمكن أن تكون القيمة سالبة' };
+    return { isValid: false, error: 'Value cannot be negative' };
   }
 
   return { isValid: true };
@@ -398,7 +405,7 @@ export function emptyRule(): ReferenceRule {
       typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? crypto.randomUUID()
         : Math.random().toString(36).slice(2),
-    label: '',
+    label: 'Normal',
     op: 'between',
     flag: 'normal',
   };

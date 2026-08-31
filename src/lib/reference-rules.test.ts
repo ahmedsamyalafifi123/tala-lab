@@ -12,6 +12,7 @@ import {
   qualitativeOptions,
   validateRules,
   validateValue,
+  TEXT_PRESETS,
   type ReferenceRule,
 } from "./reference-rules";
 
@@ -328,7 +329,7 @@ describe("validateRules", () => {
   it("reports one error per problem, naming the rule's position", () => {
     const result = validateRules([rule({ op: "between", label: "" })]);
     expect(result.errors).toHaveLength(3);
-    expect(result.errors[0]).toContain("القاعدة 1");
+    expect(result.errors.every((e) => e.startsWith("Rule 1:"))).toBe(true);
   });
 });
 
@@ -349,5 +350,21 @@ describe("validateValue", () => {
     expect(validateValue("abc", rules).isValid).toBe(false);
     expect(validateValue("-1", rules).isValid).toBe(false);
     expect(validateValue("1.5", rules).isValid).toBe(true);
+  });
+});
+
+describe("TEXT_PRESETS", () => {
+  it("offers Positive and Negative as ready-made equals-text values", () => {
+    expect([...TEXT_PRESETS]).toEqual(["Positive", "Negative"]);
+  });
+
+  it("makes a preset-only test qualitative, so entry becomes a dropdown", () => {
+    const rules = TEXT_PRESETS.map((text) =>
+      rule({ op: "text_eq", text, label: text, flag: text === "Positive" ? "high" : "normal" })
+    );
+    expect(isQualitative(rules)).toBe(true);
+    expect(qualitativeOptions(rules)).toEqual(["Positive", "Negative"]);
+    expect(evaluateRules(rules, "positive")?.flag).toBe("high");
+    expect(evaluateRules(rules, "Negative")?.flag).toBe("normal");
   });
 });

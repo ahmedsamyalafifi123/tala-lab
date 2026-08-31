@@ -128,7 +128,7 @@ export function TestsManagement() {
     const ruleCheck = validateRules(rules);
     if (!ruleCheck.ok) {
       toast({
-        title: "خطأ في القيم المرجعية",
+        title: "Invalid reference values",
         description: ruleCheck.errors.join(" — "),
         variant: "destructive",
       });
@@ -233,7 +233,7 @@ export function TestsManagement() {
               <TableHead className="text-right">الاسم بالإنجليزية</TableHead>
               <TableHead className="text-right">الفئة</TableHead>
               <TableHead className="text-right">الوحدة</TableHead>
-              <TableHead className="text-right">القيم الطبيعية</TableHead>
+              <TableHead className="text-right">Reference values</TableHead>
               <TableHead className="text-right">الإجراءات</TableHead>
             </TableRow>
           </TableHeader>
