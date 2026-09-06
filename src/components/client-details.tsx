@@ -8,6 +8,7 @@ import { ResultsHistoryViewer } from "@/components/results/results-history-viewe
 import { ClientTrendChart } from "@/components/analytics/client-trend-chart";
 import { ExportResultsDialog } from "@/components/analytics/export-results-dialog";
 import { BarcodeLabelDialog } from "@/components/barcode-label-dialog";
+import { useClinics } from "@/hooks/use-clinics";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -41,6 +42,7 @@ export function ClientDetails({
   onEdit,
   onOpenResults,
 }: ClientDetailsProps) {
+  const { clinicName } = useClinics();
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showBarcodeDialog, setShowBarcodeDialog] = useState(false);
@@ -148,6 +150,11 @@ export function ClientDetails({
             الجهة: {client.entity}
           </Badge>
         )}
+        {clinicName(client.clinic_id) && (
+          <Badge variant="secondary" className="text-[10px] md:text-xs bg-primary/5 text-primary border-primary/10">
+            العيادة: {clinicName(client.clinic_id)}
+          </Badge>
+        )}
         {client.categories && client.categories.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {client.categories.map((cat, idx) => (
@@ -224,6 +231,14 @@ export function ClientDetails({
                   <CardContent className="p-4 md:p-6">
                     <p className="text-xs md:text-sm text-muted-foreground mb-1">الجهة</p>
                     <p className="text-base md:text-lg font-bold text-primary">{client.entity}</p>
+                  </CardContent>
+                </Card>
+              )}
+              {clinicName(client.clinic_id) && (
+                <Card className="bg-background shadow-sm border-primary/10">
+                  <CardContent className="p-4 md:p-6">
+                    <p className="text-xs md:text-sm text-muted-foreground mb-1">العيادة</p>
+                    <p className="text-base md:text-lg font-bold text-primary">{clinicName(client.clinic_id)}</p>
                   </CardContent>
                 </Card>
               )}
@@ -347,6 +362,7 @@ export function ClientDetails({
         clientAge={client.patient_age}
         insuranceNumber={client.insurance_number}
         entity={client.entity}
+        clinicId={client.clinic_id}
       />
 
       <BarcodeLabelDialog

@@ -39,6 +39,7 @@ export interface Client {
   patient_gender?: "male" | "female" | "ذكر" | "أنثى";
   insurance_number?: string;
   entity?: "معاشات" | "ارامل" | "موظفين" | "طلبة" | "المرأة المعيلة" | "المقاولات";
+  clinic_id?: string | null; // Referring clinic; resolve the name through useClinics
   daily_id: number;
   daily_date: Date;
   results: Record<string, any>;
@@ -49,6 +50,16 @@ export interface Client {
   created_at: string;
   updated_at: string;
   notes?: string; // Kept for compatibility if needed, though not in strict plan schema but was in old one
+}
+
+/** A referring clinic, managed per lab from إعدادات المعمل. */
+export interface Clinic {
+  uuid: string;
+  lab_id: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Category {

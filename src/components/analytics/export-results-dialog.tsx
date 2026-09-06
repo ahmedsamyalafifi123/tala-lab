@@ -31,6 +31,16 @@ import { ar } from "date-fns/locale";
 import { useLabContext } from "@/contexts/LabContext";
 import { asRules, formatRules } from "@/lib/reference-rules";
 import { getFlagLabel, isAbnormalFlag } from "@/lib/test-utils";
+import { useClinics } from "@/hooks/use-clinics";
+
+/** The report is built as an HTML string, so every value has to be escaped. */
+const escapeHtml = (value: unknown) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 
 interface ExportResultsDialogProps {
   isOpen: boolean;
@@ -41,6 +51,7 @@ interface ExportResultsDialogProps {
   clientAge?: number;
   insuranceNumber?: string;
   entity?: string;
+  clinicId?: string | null;
 }
 
 export function ExportResultsDialog({
@@ -52,10 +63,12 @@ export function ExportResultsDialog({
   clientAge,
   insuranceNumber,
   entity,
+  clinicId,
 }: ExportResultsDialogProps) {
   const { labSlug } = useLabContext();
   const { toast } = useToast();
   const { tests } = useLabTests();
+  const { clinicName } = useClinics();
   const { selectedTests, getSortedEntries } = useClientResults(clientUuid);
   const [exporting, setExporting] = useState(false);
   const [includeReferenceRanges, setIncludeReferenceRanges] = useState(true);
@@ -85,10 +98,10 @@ export function ExportResultsDialog({
       // Add header row
       excelData.push({
         "اسم المريض": clientName,
-        "": "",
-        "": "",
-        "": "",
       });
+      if (clinicName(clinicId)) {
+        excelData.push({ "اسم المريض": "العيادة", "Result": clinicName(clinicId) });
+      }
       excelData.push({}); // Empty row
 
       // Add results
@@ -355,6 +368,9 @@ export function ExportResultsDialog({
           .flag-normal { color: #2f855a; }
           .flag-high, .flag-low { background: #feebc8; color: #c05621; }
 
+          .notes-list { margin-top: 6px; display: grid; gap: 3px; }
+          .notes-list div { line-height: 1.4; }
+
           .notes-box {
             background: #fffaf0;
             border-left: 4px solid #ed8936;
@@ -391,7 +407,7 @@ export function ExportResultsDialog({
             <table class="patient-info-table">
               <tr>
                 <td class="label" style="width: 14%;">Patient Name</td>
-                <td class="value" style="width: 50%; font-weight: 700; font-size: 15px;">${clientName}</td>
+                <td class="value" style="width: 50%; font-weight: 700; font-size: 15px;">${escapeHtml(clientName)}</td>
                 <td class="label" style="width: 14%;">Report ID</td>
                 <td class="value" style="width: 22%; font-family: monospace;">${clientUuid.substring(0, 8).toUpperCase()}</td>
               </tr>
@@ -406,9 +422,15 @@ export function ExportResultsDialog({
               ${(insuranceNumber || entity) ? `
                 <tr>
                   <td class="label">Insurance</td>
-                  <td class="value">${insuranceNumber || '-'}</td>
+                  <td class="value">${escapeHtml(insuranceNumber || '-')}</td>
                   <td class="label">Entity</td>
-                  <td class="value">${entity || '-'}</td>
+                  <td class="value">${escapeHtml(entity || '-')}</td>
+                </tr>
+              ` : ''}
+              ${clinicName(clinicId) ? `
+                <tr>
+                  <td class="label">Clinic</td>
+                  <td class="value" colspan="3">${escapeHtml(clinicName(clinicId))}</td>
                 </tr>
               ` : ''}
             </table>
@@ -453,7 +475,7 @@ export function ExportResultsDialog({
         html += `
           <tr>
             <td colspan="${includeReferenceRanges ? 5 : 4}" style="background: #f7fafc; padding: 3px 12px; font-weight: 700; color: #2d3748; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-top: 1px solid #e2e8f0;">
-              ${category}
+              ${escapeHtml(category)}
             </td>
           </tr>
         `;
@@ -472,15 +494,15 @@ export function ExportResultsDialog({
 
           html += `
             <tr>
-              <td class="test-name" style="padding-left: 24px;">${test?.test_name_en || test?.test_name_ar || testCode}</td>
-              <td class="result-value" style="text-align: center;">${result?.value ?? ""}</td>
-              <td style="text-align: center; color: #718096;">${result?.unit || test?.unit || "-"}</td>
+              <td class="test-name" style="padding-left: 24px;">${escapeHtml(test?.test_name_en || test?.test_name_ar || testCode)}</td>
+              <td class="result-value" style="text-align: center;">${escapeHtml(result?.value ?? "")}</td>
+              <td style="text-align: center; color: #718096;">${escapeHtml(result?.unit || test?.unit || "-")}</td>
               <td style="text-align: center;">
-                ${flagLabel ? `<span class="flag-badge ${flagClass}">${flagLabel}</span>` : ""}
+                ${flagLabel ? `<span class="flag-badge ${flagClass}">${escapeHtml(flagLabel)}</span>` : ""}
               </td>
               ${includeReferenceRanges ? `
                 <td style="text-align: center; font-size: 12px; color: #4a5568;">
-                  ${displayRange}
+                  ${escapeHtml(displayRange)}
                 </td>
               ` : ""}
             </tr>
@@ -502,8 +524,23 @@ export function ExportResultsDialog({
           </table>
       `;
 
-      if (entry.notes) {
-        html += `<div class="notes-box"><strong>Comments:</strong> ${entry.notes}</div>`;
+      // Notes typed while entering results print as comments under the table
+      // rather than as a column, so a long note never squeezes it.
+      const testComments = getExportTestCodes(entry.tests)
+        .map((testCode) => {
+          const note = entry.tests?.[testCode]?.notes;
+          if (!note || !String(note).trim()) return "";
+          const test = tests.find((t) => t.test_code === testCode);
+          const testLabel = test?.test_name_en || test?.test_name_ar || testCode;
+          return `<div><strong>${escapeHtml(testLabel)}:</strong> ${escapeHtml(String(note).trim())}</div>`;
+        })
+        .filter(Boolean);
+
+      if (entry.notes || testComments.length > 0) {
+        html += `<div class="notes-box"><strong>Comments:</strong>` +
+          (entry.notes ? ` ${escapeHtml(entry.notes)}` : "") +
+          (testComments.length > 0 ? `<div class="notes-list">${testComments.join("")}</div>` : "") +
+          `</div>`;
       }
 
       html += `</div>`;

@@ -3,6 +3,7 @@
 import { Client } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useClinics } from "@/hooks/use-clinics";
 
 interface ClientCardProps {
   client: Client;
@@ -10,6 +11,8 @@ interface ClientCardProps {
 }
 
 export function ClientCard({ client, onClick }: ClientCardProps) {
+  const { clinicName } = useClinics();
+
   const formatDate = (dateStr: string | Date) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString("ar-EG", {
@@ -44,6 +47,7 @@ export function ClientCard({ client, onClick }: ClientCardProps) {
             {formatDate(client.daily_date)}
             {client.patient_gender && ` • ${client.patient_gender === 'male' || client.patient_gender === 'ذكر' ? 'ذكر' : 'أنثى'}`}
             {client.entity && ` • ${client.entity}`}
+            {clinicName(client.clinic_id) && ` • ${clinicName(client.clinic_id)}`}
             {client.notes && ` • ${client.notes}`}
           </p>
         </div>

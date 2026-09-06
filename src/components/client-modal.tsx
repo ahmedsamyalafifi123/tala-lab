@@ -41,6 +41,7 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { useLabTests } from "@/hooks/use-lab-tests";
 import { useTestGroups } from "@/hooks/use-test-groups";
 import { useLabTestCategories } from "@/hooks/use-lab-test-categories";
+import { useClinics } from "@/hooks/use-clinics";
 import { groupTestsByCategory } from "@/lib/test-utils";
 import {
   Accordion,
@@ -65,6 +66,7 @@ interface ClientModalProps {
     patient_phone?: string;
     insurance_number?: string;
     entity?: string;
+    clinic_id?: string | null;
     patient_age?: number;
   }) => Promise<void>;
   client?: Client | null;
@@ -86,6 +88,9 @@ export function ClientModal({
   const [phone, setPhone] = useState("");
   const [insuranceNumber, setInsuranceNumber] = useState("");
   const [entity, setEntity] = useState<string>("");
+  const [clinicId, setClinicId] = useState<string | null>(null);
+  const [isClinicOpen, setIsClinicOpen] = useState(false);
+  const [clinicSearch, setClinicSearch] = useState("");
   const [notes, setNotes] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [date, setDate] = useState<Date>(new Date());
@@ -101,6 +106,7 @@ export function ClientModal({
   const { tests, loading: testsLoading } = useLabTests();
   const { groups, loading: groupsLoading } = useTestGroups();
   const { categories: labTestCategories } = useLabTestCategories();
+  const { clinics, clinicName } = useClinics();
 
   // Order the grouped categories by the lab-test-category display_order so
   // reordering categories in the manager reflects here.
@@ -110,6 +116,12 @@ export function ClientModal({
   );
 
   const trimmedSearch = testSearch.trim().toLowerCase();
+
+  const visibleClinics = useMemo(() => {
+    const query = clinicSearch.trim().toLowerCase();
+    if (!query) return clinics;
+    return clinics.filter((clinic) => clinic.name.toLowerCase().includes(query));
+  }, [clinics, clinicSearch]);
 
   const filteredGroupedTests = useMemo((): Record<string, typeof tests> => {
     if (!trimmedSearch) return groupedTests;
@@ -188,6 +200,7 @@ export function ClientModal({
       setPhone(client.patient_phone || "");
       setInsuranceNumber(client.insurance_number || "");
       setEntity(client.entity || "");
+      setClinicId(client.clinic_id ?? null);
       setNotes(client.notes || "");
 
       // Handle categories - if empty, use "عام" (General) as default
@@ -225,6 +238,8 @@ export function ClientModal({
       setPhone("");
       setInsuranceNumber("");
       setEntity("");
+      setClinicId(null);
+      setClinicSearch("");
       setNotes("");
       // Default to "عام" for new clients
       setSelectedCategories(['عام']);
@@ -313,6 +328,7 @@ export function ClientModal({
       patient_phone: phone.trim() || undefined,
       insurance_number: insuranceNumber.trim() || undefined,
       entity: (entity && entity !== "none") ? entity : undefined,
+      clinic_id: clinicId,
       patient_age: age ? parseInt(age) : undefined,
     });
 
@@ -324,6 +340,8 @@ export function ClientModal({
       setPhone("");
       setInsuranceNumber("");
       setEntity("");
+      setClinicId(null);
+      setClinicSearch("");
       setNotes("");
       setIsManualId(false);
       setManualId("");
@@ -424,7 +442,7 @@ export function ClientModal({
 
         {/* Section 2: Administrative Information */}
         <div className="space-y-4 p-4 rounded-2xl border bg-muted/30">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="space-y-2">
               <Label htmlFor="phone" className="text-sm font-medium truncate">رقم الهاتف</Label>
               <Input
@@ -463,6 +481,87 @@ export function ClientModal({
                   <SelectItem value="المقاولات">المقاولات</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">العيادة</Label>
+              <Popover
+                open={isClinicOpen}
+                onOpenChange={(open) => {
+                  setIsClinicOpen(open);
+                  if (!open) setClinicSearch("");
+                }}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={isClinicOpen}
+                    className="w-full h-11 justify-between font-normal bg-background px-2"
+                  >
+                    <span className={cn("truncate text-xs", !clinicId && "text-muted-foreground")}>
+                      {clinicName(clinicId) ?? "اختر"}
+                    </span>
+                    <Search className="h-3.5 w-3.5 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[260px] p-2" align="start">
+                  <Input
+                    value={clinicSearch}
+                    onChange={(e) => setClinicSearch(e.target.value)}
+                    placeholder="ابحث عن عيادة"
+                    className="h-9 mb-2"
+                    autoFocus
+                  />
+                  <div className="grid gap-1 max-h-56 overflow-y-auto">
+                    <div
+                      className={cn(
+                        "flex items-center gap-3 cursor-pointer p-2 rounded-md transition-colors",
+                        !clinicId ? "bg-primary/10 text-primary" : "hover:bg-muted"
+                      )}
+                      onClick={() => {
+                        setClinicId(null);
+                        setIsClinicOpen(false);
+                      }}
+                    >
+                      <span className="text-sm font-medium">بدون</span>
+                    </div>
+                    {visibleClinics.map((clinic) => {
+                      const isSelected = clinic.uuid === clinicId;
+                      return (
+                        <div
+                          key={clinic.uuid}
+                          className={cn(
+                            "flex items-center gap-3 cursor-pointer p-2 rounded-md transition-colors",
+                            isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted"
+                          )}
+                          onClick={() => {
+                            setClinicId(clinic.uuid);
+                            setIsClinicOpen(false);
+                          }}
+                        >
+                          <div
+                            className={cn(
+                              "h-4 w-4 rounded-sm border flex items-center justify-center shrink-0",
+                              isSelected
+                                ? "bg-primary border-primary text-primary-foreground"
+                                : "border-muted-foreground/30"
+                            )}
+                          >
+                            {isSelected && <Check className="h-3 w-3" />}
+                          </div>
+                          <span className="text-sm font-medium">{clinic.name}</span>
+                        </div>
+                      );
+                    })}
+                    {visibleClinics.length === 0 && (
+                      <p className="text-xs text-muted-foreground p-2 text-center">
+                        لا توجد عيادات مطابقة
+                      </p>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </div>

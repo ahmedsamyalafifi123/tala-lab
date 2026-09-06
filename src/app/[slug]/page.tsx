@@ -94,11 +94,13 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { asRules, formatRules } from "@/lib/reference-rules";
+import { useClinics } from "@/hooks/use-clinics";
 import { getFlagLabel, isAbnormalFlag } from "@/lib/test-utils";
 
 export default function LabDashboard() {
   const { labId, labSlug, labName, userRole } = useLabContext();
   const { tests: labTests, loading: labTestsLoading } = useLabTests();
+  const { clinicName, clinicIdByName } = useClinics();
   const [clients, setClients] = useState<Client[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -868,6 +870,12 @@ export default function LabDashboard() {
                   <td class="value">${escapeHtml(client.entity || '-')}</td>
                 </tr>
               ` : ''}
+              ${clinicName(client.clinic_id) ? `
+                <tr>
+                  <td class="label">Clinic</td>
+                  <td class="value" colspan="3">${escapeHtml(clinicName(client.clinic_id) as string)}</td>
+                </tr>
+              ` : ''}
             </table>
           </div>
       `;
@@ -939,8 +947,24 @@ export default function LabDashboard() {
         });
 
         patientHtml += `</tbody></table>`;
-        if (entry.notes) {
-          patientHtml += `<div class="notes-box"><strong>Comments:</strong> ${escapeHtml(entry.notes)}</div>`;
+
+        // Notes typed while entering results are shown as comments under the
+        // table rather than as a column, so a long note never squeezes it.
+        const testComments = getExportTestCodes(entry.tests)
+          .map((testCode) => {
+            const note = (entry.tests as Record<string, any> || {})[testCode]?.notes;
+            if (!note || !String(note).trim()) return "";
+            const test = labTests.find((t) => t.test_code === testCode);
+            const testLabel = test?.test_name_en || test?.test_name_ar || testCode;
+            return `<div><strong>${escapeHtml(testLabel)}:</strong> ${escapeHtml(String(note).trim())}</div>`;
+          })
+          .filter(Boolean);
+
+        if (entry.notes || testComments.length > 0) {
+          patientHtml += `<div class="notes-box"><strong>Comments:</strong>` +
+            (entry.notes ? ` ${escapeHtml(entry.notes)}` : "") +
+            (testComments.length > 0 ? `<div class="notes-list">${testComments.join("")}</div>` : "") +
+            `</div>`;
         }
         patientHtml += `</div>`;
       });
@@ -1008,6 +1032,8 @@ export default function LabDashboard() {
     .flag-normal { color: #2f855a; }
     .flag-high { background: #feebc8; color: #c05621; }
     .notes-box { background: #fffaf0; border-left: 4px solid #ed8936; padding: 15px; margin-top: 10px; font-size: 13px; color: #744210; }
+    .notes-list { margin-top: 6px; display: grid; gap: 3px; }
+    .notes-list div { line-height: 1.4; }
   </style>
 </head>
 <body>
@@ -1048,6 +1074,7 @@ export default function LabDashboard() {
     patient_phone?: string;
     insurance_number?: string;
     entity?: string;
+    clinic_id?: string | null;
     patient_age?: number;
   }) => {
     if (!labId) return;
@@ -1073,7 +1100,8 @@ export default function LabDashboard() {
           p_patient_phone: data.patient_phone ?? null,
           p_insurance_number: data.insurance_number ?? null,
           p_entity: data.entity ?? null,
-          p_patient_age: data.patient_age ?? null
+          p_patient_age: data.patient_age ?? null,
+          p_clinic_id: data.clinic_id ?? null
         });
 
         if (error) throw error;
@@ -1095,7 +1123,8 @@ export default function LabDashboard() {
           p_patient_phone: data.patient_phone ?? null,
           p_insurance_number: data.insurance_number ?? null,
           p_entity: data.entity ?? null,
-          p_patient_age: data.patient_age ?? null
+          p_patient_age: data.patient_age ?? null,
+          p_clinic_id: data.clinic_id ?? null
         });
 
         if (error) throw error;
@@ -1275,6 +1304,8 @@ export default function LabDashboard() {
         "insurance_number": client.insurance_number || "",
         "الجهة": client.entity || "",
         "entity": client.entity || "",
+        "العيادة": clinicName(client.clinic_id) || "",
+        "clinic": clinicName(client.clinic_id) || "",
         "التصنيف": (client.categories || []).join(", "),
         "categories": joinForExcel(client.categories),
         "primary_category": client.primary_category || "",
@@ -1363,6 +1394,11 @@ export default function LabDashboard() {
         const patientPhone = parseExcelString(getExcelCell(row, ["patient_phone", "phone", "الهاتف", "رقم الهاتف"]));
         const insuranceNumber = parseExcelString(getExcelCell(row, ["insurance_number", "الرقم التأميني", "رقم تأميني"]));
         const entity = parseExcelString(getExcelCell(row, ["entity", "الجهة"]));
+        // Sheets carry the clinic by name; match it back to a clinic the lab
+        // still has, and leave it unset when there is no match.
+        const clinicId = clinicIdByName(
+          parseExcelString(getExcelCell(row, ["clinic", "العيادة", "عيادة"]))
+        ) ?? null;
         const patientAge = parseExcelNumber(getExcelCell(row, ["patient_age", "age", "السن", "العمر"]));
         const selectedTests = parseExcelList(selectedTestsRaw);
         const results = parseExcelJson(resultsRaw);
@@ -1378,6 +1414,7 @@ export default function LabDashboard() {
           patient_phone: patientPhone || null,
           insurance_number: insuranceNumber || null,
           entity: entity || null,
+          clinic_id: clinicId,
           patient_age: patientAge ?? null,
           results,
         };
@@ -1401,6 +1438,7 @@ export default function LabDashboard() {
           patient_phone: string | null;
           insurance_number: string | null;
           entity: string | null;
+          clinic_id: string | null;
           patient_age: number | null;
           results?: unknown;
         };
@@ -1418,7 +1456,8 @@ export default function LabDashboard() {
           p_patient_phone: clientData.patient_phone,
           p_insurance_number: clientData.insurance_number,
           p_entity: clientData.entity,
-          p_patient_age: clientData.patient_age
+          p_patient_age: clientData.patient_age,
+          p_clinic_id: clientData.clinic_id
         });
 
         if (error) throw error;

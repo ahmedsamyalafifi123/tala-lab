@@ -9,7 +9,8 @@ import {
   Save,
   X,
   Users,
-  Tags
+  Tags,
+  Stethoscope
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { Category } from "@/types";
@@ -18,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { LabUserManagement } from "@/components/lab-user-management";
+import { ClinicsManagement } from "@/components/clinics-management";
 import {
   Sheet,
   SheetContent,
@@ -50,7 +52,7 @@ export function SettingsModal({
   onCategoriesChange,
 }: SettingsModalProps) {
   const { labId } = useLabContext();
-  const [activeTab, setActiveTab] = useState<'categories' | 'users'>('categories');
+  const [activeTab, setActiveTab] = useState<'categories' | 'clinics' | 'users'>('categories');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -178,11 +180,11 @@ export function SettingsModal({
           </SheetHeader>
 
           {/* Custom Tabs */}
-          <div className="flex border-b px-4 mt-2">
+          <div className="flex border-b px-4 mt-2 overflow-x-auto">
             <button
               onClick={() => setActiveTab('categories')}
               className={cn(
-                "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px",
+                "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap",
                 activeTab === 'categories' 
                   ? "border-primary text-primary" 
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -192,9 +194,21 @@ export function SettingsModal({
               التصنيفات
             </button>
             <button
+              onClick={() => setActiveTab('clinics')}
+              className={cn(
+                "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap",
+                activeTab === 'clinics'
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Stethoscope className="h-4 w-4" />
+              العيادات
+            </button>
+            <button
               onClick={() => setActiveTab('users')}
               className={cn(
-                "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px",
+                "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap",
                 activeTab === 'users' 
                   ? "border-primary text-primary" 
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -206,7 +220,14 @@ export function SettingsModal({
           </div>
 
           <div className="flex-1 overflow-auto p-4 space-y-3">
-            {activeTab === 'categories' ? (
+            {activeTab === 'clinics' ? (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-muted-foreground">قائمة العيادات</h3>
+                </div>
+                <ClinicsManagement />
+              </>
+            ) : activeTab === 'categories' ? (
               <>
                 <div className="flex items-center justify-between mb-2">
                    <h3 className="text-sm font-semibold text-muted-foreground">قائمة التصنيفات</h3>
