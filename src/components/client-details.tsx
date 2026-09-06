@@ -145,11 +145,6 @@ export function ClientDetails({
             تأمين: {client.insurance_number}
           </Badge>
         )}
-        {client.entity && (
-          <Badge variant="secondary" className="text-[10px] md:text-xs bg-primary/5 text-primary border-primary/10">
-            الجهة: {client.entity}
-          </Badge>
-        )}
         {clinicName(client.clinic_id) && (
           <Badge variant="secondary" className="text-[10px] md:text-xs bg-primary/5 text-primary border-primary/10">
             العيادة: {clinicName(client.clinic_id)}
@@ -208,7 +203,7 @@ export function ClientDetails({
 
       <div className="flex-1 min-h-0 overflow-auto p-4 md:p-6">
         <TabsContent value="info" className="space-y-6 mt-0 h-full max-w-4xl mx-auto w-full">
-          {(client.patient_phone || client.insurance_number || client.entity) && (
+          {(client.patient_phone || client.insurance_number || clinicName(client.clinic_id)) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {client.patient_phone && (
                 <Card className="bg-background shadow-sm border-primary/10">
@@ -223,14 +218,6 @@ export function ClientDetails({
                   <CardContent className="p-4 md:p-6">
                     <p className="text-xs md:text-sm text-muted-foreground mb-1">الرقم التأميني</p>
                     <p className="font-mono text-base md:text-lg font-bold">{client.insurance_number}</p>
-                  </CardContent>
-                </Card>
-              )}
-              {client.entity && (
-                <Card className="bg-background shadow-sm border-primary/10">
-                  <CardContent className="p-4 md:p-6">
-                    <p className="text-xs md:text-sm text-muted-foreground mb-1">الجهة</p>
-                    <p className="text-base md:text-lg font-bold text-primary">{client.entity}</p>
                   </CardContent>
                 </Card>
               )}
@@ -361,7 +348,6 @@ export function ClientDetails({
         clientGender={client.patient_gender}
         clientAge={client.patient_age}
         insuranceNumber={client.insurance_number}
-        entity={client.entity}
         clinicId={client.clinic_id}
       />
 

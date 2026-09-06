@@ -50,7 +50,6 @@ interface ExportResultsDialogProps {
   clientGender?: string;
   clientAge?: number;
   insuranceNumber?: string;
-  entity?: string;
   clinicId?: string | null;
 }
 
@@ -62,7 +61,6 @@ export function ExportResultsDialog({
   clientGender,
   clientAge,
   insuranceNumber,
-  entity,
   clinicId,
 }: ExportResultsDialogProps) {
   const { labSlug } = useLabContext();
@@ -419,12 +417,10 @@ export function ExportResultsDialog({
                   <td class="value">${clientGender ? (clientGender === 'male' || clientGender === 'ذكر' ? 'Male' : 'Female') : '-'}</td>
                 </tr>
               ` : ''}
-              ${(insuranceNumber || entity) ? `
+              ${insuranceNumber ? `
                 <tr>
                   <td class="label">Insurance</td>
-                  <td class="value">${escapeHtml(insuranceNumber || '-')}</td>
-                  <td class="label">Entity</td>
-                  <td class="value">${escapeHtml(entity || '-')}</td>
+                  <td class="value" colspan="3">${escapeHtml(insuranceNumber)}</td>
                 </tr>
               ` : ''}
               ${clinicName(clinicId) ? `

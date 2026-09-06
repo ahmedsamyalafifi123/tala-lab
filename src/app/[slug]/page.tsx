@@ -100,7 +100,7 @@ import { getFlagLabel, isAbnormalFlag } from "@/lib/test-utils";
 export default function LabDashboard() {
   const { labId, labSlug, labName, userRole } = useLabContext();
   const { tests: labTests, loading: labTestsLoading } = useLabTests();
-  const { clinicName, clinicIdByName } = useClinics();
+  const { clinics, clinicName, clinicIdByName, refresh: refreshClinics } = useClinics();
   const [clients, setClients] = useState<Client[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -145,6 +145,7 @@ export default function LabDashboard() {
   const [nameFilter, setNameFilter] = useState("");
   const [debouncedNameFilter, setDebouncedNameFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [clinicFilter, setClinicFilter] = useState<string>("all");
   const [testFilters, setTestFilters] = useState<string[]>([]);
   const [testSearchFilter, setTestSearchFilter] = useState("");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date());
@@ -189,6 +190,7 @@ export default function LabDashboard() {
         const parsed = JSON.parse(saved) as {
           nameFilter?: string;
           categoryFilter?: string;
+          clinicFilter?: string;
           testFilters?: string[];
           dateFrom?: string | null;
           dateTo?: string | null;
@@ -197,6 +199,7 @@ export default function LabDashboard() {
         setNameFilter(parsed.nameFilter || "");
         setDebouncedNameFilter(parsed.nameFilter || "");
         setCategoryFilter(parsed.categoryFilter || "all");
+        setClinicFilter(parsed.clinicFilter || "all");
         setTestFilters(Array.isArray(parsed.testFilters) ? parsed.testFilters : []);
         setDateFrom(parsed.dateFrom ? new Date(parsed.dateFrom) : undefined);
         setDateTo(parsed.dateTo ? new Date(parsed.dateTo) : undefined);
@@ -214,13 +217,14 @@ export default function LabDashboard() {
     const payload = {
       nameFilter,
       categoryFilter,
+      clinicFilter,
       testFilters,
       dateFrom: dateFrom ? format(dateFrom, "yyyy-MM-dd") : null,
       dateTo: dateTo ? format(dateTo, "yyyy-MM-dd") : null,
     };
 
     localStorage.setItem(filtersStorageKey, JSON.stringify(payload));
-  }, [filtersHydrated, filtersStorageKey, nameFilter, categoryFilter, testFilters, dateFrom, dateTo]);
+  }, [filtersHydrated, filtersStorageKey, nameFilter, categoryFilter, clinicFilter, testFilters, dateFrom, dateTo]);
 
   // Debounce the name filter for filtering - 300ms delay
   useEffect(() => {
@@ -373,6 +377,7 @@ export default function LabDashboard() {
              const cats = client.categories || [];
              if (!cats.includes(categoryFilter)) return false;
         }
+        if (clinicFilter !== "all" && client.clinic_id !== clinicFilter) return false;
         // Required tests filter by selected individual tests
         if (testFilters.length > 0) {
           const selectedTests = client.selected_tests || [];
@@ -400,7 +405,7 @@ export default function LabDashboard() {
     }, 10);
 
     return () => clearTimeout(timer);
-  }, [clients, debouncedNameFilter, categoryFilter, testFilters]);
+  }, [clients, debouncedNameFilter, categoryFilter, clinicFilter, testFilters]);
 
   const todayClients = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -425,13 +430,14 @@ export default function LabDashboard() {
   const clearFilters = () => {
     setNameFilter("");
     setCategoryFilter("all");
+    setClinicFilter("all");
     setTestFilters([]);
     setTestSearchFilter("");
     setDateFrom(undefined);
     setDateTo(undefined);
   };
 
-  const hasFilters = nameFilter || categoryFilter !== "all" || testFilters.length > 0 || dateFrom || dateTo;
+  const hasFilters = nameFilter || categoryFilter !== "all" || clinicFilter !== "all" || testFilters.length > 0 || dateFrom || dateTo;
   const useSequentialTestNumbers = testFilters.length > 0;
 
   const openResultsForClient = (client: Client) => {
@@ -862,12 +868,10 @@ export default function LabDashboard() {
                   <td class="value">${client.patient_gender ? (client.patient_gender === 'male' || client.patient_gender === 'ذكر' ? 'Male' : 'Female') : '-'}</td>
                 </tr>
               ` : ''}
-              ${(client.insurance_number || client.entity) ? `
+              ${client.insurance_number ? `
                 <tr>
                   <td class="label">Insurance</td>
-                  <td class="value">${escapeHtml(client.insurance_number || '-')}</td>
-                  <td class="label">Entity</td>
-                  <td class="value">${escapeHtml(client.entity || '-')}</td>
+                  <td class="value" colspan="3">${escapeHtml(client.insurance_number)}</td>
                 </tr>
               ` : ''}
               ${clinicName(client.clinic_id) ? `
@@ -1302,8 +1306,6 @@ export default function LabDashboard() {
         "patient_phone": client.patient_phone || "",
         "الرقم التأميني": client.insurance_number || "",
         "insurance_number": client.insurance_number || "",
-        "الجهة": client.entity || "",
-        "entity": client.entity || "",
         "العيادة": clinicName(client.clinic_id) || "",
         "clinic": clinicName(client.clinic_id) || "",
         "التصنيف": (client.categories || []).join(", "),
@@ -1590,7 +1592,7 @@ export default function LabDashboard() {
         {/* Filters */}
         <Card className="border-border/70 shadow-sm">
           <CardContent className="p-3 sm:p-4">
-            <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.35fr)_minmax(160px,0.9fr)_minmax(240px,1.1fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)] gap-3 xl:items-end">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[minmax(160px,1.2fr)_minmax(120px,0.9fr)_minmax(120px,0.9fr)_minmax(190px,1.1fr)_minmax(140px,0.8fr)_minmax(140px,0.8fr)] gap-3 xl:items-end">
 
                 {/* الاسم */}
                 <div className="space-y-1.5">
@@ -1623,6 +1625,23 @@ export default function LabDashboard() {
                       <SelectItem value="all">الكل</SelectItem>
                       {categories.map((cat) => (
                         <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="clinic-filter" className="text-xs font-medium text-muted-foreground">
+                    العيادة
+                  </Label>
+                  <Select value={clinicFilter} onValueChange={setClinicFilter}>
+                    <SelectTrigger id="clinic-filter" className="h-10 w-full text-right">
+                      <SelectValue placeholder="كل العيادات" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">كل العيادات</SelectItem>
+                      {clinics.map((clinic) => (
+                        <SelectItem key={clinic.uuid} value={clinic.uuid}>{clinic.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -2091,7 +2110,10 @@ export default function LabDashboard() {
 
     <SettingsModal
          isOpen={showSettings}
-         onClose={() => setShowSettings(false)}
+         onClose={() => {
+           setShowSettings(false);
+           void refreshClinics();
+         }}
          categories={categories}
          onCategoriesChange={fetchCategories}
     />

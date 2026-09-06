@@ -87,7 +87,6 @@ export function ClientModal({
   const [age, setAge] = useState<string>("");
   const [phone, setPhone] = useState("");
   const [insuranceNumber, setInsuranceNumber] = useState("");
-  const [entity, setEntity] = useState<string>("");
   const [clinicId, setClinicId] = useState<string | null>(null);
   const [isClinicOpen, setIsClinicOpen] = useState(false);
   const [clinicSearch, setClinicSearch] = useState("");
@@ -97,6 +96,10 @@ export function ClientModal({
   const [isManualId, setIsManualId] = useState(false);
   const [manualId, setManualId] = useState<string>("");
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [categorySearch, setCategorySearch] = useState("");
+  const visibleCategories = categories.filter((category) =>
+    category.name.toLowerCase().includes(categorySearch.trim().toLowerCase())
+  );
   const [selectedTests, setSelectedTests] = useState<Set<string>>(new Set());
   const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
   const [testSearch, setTestSearch] = useState("");
@@ -187,6 +190,8 @@ export function ClientModal({
   }, [isOpen, onClose]);
 
   useEffect(() => {
+    setCategorySearch("");
+    setIsCategoryOpen(false);
     if (client) {
       console.log('🔍 Loading client for edit:', {
         name: client.patient_name,
@@ -199,7 +204,6 @@ export function ClientModal({
       setAge(client.patient_age?.toString() || "");
       setPhone(client.patient_phone || "");
       setInsuranceNumber(client.insurance_number || "");
-      setEntity(client.entity || "");
       setClinicId(client.clinic_id ?? null);
       setNotes(client.notes || "");
 
@@ -237,7 +241,6 @@ export function ClientModal({
       setAge("");
       setPhone("");
       setInsuranceNumber("");
-      setEntity("");
       setClinicId(null);
       setClinicSearch("");
       setNotes("");
@@ -327,7 +330,7 @@ export function ClientModal({
       patient_gender: (gender && gender !== "none") ? gender : null,
       patient_phone: phone.trim() || undefined,
       insurance_number: insuranceNumber.trim() || undefined,
-      entity: (entity && entity !== "none") ? entity : undefined,
+      entity: client?.entity,
       clinic_id: clinicId,
       patient_age: age ? parseInt(age) : undefined,
     });
@@ -339,7 +342,6 @@ export function ClientModal({
       setAge("");
       setPhone("");
       setInsuranceNumber("");
-      setEntity("");
       setClinicId(null);
       setClinicSearch("");
       setNotes("");
@@ -442,7 +444,7 @@ export function ClientModal({
 
         {/* Section 2: Administrative Information */}
         <div className="space-y-4 p-4 rounded-2xl border bg-muted/30">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div className="space-y-2">
               <Label htmlFor="phone" className="text-sm font-medium truncate">رقم الهاتف</Label>
               <Input
@@ -464,23 +466,6 @@ export function ClientModal({
                 placeholder="الرقم"
                 className="h-11 bg-background"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="entity" className="text-sm font-medium">الجهة</Label>
-              <Select value={entity} onValueChange={setEntity}>
-                <SelectTrigger id="entity" className="h-11 text-right bg-background">
-                  <SelectValue placeholder="اختر" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">بدون</SelectItem>
-                  <SelectItem value="معاشات">معاشات</SelectItem>
-                  <SelectItem value="ارامل">ارامل</SelectItem>
-                  <SelectItem value="موظفين">موظفين</SelectItem>
-                  <SelectItem value="طلبة">طلبة</SelectItem>
-                  <SelectItem value="المرأة المعيلة">المرأة المعيلة</SelectItem>
-                  <SelectItem value="المقاولات">المقاولات</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">العيادة</Label>
@@ -600,9 +585,14 @@ export function ClientModal({
 
             <div className="space-y-2">
               <Label className="text-sm font-medium">التصنيف</Label>
-              <Popover open={isCategoryOpen} onOpenChange={setIsCategoryOpen}>
+              <Popover open={isCategoryOpen} onOpenChange={(open) => {
+                setIsCategoryOpen(open);
+                if (!open) setCategorySearch("");
+              }}>
                 <PopoverTrigger asChild>
                   <Button
+                    type="button"
+                    aria-label="التصنيف"
                     variant="outline"
                     role="combobox"
                     aria-expanded={isCategoryOpen}
@@ -617,11 +607,24 @@ export function ClientModal({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[300px] p-2" align="start">
-                  <div className="grid gap-1">
-                      {categories.map((cat) => {
+                  <Input
+                    value={categorySearch}
+                    onChange={(event) => setCategorySearch(event.target.value)}
+                    placeholder="بحث في التصنيفات..."
+                    aria-label="بحث في التصنيفات"
+                    className="mb-2 h-9"
+                    dir="rtl"
+                  />
+                  <div className="grid gap-1 max-h-64 overflow-y-auto" dir="rtl">
+                      {visibleCategories.length === 0 && (
+                        <p className="py-6 text-center text-sm text-muted-foreground">لا توجد تصنيفات مطابقة</p>
+                      )}
+                      {visibleCategories.map((cat) => {
                         const isSelected = selectedCategories.includes(cat.name);
                         return (
-                            <div
+                            <button
+                              type="button"
+                              aria-pressed={isSelected}
                               key={cat.id}
                               className={cn(
                                 "flex items-center gap-3 cursor-pointer p-2 rounded-md transition-colors",
@@ -642,7 +645,7 @@ export function ClientModal({
                                   {isSelected && <Check className="h-3 w-3" />}
                               </div>
                               <span className="text-sm font-medium">{cat.name}</span>
-                            </div>
+                            </button>
                         );
                       })}
                   </div>
