@@ -868,16 +868,12 @@ export default function LabDashboard() {
                   <td class="value">${client.patient_gender ? (client.patient_gender === 'male' || client.patient_gender === 'ذكر' ? 'Male' : 'Female') : '-'}</td>
                 </tr>
               ` : ''}
-              ${client.insurance_number ? `
+              ${(client.insurance_number || clinicName(client.clinic_id)) ? `
                 <tr>
                   <td class="label">Insurance</td>
-                  <td class="value" colspan="3">${escapeHtml(client.insurance_number)}</td>
-                </tr>
-              ` : ''}
-              ${clinicName(client.clinic_id) ? `
-                <tr>
+                  <td class="value">${escapeHtml(client.insurance_number || '-')}</td>
                   <td class="label">Clinic</td>
-                  <td class="value" colspan="3">${escapeHtml(clinicName(client.clinic_id) as string)}</td>
+                  <td class="value">${escapeHtml(clinicName(client.clinic_id) || '-')}</td>
                 </tr>
               ` : ''}
             </table>

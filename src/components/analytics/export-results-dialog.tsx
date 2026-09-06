@@ -417,16 +417,12 @@ export function ExportResultsDialog({
                   <td class="value">${clientGender ? (clientGender === 'male' || clientGender === 'ذكر' ? 'Male' : 'Female') : '-'}</td>
                 </tr>
               ` : ''}
-              ${insuranceNumber ? `
+              ${(insuranceNumber || clinicName(clinicId)) ? `
                 <tr>
                   <td class="label">Insurance</td>
-                  <td class="value" colspan="3">${escapeHtml(insuranceNumber)}</td>
-                </tr>
-              ` : ''}
-              ${clinicName(clinicId) ? `
-                <tr>
+                  <td class="value">${escapeHtml(insuranceNumber || '-')}</td>
                   <td class="label">Clinic</td>
-                  <td class="value" colspan="3">${escapeHtml(clinicName(clinicId))}</td>
+                  <td class="value">${escapeHtml(clinicName(clinicId) || '-')}</td>
                 </tr>
               ` : ''}
             </table>
