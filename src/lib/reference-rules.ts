@@ -379,10 +379,11 @@ export function validateRules(rules: ReferenceRule[]): { ok: boolean; errors: st
  */
 export function validateValue(
   value: string,
-  rules: ReferenceRule[]
+  rules: ReferenceRule[],
+  ctx?: PatientContext
 ): { isValid: boolean; error?: string } {
   if (!value || value.trim() === '') return { isValid: true };
-  if (!hasNumericRule(rules)) return { isValid: true };
+  if (!hasNumericRule(rules, ctx)) return { isValid: true };
 
   // A test can carry both text and numeric rules -- a PCR reads either
   // "Negative" or a titre. Text the rules name is valid on such a test.
@@ -395,11 +396,23 @@ export function validateValue(
   if (Number.isNaN(numeric)) {
     return { isValid: false, error: 'Must be a number' };
   }
-  if (numeric < 0) {
+  // Negatives are only wrong when no rule admits one -- base excess and
+  // similar analytes are authored with negative bounds.
+  if (numeric < 0 && !allowsNegative(rules, ctx)) {
     return { isValid: false, error: 'Value cannot be negative' };
   }
 
   return { isValid: true };
+}
+
+/** Whether any applicable numeric rule reaches below zero. */
+function allowsNegative(rules: ReferenceRule[], ctx?: PatientContext): boolean {
+  return rules.some((rule) => {
+    if (!NUMERIC_OPS.includes(rule.op) || !appliesTo(rule, ctx)) return false;
+    if (rule.op === 'between') return typeof rule.min === 'number' && rule.min < 0;
+    if (rule.op === 'lt' || rule.op === 'lte') return true;
+    return typeof rule.value === 'number' && rule.value < 0;
+  });
 }
 
 /** Fresh rule for the "add rule" button in the manager form. */

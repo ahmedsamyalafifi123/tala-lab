@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -291,44 +293,7 @@ function RuleValueInputs({
   onChange: (patch: Partial<ReferenceRule>) => void;
 }) {
   if (rule.op === "text_eq") {
-    const text = rule.text ?? "";
-    const isPreset = (TEXT_PRESETS as readonly string[]).includes(text);
-    // An empty row starts on the presets; anything already typed that is not a
-    // preset keeps the free-text field open.
-    const selected = isPreset ? text : text === "" ? "" : CUSTOM_TEXT;
-
-    return (
-      <>
-        <Select
-          value={selected}
-          onValueChange={(next) =>
-            onChange({ text: next === CUSTOM_TEXT ? "" : next })
-          }
-        >
-          <SelectTrigger className="h-9 w-36">
-            <SelectValue placeholder="Value" />
-          </SelectTrigger>
-          <SelectContent>
-            {TEXT_PRESETS.map((preset) => (
-              <SelectItem key={preset} value={preset}>
-                {preset}
-              </SelectItem>
-            ))}
-            <SelectItem value={CUSTOM_TEXT}>Other…</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {selected === CUSTOM_TEXT && (
-          <Input
-            value={text}
-            onChange={(e) => onChange({ text: e.target.value })}
-            placeholder="e.g. 1+, 1/160"
-            className="h-9 w-32"
-            autoFocus
-          />
-        )}
-      </>
-    );
+    return <TextRuleInputs rule={rule} onChange={onChange} />;
   }
 
   if (rule.op === "between") {
@@ -363,6 +328,64 @@ function RuleValueInputs({
       placeholder="Value"
       className="h-9 w-28"
     />
+  );
+}
+
+/**
+ * Value fields for the Equals-text operator.
+ *
+ * Choosing "Other…" clears the text, which on its own would look identical to
+ * an untouched row and collapse the field again, so the choice is held in
+ * state rather than inferred from the text alone.
+ */
+function TextRuleInputs({
+  rule,
+  onChange,
+}: {
+  rule: ReferenceRule;
+  onChange: (patch: Partial<ReferenceRule>) => void;
+}) {
+  const text = rule.text ?? "";
+  const isPreset = (TEXT_PRESETS as readonly string[]).includes(text);
+  const [isCustom, setIsCustom] = useState(!isPreset && text !== "");
+
+  // An authored preset always wins over a stale custom flag, so switching back
+  // to Positive/Negative closes the free-text field.
+  const showCustom = isCustom && !isPreset;
+  const selected = isPreset ? text : showCustom ? CUSTOM_TEXT : "";
+
+  return (
+      <>
+        <Select
+          value={selected}
+          onValueChange={(next) => {
+            setIsCustom(next === CUSTOM_TEXT);
+            onChange({ text: next === CUSTOM_TEXT ? "" : next });
+          }}
+        >
+          <SelectTrigger className="h-9 w-36">
+            <SelectValue placeholder="Value" />
+          </SelectTrigger>
+          <SelectContent>
+            {TEXT_PRESETS.map((preset) => (
+              <SelectItem key={preset} value={preset}>
+                {preset}
+              </SelectItem>
+            ))}
+            <SelectItem value={CUSTOM_TEXT}>Other…</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {showCustom && (
+          <Input
+            value={text}
+            onChange={(e) => onChange({ text: e.target.value })}
+            placeholder="e.g. 1+, 1/160"
+            className="h-9 w-32"
+            autoFocus
+          />
+        )}
+      </>
   );
 }
 

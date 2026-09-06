@@ -352,6 +352,22 @@ describe("validateValue", () => {
     expect(validateValue("-1", rules).isValid).toBe(false);
     expect(validateValue("1.5", rules).isValid).toBe(true);
   });
+
+  it("accepts a negative when a rule reaches below zero", () => {
+    const rules = [rule({ op: "between", min: -2, max: 2 })];
+    expect(validateValue("-1", rules).isValid).toBe(true);
+  });
+
+  it("validates against the rules that apply to this patient", () => {
+    // Every rule is gender-scoped: without the patient, none applies and the
+    // value would be waved through as free text.
+    const rules = [
+      rule({ op: "between", min: 13, max: 17, applies_to: { gender: "male" } }),
+      rule({ op: "between", min: 12, max: 15, applies_to: { gender: "female" } }),
+    ];
+    expect(validateValue("abc", rules, { gender: "ذكر" }).isValid).toBe(false);
+    expect(validateValue("14", rules, { gender: "ذكر" }).isValid).toBe(true);
+  });
 });
 
 describe("TEXT_PRESETS", () => {

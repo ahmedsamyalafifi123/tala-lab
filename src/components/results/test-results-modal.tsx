@@ -40,8 +40,10 @@ import {
   formatRules,
   hasNumericRule,
   isQualitative,
+  parseNumeric,
   qualitativeOptions,
   validateValue,
+  type PatientContext,
   type ReferenceRule,
 } from "@/lib/reference-rules";
 import {
@@ -232,7 +234,7 @@ export function TestResultsModal({
     for (const [testCode, data] of filledTests) {
       const test = tests.find((t) => t.test_code === testCode);
       if (test) {
-        const validation = validateValue(data.value, asRules(test.reference_ranges));
+        const validation = validateValue(data.value, asRules(test.reference_ranges), patientContext);
         if (!validation.isValid) {
           toast({
             title: "Invalid value",
@@ -257,7 +259,10 @@ export function TestResultsModal({
 
           // Numeric tests store a number so charts and comparisons work.
           // Qualitative and rule-less tests store the text as entered.
-          const numeric = hasNumericRule(rules) ? parseFloat(data.value) : NaN;
+          // parseNumeric, not parseFloat: "1+" and "1/160" are text, not 1.
+          const numeric = hasNumericRule(rules, patientContext)
+            ? parseNumeric(data.value)
+            : NaN;
           const value: string | number = Number.isNaN(numeric) ? data.value.trim() : numeric;
           const flag: ResultFlag | undefined = match?.flag;
 
@@ -648,6 +653,7 @@ export function TestResultsModal({
                                         <TestValueField
                                            id={test.test_code}
                                            rules={rules}
+                                           ctx={patientContext}
                                            value={value}
                                            flag={flag}
                                            onChange={(next) => handleValueChange(test.test_code, next)}
@@ -832,6 +838,7 @@ export function TestResultsModal({
                               <TestValueField
                                 id={`m-${test.test_code}`}
                                 rules={rules}
+                                ctx={patientContext}
                                 value={value}
                                 flag={flag}
                                 onChange={(next) => handleValueChange(test.test_code, next)}
@@ -883,6 +890,7 @@ export function TestResultsModal({
 function TestValueField({
   id,
   rules,
+  ctx,
   value,
   flag,
   onChange,
@@ -890,6 +898,7 @@ function TestValueField({
 }: {
   id: string;
   rules: ReferenceRule[];
+  ctx?: PatientContext;
   value: string;
   flag: ResultFlag | null;
   onChange: (value: string) => void;
@@ -899,7 +908,7 @@ function TestValueField({
     ? getFlagColor(flag).replace("text-", "border-").replace("700", "300")
     : "";
   const textOptions = qualitativeOptions(rules);
-  const numeric = hasNumericRule(rules);
+  const numeric = hasNumericRule(rules, ctx);
 
   if (isQualitative(rules)) {
     return (
