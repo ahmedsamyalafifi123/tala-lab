@@ -58,13 +58,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableFilter } from "@/components/searchable-filter";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
@@ -1591,7 +1585,7 @@ export default function LabDashboard() {
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[minmax(160px,1.2fr)_minmax(120px,0.9fr)_minmax(120px,0.9fr)_minmax(190px,1.1fr)_minmax(140px,0.8fr)_minmax(140px,0.8fr)] gap-3 xl:items-end">
 
                 {/* الاسم */}
-                <div className="space-y-1.5">
+                <div className="min-w-0 space-y-1.5">
                   <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                     <User className="h-3.5 w-3.5" />
                     الاسم
@@ -1608,43 +1602,35 @@ export default function LabDashboard() {
                 </div>
 
                 {/* التصنيف */}
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <div className="min-w-0 space-y-1.5">
+                  <Label htmlFor="category-filter" className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                     <Tags className="h-3.5 w-3.5" />
                     التصنيف
                   </Label>
-                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                    <SelectTrigger className="h-10 w-full text-right">
-                      <SelectValue placeholder="الكل" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">الكل</SelectItem>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableFilter
+                    id="category-filter"
+                    label="التصنيف"
+                    value={categoryFilter}
+                    onValueChange={setCategoryFilter}
+                    options={categories.map((category) => ({ value: category.name, label: category.name }))}
+                  />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="min-w-0 space-y-1.5">
                   <Label htmlFor="clinic-filter" className="text-xs font-medium text-muted-foreground">
                     العيادة
                   </Label>
-                  <Select value={clinicFilter} onValueChange={setClinicFilter}>
-                    <SelectTrigger id="clinic-filter" className="h-10 w-full text-right">
-                      <SelectValue placeholder="كل العيادات" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">كل العيادات</SelectItem>
-                      {clinics.map((clinic) => (
-                        <SelectItem key={clinic.uuid} value={clinic.uuid}>{clinic.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SearchableFilter
+                    id="clinic-filter"
+                    label="العيادة"
+                    value={clinicFilter}
+                    onValueChange={setClinicFilter}
+                    options={clinics.map((clinic) => ({ value: clinic.uuid, label: clinic.name }))}
+                  />
                 </div>
 
-                {/* التحاليل المطلوبة — full width on mobile */}
-                <div className="space-y-1.5 col-span-2 xl:col-span-1">
+                {/* التحاليل المطلوبة */}
+                <div className="min-w-0 space-y-1.5">
                   <Label className="flex items-center gap-1.5 text-xs font-semibold text-primary">
                     <FlaskConical className="h-3.5 w-3.5" />
                     التحاليل المطلوبة
@@ -1653,7 +1639,7 @@ export default function LabDashboard() {
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className="h-10 w-full justify-between gap-2 px-3 font-normal"
+                        className="h-10 w-full min-w-0 justify-between gap-2 px-3 font-normal"
                         disabled={labTestsLoading || labTests.length === 0}
                       >
                         <span className={cn("truncate", testFilters.length === 0 && "text-muted-foreground")}>
@@ -1679,6 +1665,7 @@ export default function LabDashboard() {
                           value={testSearchFilter}
                           onChange={(e) => setTestSearchFilter(e.target.value)}
                           placeholder="بحث في التحاليل..."
+                          aria-label="بحث في التحاليل"
                           className="h-9 ps-8"
                         />
                       </div>
@@ -1727,7 +1714,7 @@ export default function LabDashboard() {
                 </div>
 
                 {/* من تاريخ */}
-                <div className="space-y-1.5">
+                <div className="min-w-0 space-y-1.5">
                   <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                     <CalendarDays className="h-3.5 w-3.5" />
                     من تاريخ
@@ -1758,7 +1745,7 @@ export default function LabDashboard() {
                 </div>
 
                 {/* إلى تاريخ */}
-                <div className="space-y-1.5">
+                <div className="min-w-0 space-y-1.5">
                   <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                     <CalendarDays className="h-3.5 w-3.5" />
                     إلى تاريخ
