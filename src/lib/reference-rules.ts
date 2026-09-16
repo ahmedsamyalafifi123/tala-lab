@@ -296,9 +296,14 @@ export function formatRuleCondition(rule: ReferenceRule): string {
  *
  * The common case -- one normal-flagged rule -- formats as the bare condition,
  * which keeps migrated tests reading exactly as they did before. Anything
- * richer lists each rule with its label.
+ * richer lists each rule with its label, joined by `separator` (print and
+ * Excel pass a line break so each rule sits on its own line).
  */
-export function formatRules(rules: ReferenceRule[], ctx?: PatientContext): string {
+export function formatRules(
+  rules: ReferenceRule[],
+  ctx?: PatientContext,
+  separator = ' | ',
+): string {
   const applicable = rules.filter((rule) => appliesTo(rule, ctx));
   if (applicable.length === 0) return '-';
 
@@ -314,7 +319,7 @@ export function formatRules(rules: ReferenceRule[], ctx?: PatientContext): strin
     })
     .filter(Boolean);
 
-  return parts.length > 0 ? parts.join(' | ') : '-';
+  return parts.length > 0 ? parts.join(separator) : '-';
 }
 
 // ---------------------------------------------------------------------------

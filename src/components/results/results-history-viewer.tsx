@@ -46,7 +46,7 @@ export function ResultsHistoryViewer({ clientUuid }: ResultsHistoryViewerProps) 
   const sortedEntries = getSortedEntries();
 
   const normalizeFlag = (flag: ResultFlag): ResultFlag =>
-    flag === "critical_high" ? "high" : flag === "critical_low" ? "low" : flag;
+    flag === "very_high" ? "high" : flag === "very_low" ? "low" : flag;
 
   const handleDeleteClick = (entry: ResultEntry) => {
     setEntryToDelete(entry);

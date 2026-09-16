@@ -7,9 +7,10 @@ const ALL_FLAGS: ResultFlag[] = [
   "moderate",
   "high",
   "low",
-  "critical_high",
-  "critical_low",
+  "very_high",
+  "very_low",
   "detection_limit",
+  "under_detection_limit",
 ];
 
 describe("flag display", () => {
@@ -37,14 +38,15 @@ describe("isAbnormalFlag", () => {
   it("treats normal and detection limit as not needing attention", () => {
     expect(isAbnormalFlag("normal")).toBe(false);
     expect(isAbnormalFlag("detection_limit")).toBe(false);
+    expect(isAbnormalFlag("under_detection_limit")).toBe(false);
   });
 
   it("treats moderate and the rest as needing attention", () => {
     expect(isAbnormalFlag("moderate")).toBe(true);
     expect(isAbnormalFlag("high")).toBe(true);
     expect(isAbnormalFlag("low")).toBe(true);
-    expect(isAbnormalFlag("critical_high")).toBe(true);
-    expect(isAbnormalFlag("critical_low")).toBe(true);
+    expect(isAbnormalFlag("very_high")).toBe(true);
+    expect(isAbnormalFlag("very_low")).toBe(true);
   });
 
   it("does not mark an unknown flag abnormal", () => {

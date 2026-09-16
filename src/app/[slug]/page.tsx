@@ -914,10 +914,14 @@ export default function LabDashboard() {
           testsByCategory[category].forEach(([testCode, result]) => {
             const test = labTests.find((t) => t.test_code === testCode);
             const rules = asRules(test?.reference_ranges);
-            const displayRange = formatRules(rules, {
-              gender: client.patient_gender ?? undefined,
-              age: client.patient_age ?? undefined,
-            });
+            const displayRange = formatRules(
+              rules,
+              {
+                gender: client.patient_gender ?? undefined,
+                age: client.patient_age ?? undefined,
+              },
+              "\n",
+            );
             const hasValidRange = rules.length > 0;
 
             const flagClass =
@@ -930,7 +934,7 @@ export default function LabDashboard() {
                 <td class="result-value" style="text-align: center;">${escapeHtml(String(result?.value ?? ""))}</td>
                 <td style="text-align: center; color: #718096;">${escapeHtml(result?.unit || test?.unit || "-")}</td>
                 <td style="text-align: center;">${flagLabel ? `<span class="flag-badge ${flagClass}">${escapeHtml(flagLabel)}</span>` : ""}</td>
-                <td style="text-align: center; font-size: 12px; color: #4a5568;">${escapeHtml(displayRange)}</td>
+                <td style="text-align: center; font-size: 12px; color: #4a5568;">${escapeHtml(displayRange).replace(/\n/g, "<br>")}</td>
               </tr>
             `;
           });

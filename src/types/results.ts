@@ -62,9 +62,10 @@ export type ResultFlag =
   | 'moderate'
   | 'high'
   | 'low'
-  | 'critical_high'
-  | 'critical_low'
-  | 'detection_limit';
+  | 'very_high'
+  | 'very_low'
+  | 'detection_limit'
+  | 'under_detection_limit';
 
 /**
  * Individual test result value

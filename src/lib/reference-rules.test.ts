@@ -142,8 +142,8 @@ describe("evaluateRules — precedence", () => {
   });
 
   it("carries the matched rule's own flag and label", () => {
-    const rules = [rule({ op: "gt", value: 240, label: "High", flag: "critical_high" })];
-    expect(evaluateRules(rules, 300)).toMatchObject({ flag: "critical_high", label: "High" });
+    const rules = [rule({ op: "gt", value: 240, label: "High", flag: "very_high" })];
+    expect(evaluateRules(rules, 300)).toMatchObject({ flag: "very_high", label: "High" });
   });
 });
 
@@ -419,5 +419,15 @@ describe("a test with both text and numeric rules", () => {
     expect(evaluateRules(viralLoad, 5000)?.flag).toBe("low");
     expect(evaluateRules(viralLoad, 500000)?.flag).toBe("moderate");
     expect(evaluateRules(viralLoad, 2000000)?.flag).toBe("high");
+  });
+});
+
+describe("formatRules separator", () => {
+  it("joins labelled rules with the given separator", () => {
+    const rules = [
+      rule({ op: "text_eq", text: "Negative", label: "normal", flag: "normal" }),
+      rule({ op: "lte", value: 21, label: "detection limit", flag: "detection_limit" }),
+    ];
+    expect(formatRules(rules, undefined, "\n")).toBe("normal: Negative\ndetection limit: ≤ 21");
   });
 });

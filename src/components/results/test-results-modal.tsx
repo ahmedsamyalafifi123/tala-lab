@@ -183,7 +183,7 @@ export function TestResultsModal({
   };
 
   const normalizeFlag = (flag: ResultFlag): ResultFlag =>
-    flag === "critical_high" ? "high" : flag === "critical_low" ? "low" : flag;
+    flag === "very_high" ? "high" : flag === "very_low" ? "low" : flag;
 
   const handleSubmit = async () => {
     // Validate at least one test has a value

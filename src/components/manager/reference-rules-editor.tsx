@@ -35,9 +35,10 @@ const FLAGS: ResultFlag[] = [
   "moderate",
   "high",
   "low",
-  "critical_high",
-  "critical_low",
+  "very_high",
+  "very_low",
   "detection_limit",
+  "under_detection_limit",
 ];
 
 /** Sentinel for "no gender constraint" — Radix Select rejects an empty value. */

@@ -31,20 +31,25 @@ const FLAG_DISPLAY: Record<ResultFlag, { color: string; icon: string; label: str
     icon: '↓',
     label: 'Low',
   },
-  critical_high: {
+  very_high: {
     color: 'text-red-600 bg-red-50 border-red-200',
     icon: '⚠↑',
-    label: 'Critical High',
+    label: 'Very High',
   },
-  critical_low: {
+  very_low: {
     color: 'text-red-600 bg-red-50 border-red-200',
     icon: '⚠↓',
-    label: 'Critical Low',
+    label: 'Very Low',
   },
   detection_limit: {
     color: 'text-slate-600 bg-slate-50 border-slate-200',
     icon: 'DL',
     label: 'Detection Limit',
+  },
+  under_detection_limit: {
+    color: 'text-slate-600 bg-slate-50 border-slate-200',
+    icon: '<DL',
+    label: 'Under Detection Limit',
   },
 };
 
@@ -71,7 +76,12 @@ export function getFlagLabel(flag: ResultFlag): string {
 
 /** Flags that mark a result as needing attention, for print emphasis. */
 export function isAbnormalFlag(flag: ResultFlag): boolean {
-  return flag !== 'normal' && flag !== 'detection_limit' && flag in FLAG_DISPLAY;
+  return (
+    flag !== 'normal' &&
+    flag !== 'detection_limit' &&
+    flag !== 'under_detection_limit' &&
+    flag in FLAG_DISPLAY
+  );
 }
 
 /**

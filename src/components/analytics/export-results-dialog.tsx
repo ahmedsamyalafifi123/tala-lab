@@ -127,10 +127,11 @@ export function ExportResultsDialog({
         getExportTestCodes(entry.tests).forEach((testCode) => {
           const result = entry.tests[testCode];
           const test = tests.find((t) => t.test_code === testCode);
-          const refRange = formatRules(asRules(test?.reference_ranges), {
-            gender: clientGender,
-            age: clientAge,
-          });
+          const refRange = formatRules(
+            asRules(test?.reference_ranges),
+            { gender: clientGender, age: clientAge },
+            "\n",
+          );
 
           excelData.push({
             "Test": test?.test_name_en || test?.test_name_ar || testCode,
@@ -162,9 +163,20 @@ export function ExportResultsDialog({
         { wch: 15 }, // Value
         { wch: 15 }, // Unit
         { wch: 15 }, // Status
-        ...(includeReferenceRanges ? [{ wch: 20 }] : []), // Reference range
+        ...(includeReferenceRanges ? [{ wch: 28 }] : []), // Reference range
         { wch: 30 }, // Notes
       ];
+
+      // Multi-line reference ranges need wrap text to render one rule per line
+      if (includeReferenceRanges) {
+        const range = XLSX.utils.decode_range(ws["!ref"] ?? "A1");
+        for (let r = range.s.r; r <= range.e.r; r++) {
+          const cell = ws[XLSX.utils.encode_cell({ r, c: 4 })];
+          if (cell && typeof cell.v === "string" && cell.v.includes("\n")) {
+            cell.s = { alignment: { wrapText: true, vertical: "top" } };
+          }
+        }
+      }
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "نتائج التحاليل");
@@ -476,7 +488,7 @@ export function ExportResultsDialog({
         testsByCategory[category].forEach(([testCode, result]) => {
           const test = tests.find((t) => t.test_code === testCode);
           const rules = asRules(test?.reference_ranges);
-          const displayRange = formatRules(rules, { gender: clientGender, age: clientAge });
+          const displayRange = formatRules(rules, { gender: clientGender, age: clientAge }, "\n");
           const hasValidRange = rules.length > 0;
 
           // Status flag styling
@@ -494,7 +506,7 @@ export function ExportResultsDialog({
               </td>
               ${includeReferenceRanges ? `
                 <td style="text-align: center; font-size: 12px; color: #4a5568;">
-                  ${escapeHtml(displayRange)}
+                  ${escapeHtml(displayRange).replace(/\n/g, "<br>")}
                 </td>
               ` : ""}
             </tr>
