@@ -428,6 +428,6 @@ describe("formatRules separator", () => {
       rule({ op: "text_eq", text: "Negative", label: "normal", flag: "normal" }),
       rule({ op: "lte", value: 21, label: "detection limit", flag: "detection_limit" }),
     ];
-    expect(formatRules(rules, undefined, "\n")).toBe("normal: Negative\ndetection limit: ≤ 21");
+    expect(formatRules(rules, undefined, "\n")).toBe("Normal: Negative\nDetection limit: ≤ 21");
   });
 });

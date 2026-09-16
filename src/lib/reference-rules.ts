@@ -279,6 +279,11 @@ export function numericBand(
 // Formatting
 // ---------------------------------------------------------------------------
 
+/** "very high" -> "Very high"; labels are typed by hand and read better capitalized. */
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 /** One rule as a condition string, without its label: "4 - 11", "≤ 7.5". */
 export function formatRuleCondition(rule: ReferenceRule): string {
   if (rule.op === 'text_eq') return rule.text ?? '';
@@ -315,7 +320,7 @@ export function formatRules(
     .map((rule) => {
       const condition = formatRuleCondition(rule);
       if (!condition) return '';
-      return rule.label ? `${rule.label}: ${condition}` : condition;
+      return rule.label ? `${capitalize(rule.label)}: ${condition}` : condition;
     })
     .filter(Boolean);
 
