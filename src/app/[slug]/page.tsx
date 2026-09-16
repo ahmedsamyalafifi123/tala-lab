@@ -896,11 +896,11 @@ export default function LabDashboard() {
             <table>
               <thead>
                 <tr>
-                  <th style="width: 35%">Test Name</th>
-                  <th style="width: 15%; text-align: center;">Result</th>
+                  <th style="width: 26%">Test Name</th>
+                  <th style="width: 18%; text-align: center;">Result</th>
                   <th style="width: 10%; text-align: center;">Unit</th>
-                  <th style="width: 10%; text-align: center;">Status</th>
-                  <th style="width: 30%; text-align: center;">REF. Range</th>
+                  <th style="width: 16%; text-align: center;">Status</th>
+                  <th style="width: 30%; text-align: left;">REF. Range</th>
                 </tr>
               </thead>
               <tbody>
@@ -938,7 +938,7 @@ export default function LabDashboard() {
                 <td class="result-value" style="text-align: center;">${escapeHtml(String(result?.value ?? ""))}</td>
                 <td style="text-align: center; color: #718096;">${escapeHtml(result?.unit || test?.unit || "-")}</td>
                 <td style="text-align: center;">${flagLabel ? `<span class="flag-badge ${flagClass}">${escapeHtml(flagLabel)}</span>` : ""}</td>
-                <td style="text-align: center; font-size: 12px; color: #4a5568;">${escapeHtml(displayRange).replace(/\n/g, "<br>")}</td>
+                <td style="text-align: left; font-size: 12px; color: #4a5568;">${escapeHtml(displayRange).replace(/\n/g, "<br>")}</td>
               </tr>
             `;
           });

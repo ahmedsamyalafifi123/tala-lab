@@ -448,11 +448,11 @@ export function ExportResultsDialog({
           <table>
             <thead>
               <tr>
-                <th style="width: 35%">Test Name</th>
-                <th style="width: 15%; text-align: center;">Result</th>
+                <th style="width: 26%">Test Name</th>
+                <th style="width: 18%; text-align: center;">Result</th>
                 <th style="width: 10%; text-align: center;">Unit</th>
-                <th style="width: 10%; text-align: center;">Status</th>
-                ${includeReferenceRanges ? "<th style='width: 30%; text-align: center;'>REF. Range</th>" : ""}
+                <th style="width: 16%; text-align: center;">Status</th>
+                ${includeReferenceRanges ? "<th style='width: 30%; text-align: left;'>REF. Range</th>" : ""}
               </tr>
             </thead>
             <tbody>
@@ -505,7 +505,7 @@ export function ExportResultsDialog({
                 ${flagLabel ? `<span class="flag-badge ${flagClass}">${escapeHtml(flagLabel)}</span>` : ""}
               </td>
               ${includeReferenceRanges ? `
-                <td style="text-align: center; font-size: 12px; color: #4a5568;">
+                <td style="text-align: left; font-size: 12px; color: #4a5568;">
                   ${escapeHtml(displayRange).replace(/\n/g, "<br>")}
                 </td>
               ` : ""}
