@@ -546,7 +546,10 @@ export default function LabDashboard() {
         : `<span class="empty-tests">&nbsp;</span>`;
 
       const insuranceIcon = `<svg class="patient-info-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M7 9h4M7 13h7M16 9h1"></path></svg>`;
+      const clinicIcon = `<svg class="patient-info-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5M12 9v4M10 11h4"></path></svg>`;
+      const clinic = clinicName(client.clinic_id);
       const infoParts: string[] = [];
+      if (clinic) infoParts.push(`<div>${clinicIcon}<span>${escapeHtml(clinic)}</span></div>`);
       if (client.insurance_number) infoParts.push(`<div>${insuranceIcon}<span>رقم تأميني: ${escapeHtml(client.insurance_number)}</span></div>`);
       const clientInfoHtml = infoParts.length > 0
         ? `<div class="patient-info">${infoParts.join("")}</div>`
@@ -609,7 +612,7 @@ export default function LabDashboard() {
           }
           @page { size: A4 portrait; margin: 0; }
           * { box-sizing: border-box; font-family: 'Cairo', sans-serif !important; }
-          body { direction: rtl; background: #fff; color: #111827; padding: 0; font-size: 12px; line-height: 1.4; }
+          body { direction: rtl; background: #fff; color: #111827; padding: 0; font-size: 11px; line-height: 1.4; }
           .print-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid #2563eb; }
           .brand { display: flex; align-items: center; gap: 10px; }
           .brand img { width: 52px; height: 52px; object-fit: contain; border-radius: 8px; }
@@ -622,12 +625,12 @@ export default function LabDashboard() {
           .measure-area { position: absolute; visibility: hidden; pointer-events: none; left: -9999px; top: 0; width: 94mm; }
           table { width: 100%; border-collapse: collapse; table-layout: fixed; }
           th, td { border: 1px solid #cbd5e1; padding: 5px 6px; vertical-align: middle; text-align: center; }
-          th { background: #f1f5f9; color: #0f172a; font-size: 12px; font-weight: 700; text-align: center; }
+          th { background: #f1f5f9; color: #0f172a; font-size: 11px; font-weight: 700; text-align: center; }
           tr { break-inside: avoid; page-break-inside: avoid; }
           tbody tr:nth-child(even) td { background: #f8fafc; }
           .serial { width: 28px; text-align: center; font-weight: 700; }
           .patient { width: 180px; text-align: center; vertical-align: middle; }
-          .patient-name { font-weight: 700; font-size: 15px; color: #0f172a; line-height: 1.25; }
+          .patient-name { font-weight: 700; font-size: 13px; color: #0f172a; line-height: 1.25; }
           .patient-info { margin-top: 3px; font-size: 10px; font-weight: 600; color: #475569; line-height: 1.25; }
           .patient-info div { display: flex; align-items: center; justify-content: flex-start; gap: 4px; direction: rtl; text-align: right; border-top: 1px dotted #cbd5e1; padding-top: 2px; margin-top: 2px; }
           .patient-info div:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
@@ -636,8 +639,8 @@ export default function LabDashboard() {
           .results { width: 62px; direction: ltr; text-align: center; }
           .test-name, .test-result { height: 24px; min-height: 24px; padding: 3px 4px; border-bottom: 1px dashed #e2e8f0; display: flex; align-items: center; justify-content: center; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .test-name:last-child, .test-result:last-child { border-bottom: 0; }
-          .test-name { font-weight: 700; color: #0f172a; font-size: 13px; }
-          .test-result { font-weight: 700; color: #0f172a; font-size: 12px; }
+          .test-name { font-weight: 700; color: #0f172a; font-size: 12px; }
+          .test-result { font-weight: 700; color: #0f172a; font-size: 11px; }
           .empty-tests { color: #94a3b8; }
           @media print {
             body { padding: 0; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
