@@ -851,7 +851,10 @@ export default function LabDashboard() {
             <table class="patient-info-table">
               <tr>
                 <td class="label" style="width: 14%;">Patient Name</td>
-                <td class="value" style="width: 50%; font-weight: 700; font-size: 15px;">${escapeHtml(client.patient_name)}</td>
+                <td class="value" style="width: 50%; font-weight: 700; font-size: 14px;">
+                  ${escapeHtml(client.patient_name)}
+                  ${clinicName(client.clinic_id) ? `<div class="patient-clinic">${escapeHtml(clinicName(client.clinic_id))}</div>` : ''}
+                </td>
                 <td class="label" style="width: 14%;">Report ID</td>
                 <td class="value" style="width: 22%; font-family: monospace;">${escapeHtml(String(client.daily_id))}</td>
               </tr>
@@ -863,12 +866,10 @@ export default function LabDashboard() {
                   <td class="value">${client.patient_gender ? (client.patient_gender === 'male' || client.patient_gender === 'ذكر' ? 'Male' : 'Female') : '-'}</td>
                 </tr>
               ` : ''}
-              ${(client.insurance_number || clinicName(client.clinic_id)) ? `
+              ${client.insurance_number ? `
                 <tr>
                   <td class="label">Insurance</td>
-                  <td class="value">${escapeHtml(client.insurance_number || '-')}</td>
-                  <td class="label">Clinic</td>
-                  <td class="value">${escapeHtml(clinicName(client.clinic_id) || '-')}</td>
+                  <td class="value" colspan="3">${escapeHtml(client.insurance_number)}</td>
                 </tr>
               ` : ''}
             </table>
@@ -1016,21 +1017,22 @@ export default function LabDashboard() {
     .patient-section { margin-bottom: 30px; }
     .patient-info-section { margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; }
     .patient-info-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    .patient-info-table td { padding: 6px 12px; border: 1px solid #e2e8f0; font-size: 12px; }
+    .patient-info-table td { padding: 5px 12px; border: 1px solid #e2e8f0; font-size: 11px; }
     .patient-info-table .label { background: #f8fafc; color: #718096; font-weight: 600; width: 110px; white-space: nowrap; }
     .patient-info-table .value { color: #1a202c; font-weight: 500; }
+    .patient-clinic { font-size: 11px; font-weight: 500; color: #718096; margin-top: 2px; }
     .entry { margin-bottom: 25px; }
-    .entry-date { font-size: 13px; font-weight: 700; color: #2d3748; background: #edf2f7; padding: 5px 12px; border-radius: 4px; display: inline-block; margin-bottom: 10px; }
+    .entry-date { font-size: 12px; font-weight: 700; color: #2d3748; background: #edf2f7; padding: 5px 12px; border-radius: 4px; display: inline-block; margin-bottom: 10px; }
     table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 10px; }
-    th { background: #2d3748; color: white; text-align: left; padding: 8px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    th { background: #2d3748; color: white; text-align: left; padding: 7px 12px; font-size: 10px; font-weight: 600; text-transform: uppercase; }
     th:first-child { border-top-left-radius: 6px; } th:last-child { border-top-right-radius: 6px; }
-    td { padding: 4px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; line-height: 1.3; }
+    td { padding: 3px 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; line-height: 1.3; }
     .test-name { font-weight: 600; color: #2d3748; }
-    .result-value { font-family: monospace; font-weight: 700; font-size: 15px; }
-    .flag-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .result-value { font-family: monospace; font-weight: 700; font-size: 13px; }
+    .flag-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
     .flag-normal { color: #2f855a; }
     .flag-high { background: #feebc8; color: #c05621; }
-    .notes-box { background: #fffaf0; border-left: 4px solid #ed8936; padding: 15px; margin-top: 10px; font-size: 13px; color: #744210; }
+    .notes-box { background: #fffaf0; border-left: 4px solid #ed8936; padding: 12px; margin-top: 10px; font-size: 12px; color: #744210; }
     .notes-list { margin-top: 6px; display: grid; gap: 3px; }
     .notes-list div { line-height: 1.4; }
   </style>
