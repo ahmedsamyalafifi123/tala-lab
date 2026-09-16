@@ -53,6 +53,18 @@ const FLAG_DISPLAY: Record<ResultFlag, { color: string; icon: string; label: str
   },
 };
 
+/** Every flag a user may pick by hand, in the order the status picker lists them. */
+export const FLAG_ORDER: ResultFlag[] = [
+  'normal',
+  'moderate',
+  'high',
+  'low',
+  'very_high',
+  'very_low',
+  'detection_limit',
+  'under_detection_limit',
+];
+
 const UNKNOWN_FLAG = {
   color: 'text-gray-600 bg-gray-50 border-gray-200',
   icon: '',

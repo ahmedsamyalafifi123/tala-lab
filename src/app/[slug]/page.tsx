@@ -27,7 +27,8 @@ import {
   CalendarDays,
   StickyNote,
   Wrench,
-  ClipboardList
+  ClipboardList,
+  Hospital
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase";
@@ -1904,6 +1905,12 @@ export default function LabDashboard() {
                       </TableHead>
                       <TableHead className="hidden sm:table-cell text-center">
                         <span className="flex items-center justify-center gap-1">
+                          <Hospital className="h-3.5 w-3.5" />
+                          العيادة
+                        </span>
+                      </TableHead>
+                      <TableHead className="hidden sm:table-cell text-center">
+                        <span className="flex items-center justify-center gap-1">
                           <Tags className="h-3.5 w-3.5" />
                           التصنيف
                         </span>
@@ -1925,7 +1932,7 @@ export default function LabDashboard() {
                 <TableBody>
                    {filteredClients.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                         {hasFilters ? "لا يوجد نتائج" : "لا يوجد بيانات"}
                       </TableCell>
                     </TableRow>
@@ -1969,6 +1976,9 @@ export default function LabDashboard() {
                                   </Badge>
                                ))}
                              </div>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell text-center text-sm">
+                              {clinicName(client.clinic_id) || "-"}
                           </TableCell>
                           <TableCell className="hidden sm:table-cell">
                               <div className="flex flex-wrap gap-1 justify-center">

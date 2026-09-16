@@ -26,7 +26,7 @@ import {
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Loader2, AlertCircle, Pencil, Beaker, Calendar, Clock, ArrowRight, ChevronRight, ChevronLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getFlagColor, getFlagIcon, getFlagLabel, groupTestsByCategory } from "@/lib/test-utils";
+import { FLAG_ORDER, getFlagColor, getFlagIcon, getFlagLabel, groupTestsByCategory } from "@/lib/test-utils";
 import {
   Select,
   SelectContent,
@@ -58,6 +58,15 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+
+/** Sentinel for "no manual status" — Radix Select rejects an empty value. */
+const NO_FLAG = "__none__";
+
+interface TestValueDraft {
+  value: string;
+  notes?: string;
+  manualFlag?: ResultFlag;
+}
 
 interface TestResultsModalProps {
   isOpen: boolean;
@@ -97,7 +106,12 @@ export function TestResultsModal({
   const { categories: labTestCategories } = useLabTestCategories();
   const { selectedTests, results, addResultEntry, updateResultEntry, deleteResultEntry, loading: resultsLoading } = useClientResults(clientUuid);
   const [saving, setSaving] = useState(false);
-  const [testValues, setTestValues] = useState<Record<string, { value: string; notes?: string }>>({});
+  /**
+   * `manualFlag` is the status the user picks when the value matches no rule
+   * (free text on a numeric test, an unlisted qualitative answer). It is only
+   * consulted when the rules stay silent.
+   */
+  const [testValues, setTestValues] = useState<Record<string, TestValueDraft>>({});
   const [overallNotes, setOverallNotes] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [viewMode, setViewMode] = useState<"history" | "add">("history"); // Default to showing history
@@ -164,6 +178,13 @@ export function TestResultsModal({
     }));
   };
 
+  const handleManualFlagChange = (testCode: string, manualFlag: ResultFlag | undefined) => {
+    setTestValues((prev) => ({
+      ...prev,
+      [testCode]: { ...prev[testCode], manualFlag },
+    }));
+  };
+
   const handleNotesChange = (testCode: string, notes: string) => {
     setTestValues((prev) => ({
       ...prev,
@@ -184,6 +205,17 @@ export function TestResultsModal({
 
   const normalizeFlag = (flag: ResultFlag): ResultFlag =>
     flag === "very_high" ? "high" : flag === "very_low" ? "low" : flag;
+
+  /** A stored result back into the form; a flag no rule produced was set by hand. */
+  const draftFromResult = (testCode: string, result: TestResult): TestValueDraft => {
+    const value = result.value.toString();
+    const match = getTestMatch(testCode, value);
+    return {
+      value,
+      notes: result.notes,
+      manualFlag: !match && result.flag ? result.flag : undefined,
+    };
+  };
 
   const handleSubmit = async () => {
     // Validate at least one test has a value
@@ -264,7 +296,7 @@ export function TestResultsModal({
             ? parseNumeric(data.value)
             : NaN;
           const value: string | number = Number.isNaN(numeric) ? data.value.trim() : numeric;
-          const flag: ResultFlag | undefined = match?.flag;
+          const flag: ResultFlag | undefined = match?.flag ?? data.manualFlag;
 
           testResults[testCode] = {
             value,
@@ -512,12 +544,9 @@ export function TestResultsModal({
                               size="sm"
                               className="h-8 gap-1 text-muted-foreground hover:text-primary"
                               onClick={() => {
-                                 const values: Record<string, { value: string; notes?: string }> = {};
+                                 const values: Record<string, TestValueDraft> = {};
                                  Object.entries(entry.tests).forEach(([testCode, result]) => {
-                                   values[testCode] = {
-                                     value: result.value.toString(),
-                                     notes: result.notes,
-                                   };
+                                   values[testCode] = draftFromResult(testCode, result);
                                  });
                                  setTestValues(values);
                                  setOverallNotes(entry.notes || "");
@@ -627,7 +656,10 @@ export function TestResultsModal({
                             const value = testValues[test.test_code]?.value || "";
                             const rules = getTestRules(test.test_code);
                             const match = getTestMatch(test.test_code, value);
-                            const flag = match ? normalizeFlag(match.flag) : null;
+                            const manualFlag = testValues[test.test_code]?.manualFlag;
+                            const needsManualFlag = Boolean(value) && !match;
+                            const effectiveFlag = match?.flag ?? (needsManualFlag ? manualFlag : undefined);
+                            const flag = effectiveFlag ? normalizeFlag(effectiveFlag) : null;
                             const refRange = formatRules(rules, patientContext);
 
                             return (
@@ -659,11 +691,17 @@ export function TestResultsModal({
                                            onChange={(next) => handleValueChange(test.test_code, next)}
                                            className="text-lg h-10"
                                         />
-                                        {flag && (
+                                        {needsManualFlag ? (
+                                           <ManualFlagSelect
+                                              value={manualFlag}
+                                              flag={flag}
+                                              onChange={(next) => handleManualFlagChange(test.test_code, next)}
+                                           />
+                                        ) : flag ? (
                                            <div className={cn("text-xs font-medium flex items-center justify-end gap-1.5", getFlagColor(flag))}>
                                               <span>{match?.label || getFlagLabel(flag)}</span>
                                            </div>
-                                        )}
+                                        ) : null}
                                      </div>
                                   </div>
                                  
@@ -758,9 +796,9 @@ export function TestResultsModal({
                           size="sm"
                           className="h-8 gap-1 text-muted-foreground hover:text-primary"
                           onClick={() => {
-                            const values: Record<string, { value: string; notes?: string }> = {};
+                            const values: Record<string, TestValueDraft> = {};
                             Object.entries(entry.tests).forEach(([testCode, result]) => {
-                              values[testCode] = { value: result.value.toString(), notes: result.notes };
+                              values[testCode] = draftFromResult(testCode, result);
                             });
                             setTestValues(values);
                             setOverallNotes(entry.notes || "");
@@ -818,7 +856,10 @@ export function TestResultsModal({
                           const value = testValues[test.test_code]?.value || "";
                           const rules = getTestRules(test.test_code);
                           const match = getTestMatch(test.test_code, value);
-                          const flag = match ? normalizeFlag(match.flag) : null;
+                          const manualFlag = testValues[test.test_code]?.manualFlag;
+                          const needsManualFlag = Boolean(value) && !match;
+                          const effectiveFlag = match?.flag ?? (needsManualFlag ? manualFlag : undefined);
+                          const flag = effectiveFlag ? normalizeFlag(effectiveFlag) : null;
                           const refRange = formatRules(rules, patientContext);
                           return (
                             <div key={test.test_code} className={cn(
@@ -844,6 +885,15 @@ export function TestResultsModal({
                                 onChange={(next) => handleValueChange(test.test_code, next)}
                                 className="h-10"
                               />
+                              {needsManualFlag && (
+                                <div className="mt-2">
+                                  <ManualFlagSelect
+                                    value={manualFlag}
+                                    flag={flag}
+                                    onChange={(next) => handleManualFlagChange(test.test_code, next)}
+                                  />
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -872,6 +922,43 @@ export function TestResultsModal({
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
+  );
+}
+
+/**
+ * Status picker shown when a value matches no rule, so the user says by hand
+ * whether "Hemolyzed" or an unlisted answer counts as normal, high, and so on.
+ */
+function ManualFlagSelect({
+  value,
+  flag,
+  onChange,
+}: {
+  value: ResultFlag | undefined;
+  flag: ResultFlag | null;
+  onChange: (flag: ResultFlag | undefined) => void;
+}) {
+  return (
+    <Select
+      value={value ?? NO_FLAG}
+      onValueChange={(next) => onChange(next === NO_FLAG ? undefined : (next as ResultFlag))}
+    >
+      <SelectTrigger
+        className={cn("h-8 text-xs", flag && getFlagColor(flag))}
+        dir="ltr"
+        aria-label="Status"
+      >
+        <SelectValue placeholder="Status" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={NO_FLAG}>No status</SelectItem>
+        {FLAG_ORDER.map((option) => (
+          <SelectItem key={option} value={option}>
+            {getFlagLabel(option)}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -909,42 +996,21 @@ function TestValueField({
     : "";
   const textOptions = qualitativeOptions(rules);
   const numeric = hasNumericRule(rules, ctx);
-
-  if (isQualitative(rules)) {
-    return (
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger
-          id={id}
-          className={cn("font-mono", flagBorder, className)}
-          dir="ltr"
-        >
-          <SelectValue placeholder="Select result" />
-        </SelectTrigger>
-        <SelectContent>
-          {textOptions.map((option) => (
-            <SelectItem key={option} value={option}>
-              {option}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    );
-  }
-
   const mixed = textOptions.length > 0;
 
   return (
     <div className="relative">
       <Input
         id={id}
-        // A mixed test has to accept "Negative" as readily as a number, so the
-        // field stays textual and only hints at a numeric keypad.
-        type={numeric && !mixed ? "number" : "text"}
-        step={numeric && !mixed ? "0.01" : undefined}
-        inputMode={mixed ? "decimal" : undefined}
+        // Every field takes free text -- "Hemolyzed" on a numeric test, an
+        // unlisted answer on a qualitative one -- so the type stays "text" and
+        // numeric tests only hint at a numeric keypad. Named values sit one
+        // click away in the dropdown.
+        type="text"
+        inputMode={numeric ? "decimal" : undefined}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={numeric ? "Result" : "e.g. positive, 1+"}
+        placeholder={numeric ? "Result" : isQualitative(rules) ? "Select or type" : "e.g. positive, 1+"}
         className={cn(
           "font-mono transition-colors",
           flagBorder,

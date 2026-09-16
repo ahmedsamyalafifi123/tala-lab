@@ -397,10 +397,10 @@ export function validateValue(
   );
   if (named) return { isValid: true };
 
+  // Free text on a numeric test is allowed -- "Hemolyzed", "Not done" -- and
+  // the entry form then asks for the status by hand, since no rule can flag it.
   const numeric = parseNumeric(value);
-  if (Number.isNaN(numeric)) {
-    return { isValid: false, error: 'Must be a number' };
-  }
+  if (Number.isNaN(numeric)) return { isValid: true };
   // Negatives are only wrong when no rule admits one -- base excess and
   // similar analytes are authored with negative bounds.
   if (numeric < 0 && !allowsNegative(rules, ctx)) {

@@ -346,9 +346,9 @@ describe("validateValue", () => {
     );
   });
 
-  it("rejects text and negatives when a numeric rule exists", () => {
+  it("accepts free text but rejects negatives when a numeric rule exists", () => {
     const rules = [rule({ op: "between", min: 1, max: 2 })];
-    expect(validateValue("abc", rules).isValid).toBe(false);
+    expect(validateValue("abc", rules).isValid).toBe(true);
     expect(validateValue("-1", rules).isValid).toBe(false);
     expect(validateValue("1.5", rules).isValid).toBe(true);
   });
@@ -359,13 +359,13 @@ describe("validateValue", () => {
   });
 
   it("validates against the rules that apply to this patient", () => {
-    // Every rule is gender-scoped: without the patient, none applies and the
-    // value would be waved through as free text.
+    // Every rule is gender-scoped: without the patient, none applies and a
+    // negative would be waved through.
     const rules = [
       rule({ op: "between", min: 13, max: 17, applies_to: { gender: "male" } }),
       rule({ op: "between", min: 12, max: 15, applies_to: { gender: "female" } }),
     ];
-    expect(validateValue("abc", rules, { gender: "ذكر" }).isValid).toBe(false);
+    expect(validateValue("-1", rules, { gender: "ذكر" }).isValid).toBe(false);
     expect(validateValue("14", rules, { gender: "ذكر" }).isValid).toBe(true);
   });
 });
@@ -409,8 +409,8 @@ describe("a test with both text and numeric rules", () => {
     expect(validateValue("5000", viralLoad).isValid).toBe(true);
   });
 
-  it("still rejects text no rule names", () => {
-    expect(validateValue("banana", viralLoad).isValid).toBe(false);
+  it("accepts text no rule names, leaving the status to the user", () => {
+    expect(validateValue("banana", viralLoad).isValid).toBe(true);
   });
 
   it("flags each band, text and numeric alike", () => {
