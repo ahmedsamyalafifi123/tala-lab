@@ -2254,6 +2254,7 @@ export default function LabDashboard() {
         clientGender={resultsClient.patient_gender}
         clientAge={resultsClient.patient_age}
         clientDailyDate={resultsClient.daily_date}
+        clientClinicId={resultsClient.clinic_id}
       />
         );
       })()

@@ -58,6 +58,7 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useClinics } from "@/hooks/use-clinics";
 
 /** Sentinel for "no manual status" — Radix Select rejects an empty value. */
 const NO_FLAG = "__none__";
@@ -84,6 +85,7 @@ interface TestResultsModalProps {
   clientGender?: "male" | "female" | "ذكر" | "أنثى";
   clientAge?: number;
   clientDailyDate?: string | Date;
+  clientClinicId?: string | null;
 }
 
 export function TestResultsModal({
@@ -102,8 +104,10 @@ export function TestResultsModal({
   clientGender,
   clientAge,
   clientDailyDate,
+  clientClinicId,
 }: TestResultsModalProps) {
   const { toast } = useToast();
+  const { clinicName } = useClinics();
   const { tests, loading: testsLoading } = useLabTests();
   const { categories: labTestCategories } = useLabTestCategories();
   const { selectedTests, results, addResultEntry, updateResultEntry, deleteResultEntry, loading: resultsLoading } = useClientResults(clientUuid);
@@ -426,6 +430,8 @@ export function TestResultsModal({
     </div>
   );
 
+  const clientClinic = clientClinicId ? clinicName(clientClinicId) : undefined;
+
   const clientInfoCard = (
     <div className="mb-4 rounded-xl border border-border/60 bg-muted/40 px-4 py-3" dir="rtl">
       <div className="text-lg font-bold text-foreground">{clientName}</div>
@@ -454,6 +460,9 @@ export function TestResultsModal({
           </>
         )}
       </div>
+      {clientClinic && (
+        <div className="mt-1 text-sm text-muted-foreground">{clientClinic}</div>
+      )}
     </div>
   );
 

@@ -339,6 +339,7 @@ export function ClientDetails({
         clientGender={client.patient_gender}
         clientAge={client.patient_age}
         clientDailyDate={client.daily_date}
+        clientClinicId={client.clinic_id}
       />
 
       <ExportResultsDialog
