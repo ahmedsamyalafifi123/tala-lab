@@ -349,6 +349,7 @@ export function ClientDetails({
         clientAge={client.patient_age}
         insuranceNumber={client.insurance_number}
         clinicId={client.clinic_id}
+        clientCreatedAt={client.created_at}
       />
 
       <BarcodeLabelDialog
