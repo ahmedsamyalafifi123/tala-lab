@@ -422,6 +422,16 @@ export default function LabDashboard() {
     return orderedClients.slice(0, 100);
   }, [filteredClients, printReversed]);
 
+  // Printing respects the checkbox selection: with rows selected, print only
+  // those clients; otherwise print the whole filtered list.
+  const printClients = useMemo(
+    () =>
+      selectedIds.length > 0
+        ? filteredClients.filter((client) => client.uuid && selectedIds.includes(client.uuid))
+        : filteredClients,
+    [filteredClients, selectedIds]
+  );
+
   const clearFilters = () => {
     setNameFilter("");
     setCategoryFilter("all");
@@ -505,7 +515,7 @@ export default function LabDashboard() {
       html: string;
     };
 
-    const sortedData = printReversed ? [...filteredClients].reverse() : filteredClients;
+    const sortedData = printReversed ? [...printClients].reverse() : printClients;
     const clientGroupKey = (client: Client) => client.client_group_id || client.uuid;
     const resultEntriesByClientGroup = new Map<string, PrintableResult[]>();
     clients.forEach((client) => {
@@ -592,7 +602,7 @@ export default function LabDashboard() {
         </div>
         <div class="meta">
           <p>${escapeHtml(getPrintDateLabel())}</p>
-          <p>إجمالي الحالات: <strong>${filteredClients.length}</strong></p>
+          <p>إجمالي الحالات: <strong>${printClients.length}</strong></p>
         </div>
       </div>
     `;
@@ -832,7 +842,7 @@ export default function LabDashboard() {
       notes?: string;
     };
 
-    const sortedClients = printReversed ? [...filteredClients].reverse() : filteredClients;
+    const sortedClients = printReversed ? [...printClients].reverse() : printClients;
 
     const clientSections = sortedClients.map((client) => {
       const entries = Array.isArray(client.results?.entries)
@@ -2234,7 +2244,9 @@ export default function LabDashboard() {
               <div className="flex flex-col gap-0.5 min-w-0">
                 <DialogTitle className="text-base sm:text-lg font-bold leading-tight">معاينة الطباعة</DialogTitle>
                 <DialogDescription className="text-[11px] sm:text-xs font-medium truncate">
-                  {filteredClients.length} حالة | {getPrintDateLabel()}
+                  {selectedIds.length > 0
+                    ? `${printClients.length} من ${filteredClients.length} حالة (المحددة)`
+                    : `${filteredClients.length} حالة`} | {getPrintDateLabel()}
                 </DialogDescription>
               </div>
 
@@ -2244,7 +2256,7 @@ export default function LabDashboard() {
                   onClick={handleBulkExportPDF}
                   size="sm"
                   variant="outline"
-                  disabled={filteredClients.length === 0}
+                  disabled={printClients.length === 0}
                   className="gap-1.5 h-8 px-2.5 text-xs font-semibold"
                 >
                   <FileDown className="h-3.5 w-3.5" />
@@ -2254,7 +2266,7 @@ export default function LabDashboard() {
                   onClick={printDetailedResults}
                   size="sm"
                   variant="outline"
-                  disabled={filteredClients.length === 0}
+                  disabled={printClients.length === 0}
                   className="gap-1.5 h-8 px-2.5 text-xs font-semibold"
                 >
                   <Printer className="h-3.5 w-3.5" />
@@ -2365,14 +2377,14 @@ export default function LabDashboard() {
                     {getPrintDateLabel()}
                   </p>
                   <p style={{ fontSize: '13px', color: '#64748b', marginTop: '4px', fontWeight: '600' }}>
-                    إجمالي الحالات: <span style={{ color: '#2563eb', fontWeight: '700', fontSize: '16px' }}>{filteredClients.length}</span> حالة
+                    إجمالي الحالات: <span style={{ color: '#2563eb', fontWeight: '700', fontSize: '16px' }}>{printClients.length}</span> حالة
                   </p>
                 </div>
               </div>
 
               <div className="print-tables-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8mm', alignItems: 'start' }}>
                 {(() => {
-                  const sortedData = printReversed ? [...filteredClients].reverse() : filteredClients;
+                  const sortedData = printReversed ? [...printClients].reverse() : printClients;
                   const numberedRows = sortedData.map((client, index) => ({
                     client,
                     number: useSequentialTestNumbers ? index + 1 : client.daily_id,
