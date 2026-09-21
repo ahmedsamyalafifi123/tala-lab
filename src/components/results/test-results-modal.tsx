@@ -83,7 +83,7 @@ interface TestResultsModalProps {
   clientName: string;
   clientGender?: "male" | "female" | "ذكر" | "أنثى";
   clientAge?: number;
-  clientCreatedAt?: string;
+  clientDailyDate?: string | Date;
 }
 
 export function TestResultsModal({
@@ -101,7 +101,7 @@ export function TestResultsModal({
   clientName,
   clientGender,
   clientAge,
-  clientCreatedAt,
+  clientDailyDate,
 }: TestResultsModalProps) {
   const { toast } = useToast();
   const { tests, loading: testsLoading } = useLabTests();
@@ -439,10 +439,10 @@ export function TestResultsModal({
             <span>{clientAge} سنة</span>
           </>
         )}
-        {clientCreatedAt && (
+        {clientDailyDate && (
           <>
             {(clientGender || typeof clientAge === "number") && <span>•</span>}
-            <span>تاريخ التسجيل: {format(new Date(clientCreatedAt), "d/M/yyyy")}</span>
+            <span>تاريخ التسجيل: {new Date(clientDailyDate).toLocaleDateString("ar-EG", { year: "numeric", month: "short", day: "numeric" })}</span>
           </>
         )}
         {typeof clientPosition === "number" && typeof totalClients === "number" && totalClients > 0 && (

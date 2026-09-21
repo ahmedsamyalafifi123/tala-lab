@@ -51,7 +51,7 @@ interface ExportResultsDialogProps {
   clientAge?: number;
   insuranceNumber?: string;
   clinicId?: string | null;
-  clientCreatedAt?: string;
+  clientDailyDate?: string | Date;
 }
 
 export function ExportResultsDialog({
@@ -63,7 +63,7 @@ export function ExportResultsDialog({
   clientAge,
   insuranceNumber,
   clinicId,
-  clientCreatedAt,
+  clientDailyDate,
 }: ExportResultsDialogProps) {
   const { labSlug } = useLabContext();
   const { toast } = useToast();
@@ -446,7 +446,7 @@ export function ExportResultsDialog({
     exportEntries.forEach((entry) => {
       html += `
         <div class="entry">
-          <div class="entry-date">Date: ${format(new Date(clientCreatedAt || entry.recorded_at), "dd/MM/yyyy", )}</div>
+          <div class="entry-date">Date: ${format(new Date(clientDailyDate || entry.recorded_at), "dd/MM/yyyy", )}</div>
           <table>
             <thead>
               <tr>

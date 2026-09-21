@@ -338,7 +338,7 @@ export function ClientDetails({
         clientName={client.patient_name}
         clientGender={client.patient_gender}
         clientAge={client.patient_age}
-        clientCreatedAt={client.created_at}
+        clientDailyDate={client.daily_date}
       />
 
       <ExportResultsDialog
@@ -350,7 +350,7 @@ export function ClientDetails({
         clientAge={client.patient_age}
         insuranceNumber={client.insurance_number}
         clinicId={client.clinic_id}
-        clientCreatedAt={client.created_at}
+        clientDailyDate={client.daily_date}
       />
 
       <BarcodeLabelDialog
