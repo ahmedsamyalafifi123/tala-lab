@@ -140,12 +140,16 @@ export default function LabDashboard() {
   const [nameFilter, setNameFilter] = useState("");
   const [debouncedNameFilter, setDebouncedNameFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [clinicFilter, setClinicFilter] = useState<string>("all");
+  const [clinicFilters, setClinicFilters] = useState<string[]>([]);
+  const [clinicSearchFilter, setClinicSearchFilter] = useState("");
   const [testFilters, setTestFilters] = useState<string[]>([]);
   const [testSearchFilter, setTestSearchFilter] = useState("");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date());
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
   const [filtersHydrated, setFiltersHydrated] = useState(false);
+
+  /** Sentinel for "بدون" — matches clients with no clinic / no required tests. */
+  const WITHOUT_VALUE = "__none__";
 
   const toggleArrayValue = (values: string[], value: string) =>
     values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
@@ -176,6 +180,12 @@ export default function LabDashboard() {
     );
   }, [labTests, testSearchFilter]);
 
+  const filteredClinics = useMemo(() => {
+    const query = clinicSearchFilter.trim().toLowerCase();
+    if (!query) return clinics;
+    return clinics.filter((clinic) => clinic.name.toLowerCase().includes(query));
+  }, [clinics, clinicSearchFilter]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -185,7 +195,7 @@ export default function LabDashboard() {
         const parsed = JSON.parse(saved) as {
           nameFilter?: string;
           categoryFilter?: string;
-          clinicFilter?: string;
+          clinicFilters?: string[];
           testFilters?: string[];
           dateFrom?: string | null;
           dateTo?: string | null;
@@ -194,7 +204,7 @@ export default function LabDashboard() {
         setNameFilter(parsed.nameFilter || "");
         setDebouncedNameFilter(parsed.nameFilter || "");
         setCategoryFilter(parsed.categoryFilter || "all");
-        setClinicFilter(parsed.clinicFilter || "all");
+        setClinicFilters(Array.isArray(parsed.clinicFilters) ? parsed.clinicFilters : []);
         setTestFilters(Array.isArray(parsed.testFilters) ? parsed.testFilters : []);
         setDateFrom(parsed.dateFrom ? new Date(parsed.dateFrom) : undefined);
         setDateTo(parsed.dateTo ? new Date(parsed.dateTo) : undefined);
@@ -212,14 +222,14 @@ export default function LabDashboard() {
     const payload = {
       nameFilter,
       categoryFilter,
-      clinicFilter,
+      clinicFilters,
       testFilters,
       dateFrom: dateFrom ? format(dateFrom, "yyyy-MM-dd") : null,
       dateTo: dateTo ? format(dateTo, "yyyy-MM-dd") : null,
     };
 
     localStorage.setItem(filtersStorageKey, JSON.stringify(payload));
-  }, [filtersHydrated, filtersStorageKey, nameFilter, categoryFilter, clinicFilter, testFilters, dateFrom, dateTo]);
+  }, [filtersHydrated, filtersStorageKey, nameFilter, categoryFilter, clinicFilters, testFilters, dateFrom, dateTo]);
 
   // Debounce the name filter for filtering - 300ms delay
   useEffect(() => {
@@ -372,11 +382,16 @@ export default function LabDashboard() {
              const cats = client.categories || [];
              if (!cats.includes(categoryFilter)) return false;
         }
-        if (clinicFilter !== "all" && client.clinic_id !== clinicFilter) return false;
-        // Required tests filter by selected individual tests
+        if (clinicFilters.length > 0) {
+          const clientClinic = client.clinic_id || WITHOUT_VALUE;
+          if (!clinicFilters.includes(clientClinic)) return false;
+        }
+        // Required tests filter: any checked test matches, "بدون" matches clients with none
         if (testFilters.length > 0) {
           const selectedTests = client.selected_tests || [];
-          if (!testFilters.some((testCode) => selectedTests.includes(testCode))) return false;
+          const matchesWithout = testFilters.includes(WITHOUT_VALUE) && selectedTests.length === 0;
+          const matchesTest = testFilters.some((testCode) => testCode !== WITHOUT_VALUE && selectedTests.includes(testCode));
+          if (!matchesWithout && !matchesTest) return false;
         }
         // Date filtering is done at database level for performance
         // But for display purposes, we might filter loaded list if needed (redundant if DB filter active)
@@ -400,7 +415,7 @@ export default function LabDashboard() {
     }, 10);
 
     return () => clearTimeout(timer);
-  }, [clients, debouncedNameFilter, categoryFilter, clinicFilter, testFilters]);
+  }, [clients, debouncedNameFilter, categoryFilter, clinicFilters, testFilters]);
 
   const todayClients = useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -435,14 +450,14 @@ export default function LabDashboard() {
   const clearFilters = () => {
     setNameFilter("");
     setCategoryFilter("all");
-    setClinicFilter("all");
+    setClinicFilters([]);
     setTestFilters([]);
     setTestSearchFilter("");
     setDateFrom(undefined);
     setDateTo(undefined);
   };
 
-  const hasFilters = nameFilter || categoryFilter !== "all" || clinicFilter !== "all" || testFilters.length > 0 || dateFrom || dateTo;
+  const hasFilters = nameFilter || categoryFilter !== "all" || clinicFilters.length > 0 || testFilters.length > 0 || dateFrom || dateTo;
   const useSequentialTestNumbers = testFilters.length > 0;
 
   const openResultsForClient = (client: Client) => {
@@ -1638,13 +1653,86 @@ export default function LabDashboard() {
                   <Label htmlFor="clinic-filter" className="text-xs font-medium text-muted-foreground">
                     العيادة
                   </Label>
-                  <SearchableFilter
-                    id="clinic-filter"
-                    label="العيادة"
-                    value={clinicFilter}
-                    onValueChange={setClinicFilter}
-                    options={clinics.map((clinic) => ({ value: clinic.uuid, label: clinic.name }))}
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="clinic-filter"
+                        variant="outline"
+                        className="h-10 w-full min-w-0 justify-between gap-2 px-3 font-normal"
+                      >
+                        <span className={cn("truncate", clinicFilters.length === 0 && "text-muted-foreground")}>
+                          {clinicFilters.length === 1 && clinicFilters[0] === WITHOUT_VALUE
+                            ? "بدون"
+                            : getMultiFilterText(clinicFilters.length, "كل العيادات", "عيادة واحدة", "عيادات")}
+                        </span>
+                        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="start"
+                      side="bottom"
+                      avoidCollisions={true}
+                      collisionPadding={12}
+                      className="w-[min(320px,calc(100vw-1.5rem))] p-2"
+                    >
+                      <div className="relative mb-2">
+                        <Search className="absolute start-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          value={clinicSearchFilter}
+                          onChange={(e) => setClinicSearchFilter(e.target.value)}
+                          placeholder="بحث في العيادات..."
+                          aria-label="بحث في العيادات"
+                          className="h-9 ps-8"
+                        />
+                      </div>
+                      <div className="max-h-[35vh] sm:max-h-64 space-y-1 overflow-y-auto overscroll-contain">
+                        <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2.5 text-sm hover:bg-muted active:bg-muted">
+                          <Checkbox
+                            checked={clinicFilters.includes(WITHOUT_VALUE)}
+                            onCheckedChange={() => setClinicFilters((prev) => toggleArrayValue(prev, WITHOUT_VALUE))}
+                          />
+                          <span className="min-w-0 flex-1 truncate">بدون</span>
+                        </label>
+                        {filteredClinics.length > 0 ? filteredClinics.map((clinic) => (
+                          <label
+                            key={clinic.uuid}
+                            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2.5 text-sm hover:bg-muted active:bg-muted"
+                          >
+                            <Checkbox
+                              checked={clinicFilters.includes(clinic.uuid)}
+                              onCheckedChange={() => setClinicFilters((prev) => toggleArrayValue(prev, clinic.uuid))}
+                            />
+                            <span className="min-w-0 flex-1 truncate">{clinic.name}</span>
+                          </label>
+                        )) : (
+                          <div className="py-6 text-center text-sm text-muted-foreground">
+                            لا توجد عيادات مطابقة
+                          </div>
+                        )}
+                      </div>
+                      {(clinicFilters.length > 0 || clinicSearchFilter) && (
+                        <div className="mt-2 grid grid-cols-2 gap-2 border-t pt-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => setClinicSearchFilter("")}
+                          >
+                            مسح البحث
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => setClinicFilters([])}
+                            disabled={clinicFilters.length === 0}
+                          >
+                            مسح العيادات
+                          </Button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 {/* التحاليل المطلوبة */}
@@ -1665,7 +1753,9 @@ export default function LabDashboard() {
                             ? "جاري التحميل..."
                             : labTests.length === 0
                               ? "لا توجد تحاليل"
-                              : getMultiFilterText(testFilters.length, "كل التحاليل", "تحليل واحد", "تحاليل")}
+                              : testFilters.length === 1 && testFilters[0] === WITHOUT_VALUE
+                                ? "بدون"
+                                : getMultiFilterText(testFilters.length, "كل التحاليل", "تحليل واحد", "تحاليل")}
                         </span>
                         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
                       </Button>
@@ -1688,6 +1778,13 @@ export default function LabDashboard() {
                         />
                       </div>
                       <div className="max-h-[35vh] sm:max-h-64 space-y-1 overflow-y-auto overscroll-contain">
+                        <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-2.5 text-sm hover:bg-muted active:bg-muted">
+                          <Checkbox
+                            checked={testFilters.includes(WITHOUT_VALUE)}
+                            onCheckedChange={() => setTestFilters((prev) => toggleArrayValue(prev, WITHOUT_VALUE))}
+                          />
+                          <span className="min-w-0 flex-1 truncate">بدون</span>
+                        </label>
                         {filteredLabTests.length > 0 ? filteredLabTests.map((test) => (
                           <label
                             key={test.uuid}
