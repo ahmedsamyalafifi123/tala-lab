@@ -2146,6 +2146,7 @@ export default function LabDashboard() {
         clientName={resultsClient.patient_name}
         clientGender={resultsClient.patient_gender}
         clientAge={resultsClient.patient_age}
+        clientCreatedAt={resultsClient.created_at}
       />
         );
       })()
