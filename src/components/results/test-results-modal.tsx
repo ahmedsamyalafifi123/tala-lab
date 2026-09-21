@@ -442,7 +442,7 @@ export function TestResultsModal({
         {clientDailyDate && (
           <>
             {(clientGender || typeof clientAge === "number") && <span>•</span>}
-            <span>تاريخ التسجيل: {new Date(clientDailyDate).toLocaleDateString("ar-EG", { year: "numeric", month: "short", day: "numeric" })}</span>
+            <span>{new Date(clientDailyDate).toLocaleDateString("ar-EG", { year: "numeric", month: "short", day: "numeric" })}</span>
           </>
         )}
         {typeof clientPosition === "number" && typeof totalClients === "number" && totalClients > 0 && (
