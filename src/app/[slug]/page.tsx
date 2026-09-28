@@ -917,7 +917,7 @@ export default function LabDashboard() {
 
         patientHtml += `
           <div class="entry">
-            <div class="entry-date">Date: ${format(new Date(entry.recorded_at || new Date()), "dd/MM/yyyy")}</div>
+            <div class="entry-date">Date: ${format(new Date(client.daily_date || entry.recorded_at || new Date()), "dd/MM/yyyy")}</div>
             <table>
               <thead>
                 <tr>
