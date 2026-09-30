@@ -14,6 +14,18 @@ async function getBrowser() {
   if (!browserPromise) {
     browserPromise = (async () => {
       const puppeteer = (await import("puppeteer")).default;
+      // Vercel serverless has no Chrome and no puppeteer download cache:
+      // use the serverless-packaged Chromium instead. Locally, puppeteer's
+      // own bundled Chromium works out of the box.
+      if (process.env.VERCEL) {
+        const chromium = (await import("@sparticuz/chromium")).default;
+        chromium.setGraphicsMode = false; // PDF needs no GPU
+        return puppeteer.launch({
+          executablePath: await chromium.executablePath(),
+          args: [...chromium.args, "--disable-dev-shm-usage"],
+          headless: "shell",
+        });
+      }
       return puppeteer.launch({
         args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
       });
@@ -24,6 +36,9 @@ async function getBrowser() {
   }
   return browserPromise;
 }
+
+// Headless launch + PDF rendering can exceed Vercel's default 10s.
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
