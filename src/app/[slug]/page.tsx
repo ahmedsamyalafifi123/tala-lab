@@ -1076,20 +1076,22 @@ export default function LabDashboard() {
   };
 
   // ---------------------------------------------------------------------------
-  // Mobile share: prepare each printable document as a real PDF in the
-  // background the moment the preview opens, so tapping مشاركة opens the
-  // native share sheet on the first tap — navigator.share only works inside
-  // the tap itself, so the file must exist before the user asks for it.
+  // Mobile share: each مشاركة button renders the actual print document of the
+  // button above it (not the on-screen preview) into an A4-paged PDF, then
+  // opens the native share sheet. Preparation starts only when tapped —
+  // navigator.share must run inside the tap, so after rendering we try the
+  // sheet immediately and, if the tap's activation expired, ask for one more
+  // tap which then opens instantly with the cached file.
   // Hidden entirely when Web Share is unavailable (desktop).
   // ---------------------------------------------------------------------------
   type ShareDoc = "receipts" | "detailed" | "results";
-  type ShareEntry = { status: "preparing" | "ready" | "error"; file?: File; title?: string };
-  const [shareFiles, setShareFiles] = useState<Record<ShareDoc, ShareEntry>>({
-    receipts: { status: "preparing" },
-    detailed: { status: "preparing" },
-    results: { status: "preparing" },
+  type ShareStatus = "idle" | "preparing" | "retry";
+  const [shareStatus, setShareStatus] = useState<Record<ShareDoc, ShareStatus>>({
+    receipts: "idle",
+    detailed: "idle",
+    results: "idle",
   });
-  const sharePrepGenerationRef = useRef(0);
+  const preparedShareRef = useRef<Partial<Record<ShareDoc, { key: string; file: File; title: string }>>>({});
   const isMobileViewport = useMediaQuery("(max-width: 767px)");
   const canWebShare = typeof navigator !== "undefined" && !!navigator.share && !!navigator.canShare;
   const showShareButtons = isMobileViewport && canWebShare;
@@ -1108,7 +1110,7 @@ export default function LabDashboard() {
     iframe.style.position = "fixed";
     iframe.style.left = "-10000px";
     iframe.style.top = "0";
-    iframe.style.width = "794px";
+    iframe.style.width = "794px"; // A4 width at 96dpi
     iframe.style.height = "1123px";
     iframe.style.border = "0";
     document.body.appendChild(iframe);
@@ -1177,69 +1179,23 @@ export default function LabDashboard() {
     },
     receipts: {
       build: async () => {
-        const node = document.getElementById("print-content");
-        if (!node) throw new Error("لا يوجد محتوى للمشاركة");
-        return captureElementCanvas(node);
+        const printContent = document.getElementById("print-content");
+        if (!printContent) throw new Error("لا يوجد محتوى للمشاركة");
+        return captureHtmlDocumentCanvas(getReceiptsPrintHtml(printContent.innerHTML));
       },
       filename: () => `سجل-الحالات-${format(new Date(), "yyyy-MM-dd")}.pdf`,
       title: "سجل الحالات اليومية",
     },
   };
 
-  const prepareShareDoc = async (doc: ShareDoc, generation: number) => {
-    const job = shareJobs[doc];
-    const canvas = await job.build();
-    if (sharePrepGenerationRef.current !== generation) return;
-    const pdfBlob = await canvasToPdf(canvas);
-    if (sharePrepGenerationRef.current !== generation) return;
-    const file = new File([pdfBlob], job.filename(), { type: "application/pdf" });
-    setShareFiles((prev) => ({ ...prev, [doc]: { status: "ready", file, title: job.title } }));
-  };
-
-  const sharePrepKey = JSON.stringify([printReversed, printClients.map((client) => client.uuid)]);
-
-  useEffect(() => {
-    if (!showPrintModal || !showShareButtons) return;
-    const generation = ++sharePrepGenerationRef.current;
-    setShareFiles({ receipts: { status: "preparing" }, detailed: { status: "preparing" }, results: { status: "preparing" } });
-    (async () => {
-      // Let the preview paint before the heavy background rendering starts.
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      for (const doc of ["receipts", "detailed", "results"] as ShareDoc[]) {
-        if (sharePrepGenerationRef.current !== generation) return;
-        try {
-          await prepareShareDoc(doc, generation);
-        } catch {
-          if (sharePrepGenerationRef.current === generation) {
-            setShareFiles((prev) => ({ ...prev, [doc]: { status: "error" } }));
-          }
-        }
-      }
-    })();
-    return () => {
-      sharePrepGenerationRef.current++;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showPrintModal, showShareButtons, sharePrepKey]);
-
-  const handleShareClick = (doc: ShareDoc) => {
-    const entry = shareFiles[doc];
-    if (entry.status === "preparing") return;
-
-    // Failed earlier: retry preparing just this document.
-    if (entry.status === "error" || !entry.file) {
-      setShareFiles((prev) => ({ ...prev, [doc]: { status: "preparing" } }));
-      prepareShareDoc(doc, sharePrepGenerationRef.current).catch(() => {
-        setShareFiles((prev) => ({ ...prev, [doc]: { status: "error" } }));
-      });
-      return;
-    }
-
-    // Ready: share synchronously inside this tap.
-    const file = entry.file;
+  const openShareSheet = (doc: ShareDoc, file: File, title: string) => {
     if (navigator.canShare?.({ files: [file] })) {
-      navigator.share({ files: [file], title: entry.title }).catch((error: any) => {
-        if (error?.name !== "AbortError") {
+      navigator.share({ files: [file], title }).catch((error: any) => {
+        if (error?.name === "NotAllowedError" || error?.name === "SecurityError") {
+          // The tap's activation expired while rendering — the file is cached,
+          // so the next tap opens the sheet instantly.
+          setShareStatus((prev) => ({ ...prev, [doc]: "retry" }));
+        } else if (error?.name !== "AbortError") {
           alert("تعذر المشاركة: " + (error?.message || "خطأ غير معروف"));
         }
       });
@@ -1253,23 +1209,101 @@ export default function LabDashboard() {
     }
   };
 
+  const handleShareClick = (doc: ShareDoc) => {
+    const key = JSON.stringify([doc, printReversed, printClients.map((client) => client.uuid)]);
+    const prepared = preparedShareRef.current[doc];
+    const job = shareJobs[doc];
+
+    // Cached for this exact selection: open the sheet instantly.
+    if (prepared && prepared.key === key) {
+      openShareSheet(doc, prepared.file, prepared.title);
+      return;
+    }
+
+    setShareStatus((prev) => ({ ...prev, [doc]: "preparing" }));
+    (async () => {
+      const canvas = await job.build();
+      const pdfBlob = await canvasToPdf(canvas);
+      const file = new File([pdfBlob], job.filename(), { type: "application/pdf" });
+      preparedShareRef.current[doc] = { key, file, title: job.title };
+      setShareStatus((prev) => ({ ...prev, [doc]: "idle" }));
+      openShareSheet(doc, file, job.title);
+    })().catch((error: any) => {
+      setShareStatus((prev) => ({ ...prev, [doc]: "idle" }));
+      alert("تعذر تحضير المشاركة: " + (error?.message || "خطأ غير معروف"));
+    });
+  };
+
   const renderShareButton = (doc: ShareDoc, label: string) => {
-    const preparing = shareFiles[doc].status === "preparing";
+    const status = shareStatus[doc];
     return (
       <Button
         variant="outline"
         size="sm"
-        disabled={preparing}
+        disabled={status === "preparing"}
         onClick={() => handleShareClick(doc)}
         title={label}
         aria-label={label}
-        className="gap-1.5 h-8 px-2.5 text-xs font-semibold"
+        className={cn(
+          "h-7 gap-1 px-2 text-[11px] font-semibold",
+          status === "retry" && "border-primary text-primary hover:bg-primary/10"
+        )}
       >
-        {preparing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
-        {preparing ? "جاري التحضير..." : "مشاركة"}
+        {status === "preparing" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Share2 className="h-3 w-3" />}
+        <span className="hidden xs:inline">
+          {status === "preparing" ? "تحضير..." : status === "retry" ? "اضغط للمشاركة" : "مشاركة"}
+        </span>
       </Button>
     );
   };
+
+  /** The full print-window document behind the PDF button, parameterized on
+   *  the receipt-table markup so both printing and sharing use one source. */
+  const getReceiptsPrintHtml = (contentHtml: string) => `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+      <meta charset="UTF-8">
+      <title>حالات المعمل - PDF</title>
+      <style>
+        @font-face {
+          font-family: 'Cairo';
+          src: url('/assets/Cairo.ttf') format('truetype');
+          font-weight: 200 1000; font-style: normal;
+        }
+        @page { size: auto; margin: 5mm; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif !important; font-weight: 500 !important; }
+        body { font-size: 13px; line-height: 1.5; color: #111; direction: rtl; background: #fff; padding: 5mm; }
+        .print-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 3px solid #2563eb; }
+        .print-header-right { display: flex; align-items: center; gap: 15px; }
+        .print-logo { width: 70px; height: 70px; border-radius: 8px; object-fit: contain; }
+        .print-header-text h1 { font-size: 22px; font-weight: 700; color: #1e3a8a; margin-bottom: 5px; }
+        .print-header-text p { font-size: 14px; color: #475569; }
+        .print-header-left { background-color: #f8fafc; padding: 12px 20px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: right; }
+        .print-header-left p { font-size: 14px; color: #334155; margin-bottom: 5px; font-weight: 700; }
+        .print-header-left span { color: #2563eb; font-weight: 700; font-size: 16px; }
+        .print-tables-container { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; align-items: start; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: center; }
+        th { background-color: #f1f5f9; font-weight: 700; color: #0f172a; font-size: 14px; }
+        td { color: #1e293b; font-weight: 500; }
+        tr { break-inside: avoid; }
+        tr:nth-child(even) td { background-color: #f8fafc; }
+        .print-footer { margin-top: 30px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+        @media print {
+          body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+          .print-header-left { background-color: #f8fafc !important; }
+          .print-tables-container { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8mm !important; }
+          th { background-color: #f1f5f9 !important; }
+          tr:nth-child(even) td { background-color: #f8fafc !important; }
+        }
+      </style>
+    </head>
+    <body>
+      ${contentHtml}
+    </body>
+    </html>
+  `;
 
   const handleBulkExportPDF = () => {
     const htmlContent = getBulkResultsHtml();
@@ -2586,51 +2620,7 @@ export default function LabDashboard() {
                     if (printContent) {
                       const printWindow = window.open('', '_blank');
                       if (printWindow) {
-                        printWindow.document.write(`
-                          <!DOCTYPE html>
-                          <html dir="rtl" lang="ar">
-                          <head>
-                            <meta charset="UTF-8">
-                            <title>حالات المعمل - PDF</title>
-                            <style>
-                              @font-face {
-                                font-family: 'Cairo';
-                                src: url('/assets/Cairo.ttf') format('truetype');
-                                font-weight: 200 1000; font-style: normal;
-                              }
-                              @page { size: auto; margin: 5mm; }
-                              * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif !important; font-weight: 500 !important; }
-                              body { font-size: 13px; line-height: 1.5; color: #111; direction: rtl; background: #fff; padding: 5mm; }
-                              .print-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 3px solid #2563eb; }
-                              .print-header-right { display: flex; align-items: center; gap: 15px; }
-                              .print-logo { width: 70px; height: 70px; border-radius: 8px; object-fit: contain; }
-                              .print-header-text h1 { font-size: 22px; font-weight: 700; color: #1e3a8a; margin-bottom: 5px; }
-                              .print-header-text p { font-size: 14px; color: #475569; }
-                              .print-header-left { background-color: #f8fafc; padding: 12px 20px; border-radius: 8px; border: 1px solid #e2e8f0; text-align: right; }
-                              .print-header-left p { font-size: 14px; color: #334155; margin-bottom: 5px; font-weight: 700; }
-                              .print-header-left span { color: #2563eb; font-weight: 700; font-size: 16px; }
-                              .print-tables-container { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; align-items: start; }
-                              table { width: 100%; border-collapse: collapse; font-size: 13px; }
-                              th, td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: center; }
-                              th { background-color: #f1f5f9; font-weight: 700; color: #0f172a; font-size: 14px; }
-                              td { color: #1e293b; font-weight: 500; }
-                              tr { break-inside: avoid; }
-                              tr:nth-child(even) td { background-color: #f8fafc; }
-                              .print-footer { margin-top: 30px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; }
-                              @media print {
-                                body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-                                .print-header-left { background-color: #f8fafc !important; }
-                                .print-tables-container { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8mm !important; }
-                                th { background-color: #f1f5f9 !important; }
-                                tr:nth-child(even) td { background-color: #f8fafc !important; }
-                              }
-                            </style>
-                          </head>
-                          <body>
-                            ${printContent.innerHTML}
-                          </body>
-                          </html>
-                        `);
+                        printWindow.document.write(getReceiptsPrintHtml(printContent.innerHTML));
                         printWindow.document.close();
                         printWindow.focus();
                         setTimeout(() => {
