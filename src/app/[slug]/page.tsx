@@ -29,8 +29,7 @@ import {
   Wrench,
   ClipboardList,
   Hospital,
-  Share2,
-  Check
+  Share2
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase";
@@ -1077,39 +1076,33 @@ export default function LabDashboard() {
   };
 
   // ---------------------------------------------------------------------------
-  // Mobile share: render each printable document to an image, then hand it to
-  // the phone's native share sheet. navigator.share must run inside the tap
-  // itself (user gesture), and rendering takes seconds — so it's two taps:
-  // first tap renders and marks the button ready, second tap opens the share
-  // sheet instantly with the prepared file.
+  // Mobile share: prepare each printable document as a real PDF in the
+  // background the moment the preview opens, so tapping مشاركة opens the
+  // native share sheet on the first tap — navigator.share only works inside
+  // the tap itself, so the file must exist before the user asks for it.
+  // Hidden entirely when Web Share is unavailable (desktop).
   // ---------------------------------------------------------------------------
   type ShareDoc = "receipts" | "detailed" | "results";
-  const [preparingDoc, setPreparingDoc] = useState<ShareDoc | null>(null);
-  const [readyDoc, setReadyDoc] = useState<ShareDoc | null>(null);
-  const preparedShareRef = useRef<{ key: string; file: File; title: string } | null>(null);
+  type ShareEntry = { status: "preparing" | "ready" | "error"; file?: File; title?: string };
+  const [shareFiles, setShareFiles] = useState<Record<ShareDoc, ShareEntry>>({
+    receipts: { status: "preparing" },
+    detailed: { status: "preparing" },
+    results: { status: "preparing" },
+  });
+  const sharePrepGenerationRef = useRef(0);
   const isMobileViewport = useMediaQuery("(max-width: 767px)");
   const canWebShare = typeof navigator !== "undefined" && !!navigator.share && !!navigator.canShare;
   const showShareButtons = isMobileViewport && canWebShare;
 
-  useEffect(() => {
-    if (!showPrintModal) {
-      preparedShareRef.current = null;
-      setReadyDoc(null);
-      setPreparingDoc(null);
-    }
-  }, [showPrintModal]);
-
-  const captureElement = async (node: HTMLElement) => {
-    const { toBlob } = await import("html-to-image");
+  const captureElementCanvas = async (node: HTMLElement) => {
+    const { toCanvas } = await import("html-to-image");
     // Very tall documents would blow past canvas size limits at 2x.
     const scale = node.scrollHeight > 4000 ? 1 : 2;
-    const blob = await toBlob(node, { backgroundColor: "#ffffff", pixelRatio: scale, cacheBust: true });
-    if (!blob) throw new Error("failed to render document");
-    return blob;
+    return toCanvas(node, { backgroundColor: "#ffffff", pixelRatio: scale, cacheBust: true });
   };
 
   /** Renders a standalone HTML report inside a hidden iframe and captures it. */
-  const captureHtmlDocument = async (html: string, isReady?: (win: Window) => boolean) => {
+  const captureHtmlDocumentCanvas = async (html: string, isReady?: (win: Window) => boolean) => {
     const iframe = document.createElement("iframe");
     iframe.setAttribute("aria-hidden", "true");
     iframe.style.position = "fixed";
@@ -1133,103 +1126,147 @@ export default function LabDashboard() {
       const fontsReady = (doc as Document & { fonts?: FontFaceSet }).fonts?.ready;
       await Promise.race([fontsReady, new Promise((resolve) => setTimeout(resolve, 1500))]);
       await new Promise((resolve) => setTimeout(resolve, 250));
-      return await captureElement(doc.body);
+      return await captureElementCanvas(doc.body);
     } finally {
       iframe.remove();
     }
   };
 
-  const shareJobs: Record<ShareDoc, { build: () => Promise<Blob>; filename: string; title: string }> = {
+  /** Slices a tall page render into A4 pages and wraps them in a PDF. */
+  const canvasToPdf = async (canvas: HTMLCanvasElement) => {
+    const { jsPDF } = await import("jspdf");
+    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const pxPerMm = canvas.width / pageWidth;
+    const pageSliceHeight = Math.floor(pageHeight * pxPerMm);
+    let offset = 0;
+    let firstPage = true;
+    while (offset < canvas.height) {
+      const sliceHeight = Math.min(pageSliceHeight, canvas.height - offset);
+      const slice = document.createElement("canvas");
+      slice.width = canvas.width;
+      slice.height = sliceHeight;
+      const ctx = slice.getContext("2d");
+      if (!ctx) throw new Error("failed to render document");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, slice.width, slice.height);
+      ctx.drawImage(canvas, 0, offset, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
+      if (!firstPage) pdf.addPage();
+      pdf.addImage(slice.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, pageWidth, sliceHeight / pxPerMm);
+      firstPage = false;
+      offset += sliceHeight;
+    }
+    return pdf.output("blob");
+  };
+
+  const shareJobs: Record<ShareDoc, { build: () => Promise<HTMLCanvasElement>; filename: () => string; title: string }> = {
     results: {
-      build: () => captureHtmlDocument(getBulkResultsHtml()),
-      filename: `نتائج-التحاليل-${format(new Date(), "yyyy-MM-dd")}.png`,
+      build: () => captureHtmlDocumentCanvas(getBulkResultsHtml()),
+      filename: () => `نتائج-التحاليل-${format(new Date(), "yyyy-MM-dd")}.pdf`,
       title: "نتائج التحاليل",
     },
     detailed: {
       build: () =>
-        captureHtmlDocument(
+        captureHtmlDocumentCanvas(
           getDetailedPrintHtml(),
           (win) => Boolean((win as Window & { __detailsPrintReady?: boolean }).__detailsPrintReady)
         ),
-      filename: `كشف-النتائج-${format(new Date(), "yyyy-MM-dd")}.png`,
+      filename: () => `كشف-النتائج-${format(new Date(), "yyyy-MM-dd")}.pdf`,
       title: "كشف التحاليل والنتائج",
     },
     receipts: {
       build: async () => {
         const node = document.getElementById("print-content");
         if (!node) throw new Error("لا يوجد محتوى للمشاركة");
-        return captureElement(node);
+        return captureElementCanvas(node);
       },
-      filename: `سجل-الحالات-${format(new Date(), "yyyy-MM-dd")}.png`,
+      filename: () => `سجل-الحالات-${format(new Date(), "yyyy-MM-dd")}.pdf`,
       title: "سجل الحالات اليومية",
     },
   };
 
-  const handleShareButton = (doc: ShareDoc) => {
+  const prepareShareDoc = async (doc: ShareDoc, generation: number) => {
     const job = shareJobs[doc];
-    const key = JSON.stringify([doc, printClients.map((client) => client.uuid)]);
-    const prepared = preparedShareRef.current;
+    const canvas = await job.build();
+    if (sharePrepGenerationRef.current !== generation) return;
+    const pdfBlob = await canvasToPdf(canvas);
+    if (sharePrepGenerationRef.current !== generation) return;
+    const file = new File([pdfBlob], job.filename(), { type: "application/pdf" });
+    setShareFiles((prev) => ({ ...prev, [doc]: { status: "ready", file, title: job.title } }));
+  };
 
-    // Ready path: the file is already rendered, so share it synchronously
-    // inside this tap — the only way navigator.share accepts the request.
-    if (prepared && prepared.key === key) {
-      if (navigator.canShare?.({ files: [prepared.file] })) {
-        navigator.share({ files: [prepared.file], title: prepared.title }).catch((error: any) => {
-          if (error?.name !== "AbortError") {
-            alert("تعذر المشاركة: " + (error?.message || "خطأ غير معروف"));
+  const sharePrepKey = JSON.stringify([printReversed, printClients.map((client) => client.uuid)]);
+
+  useEffect(() => {
+    if (!showPrintModal || !showShareButtons) return;
+    const generation = ++sharePrepGenerationRef.current;
+    setShareFiles({ receipts: { status: "preparing" }, detailed: { status: "preparing" }, results: { status: "preparing" } });
+    (async () => {
+      // Let the preview paint before the heavy background rendering starts.
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      for (const doc of ["receipts", "detailed", "results"] as ShareDoc[]) {
+        if (sharePrepGenerationRef.current !== generation) return;
+        try {
+          await prepareShareDoc(doc, generation);
+        } catch {
+          if (sharePrepGenerationRef.current === generation) {
+            setShareFiles((prev) => ({ ...prev, [doc]: { status: "error" } }));
           }
-        });
-      } else {
-        // File sharing unavailable: save the image instead.
-        const url = URL.createObjectURL(prepared.file);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = prepared.file.name;
-        link.click();
-        URL.revokeObjectURL(url);
+        }
       }
+    })();
+    return () => {
+      sharePrepGenerationRef.current++;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showPrintModal, showShareButtons, sharePrepKey]);
+
+  const handleShareClick = (doc: ShareDoc) => {
+    const entry = shareFiles[doc];
+    if (entry.status === "preparing") return;
+
+    // Failed earlier: retry preparing just this document.
+    if (entry.status === "error" || !entry.file) {
+      setShareFiles((prev) => ({ ...prev, [doc]: { status: "preparing" } }));
+      prepareShareDoc(doc, sharePrepGenerationRef.current).catch(() => {
+        setShareFiles((prev) => ({ ...prev, [doc]: { status: "error" } }));
+      });
       return;
     }
 
-    // First tap: render the document, then mark the button ready.
-    setReadyDoc(null);
-    setPreparingDoc(doc);
-    (async () => {
-      const blob = await job.build();
-      const file = new File([blob], job.filename, { type: blob.type || "image/png" });
-      preparedShareRef.current = { key, file, title: job.title };
-      setReadyDoc(doc);
-    })()
-      .catch((error: any) => {
-        alert("تعذر تحضير المشاركة: " + (error?.message || "خطأ غير معروف"));
-      })
-      .finally(() => setPreparingDoc(null));
+    // Ready: share synchronously inside this tap.
+    const file = entry.file;
+    if (navigator.canShare?.({ files: [file] })) {
+      navigator.share({ files: [file], title: entry.title }).catch((error: any) => {
+        if (error?.name !== "AbortError") {
+          alert("تعذر المشاركة: " + (error?.message || "خطأ غير معروف"));
+        }
+      });
+    } else {
+      const url = URL.createObjectURL(file);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = file.name;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
   };
 
   const renderShareButton = (doc: ShareDoc, label: string) => {
-    const isPreparing = preparingDoc === doc;
-    const isReady = readyDoc === doc;
+    const preparing = shareFiles[doc].status === "preparing";
     return (
       <Button
         variant="outline"
         size="sm"
-        disabled={preparingDoc !== null}
-        onClick={() => handleShareButton(doc)}
-        title={isReady ? "اضغط لفتح المشاركة" : "اضغط لتحضير الملف، ثم اضغط مجدداً للمشاركة"}
+        disabled={preparing}
+        onClick={() => handleShareClick(doc)}
+        title={label}
         aria-label={label}
-        className={cn(
-          "h-7 gap-1 px-2 text-[11px] font-semibold",
-          isReady && "border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
-        )}
+        className="gap-1.5 h-8 px-2.5 text-xs font-semibold"
       >
-        {isPreparing ? (
-          <Loader2 className="h-3 w-3 animate-spin" />
-        ) : isReady ? (
-          <Check className="h-3 w-3" />
-        ) : (
-          <Share2 className="h-3 w-3" />
-        )}
-        <span className="hidden xs:inline">{isPreparing ? "تحضير..." : isReady ? "جاهز" : "مشاركة"}</span>
+        {preparing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
+        {preparing ? "جاري التحضير..." : "مشاركة"}
       </Button>
     );
   };
