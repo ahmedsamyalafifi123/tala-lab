@@ -94,7 +94,18 @@ export function LabUserManagement({ labId }: LabUserManagementProps) {
             throw error;
         }
       } else {
-          alert('تم إضافة المستخدم بنجاح')
+          // Account already existed and was linked: apply the typed password so
+          // it is what actually logs in (the RPC only links, it never sets one).
+          if (password.trim()) {
+              try {
+                  await updateUserPassword(data.user_id, password.trim());
+                  alert('تم إضافة المستخدم وتحديث كلمة المرور بنجاح');
+              } catch (pwError: any) {
+                  alert('تم ربط المستخدم بالمعمل، لكن تعذر تحديث كلمة المرور: ' + (pwError.message || 'خطأ غير معروف'));
+              }
+          } else {
+              alert('تم إضافة المستخدم بنجاح');
+          }
       }
 
       setEmail('')
@@ -105,6 +116,24 @@ export function LabUserManagement({ labId }: LabUserManagementProps) {
       alert(error.message || 'حدث خطأ أثناء إضافة المستخدم')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const updateUserPassword = async (userId: string, pass: string) => {
+    if (pass.length < 6) {
+      throw new Error('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+    }
+
+    const res = await fetch('/api/lab/users/update-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, password: pass, labId }),
+    });
+
+    const apiData = await res.json();
+
+    if (!res.ok) {
+      throw new Error(apiData.error || 'Failed to update password');
     }
   }
 
