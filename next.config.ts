@@ -4,9 +4,14 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: "..",
   },
-  // Puppeteer must stay outside the server bundle: it resolves Chromium and
-  // node modules at runtime.
-  serverExternalPackages: ["puppeteer"],
+  // Puppeteer and the serverless Chromium must stay outside the server
+  // bundle: they resolve binaries from node_modules at runtime.
+  serverExternalPackages: ["puppeteer", "puppeteer-core", "@sparticuz/chromium"],
+  // Vercel's file tracing misses the packaged Chromium binary — force it
+  // into the /api/print/pdf function bundle.
+  outputFileTracingIncludes: {
+    "/api/print/pdf": ["./node_modules/@sparticuz/chromium/bin/**"],
+  },
   async headers() {
     return [
       {

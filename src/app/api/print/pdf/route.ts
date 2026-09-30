@@ -1,5 +1,8 @@
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
+import { existsSync } from "fs";
+import { homedir } from "os";
+import { join } from "path";
 
 /**
  * Renders a full print document (the exact HTML the print buttons open) into
@@ -8,26 +11,60 @@ import { NextResponse } from "next/server";
  * The client sends the ready HTML; this route only turns it into PDF bytes.
  */
 
+export const runtime = "nodejs";
+// Cold start must unpack Chromium, launch it and render — well over 10s.
+export const maxDuration = 60;
+export const memory = "2048";
+
 let browserPromise: Promise<any> | null = null;
+
+/** Locally installed Chrome for dev (puppeteer cache or system install). */
+function findLocalChrome(): string | null {
+  const cacheRoot = join(homedir(), ".cache", "puppeteer", "chrome");
+  try {
+    const { readdirSync } = require("fs") as typeof import("fs");
+    for (const version of readdirSync(cacheRoot)) {
+      for (const platform of readdirSync(join(cacheRoot, version))) {
+        const candidates = [
+          join(cacheRoot, version, platform, "chrome-linux64", "chrome"),
+          join(cacheRoot, version, platform, "chrome-linux", "chrome"),
+        ];
+        for (const candidate of candidates) {
+          if (existsSync(candidate)) return candidate;
+        }
+      }
+    }
+  } catch {
+    // no puppeteer cache — fall through to system paths
+  }
+  for (const candidate of [
+    "/usr/bin/google-chrome",
+    "/usr/bin/google-chrome-stable",
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
+  ]) {
+    if (existsSync(candidate)) return candidate;
+  }
+  return null;
+}
 
 async function getBrowser() {
   if (!browserPromise) {
     browserPromise = (async () => {
-      const puppeteer = (await import("puppeteer")).default;
-      // Vercel serverless has no Chrome and no puppeteer download cache:
-      // use the serverless-packaged Chromium instead. Locally, puppeteer's
-      // own bundled Chromium works out of the box.
-      if (process.env.VERCEL) {
-        const chromium = (await import("@sparticuz/chromium")).default;
-        chromium.setGraphicsMode = false; // PDF needs no GPU
+      const puppeteer = (await import("puppeteer-core")).default;
+      const localChrome = findLocalChrome();
+      if (localChrome) {
         return puppeteer.launch({
-          executablePath: await chromium.executablePath(),
-          args: [...chromium.args, "--disable-dev-shm-usage"],
-          headless: "shell",
+          executablePath: localChrome,
+          args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
         });
       }
+      // Serverless (Vercel): no local Chrome exists — use the packaged one.
+      const chromium = (await import("@sparticuz/chromium")).default;
       return puppeteer.launch({
-        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+        executablePath: await chromium.executablePath(),
+        args: [...chromium.args, "--disable-dev-shm-usage", "--no-sandbox"],
+        headless: "shell",
       });
     })().catch((error) => {
       browserPromise = null;
@@ -36,9 +73,6 @@ async function getBrowser() {
   }
   return browserPromise;
 }
-
-// Headless launch + PDF rendering can exceed Vercel's default 10s.
-export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
