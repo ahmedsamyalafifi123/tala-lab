@@ -1096,84 +1096,30 @@ export default function LabDashboard() {
   const canWebShare = typeof navigator !== "undefined" && !!navigator.share && !!navigator.canShare;
   const showShareButtons = isMobileViewport && canWebShare;
 
-  const captureElementCanvas = async (node: HTMLElement) => {
-    const { toCanvas } = await import("html-to-image");
-    // Very tall documents would blow past canvas size limits at 2x.
-    const scale = node.scrollHeight > 4000 ? 1 : 2;
-    return toCanvas(node, { backgroundColor: "#ffffff", pixelRatio: scale, cacheBust: true });
-  };
-
-  /** Renders a standalone HTML report inside a hidden iframe and captures it. */
-  const captureHtmlDocumentCanvas = async (html: string, isReady?: (win: Window) => boolean) => {
-    const iframe = document.createElement("iframe");
-    iframe.setAttribute("aria-hidden", "true");
-    iframe.style.position = "fixed";
-    iframe.style.left = "-10000px";
-    iframe.style.top = "0";
-    iframe.style.width = "794px"; // A4 width at 96dpi
-    iframe.style.height = "1123px";
-    iframe.style.border = "0";
-    document.body.appendChild(iframe);
-    try {
-      const doc = iframe.contentDocument;
-      if (!doc || !iframe.contentWindow) throw new Error("failed to render document");
-      doc.open();
-      doc.write(html);
-      doc.close();
-      const start = Date.now();
-      while (isReady && !isReady(iframe.contentWindow) && Date.now() - start < 8000) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-      // Wait for webfonts (Cairo) without a fixed long sleep.
-      const fontsReady = (doc as Document & { fonts?: FontFaceSet }).fonts?.ready;
-      await Promise.race([fontsReady, new Promise((resolve) => setTimeout(resolve, 1500))]);
-      await new Promise((resolve) => setTimeout(resolve, 250));
-      return await captureElementCanvas(doc.body);
-    } finally {
-      iframe.remove();
+  /** Sends the exact print HTML to the server, which renders it with the
+   *  same engine the browser prints with — real selectable text, identical
+   *  layout, no client-side image work. */
+  const renderPdfOnServer = async (html: string, waitForReadyFlag?: boolean) => {
+    const res = await fetch("/api/print/pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ html, origin: window.location.origin, waitForReadyFlag }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.error || "تعذر إنشاء ملف PDF");
     }
+    return res.blob();
   };
 
-  /** Slices a tall page render into A4 pages and wraps them in a PDF. */
-  const canvasToPdf = async (canvas: HTMLCanvasElement) => {
-    const { jsPDF } = await import("jspdf");
-    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
-    const pageWidth = 210;
-    const pageHeight = 297;
-    const pxPerMm = canvas.width / pageWidth;
-    const pageSliceHeight = Math.floor(pageHeight * pxPerMm);
-    let offset = 0;
-    let firstPage = true;
-    while (offset < canvas.height) {
-      const sliceHeight = Math.min(pageSliceHeight, canvas.height - offset);
-      const slice = document.createElement("canvas");
-      slice.width = canvas.width;
-      slice.height = sliceHeight;
-      const ctx = slice.getContext("2d");
-      if (!ctx) throw new Error("failed to render document");
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, slice.width, slice.height);
-      ctx.drawImage(canvas, 0, offset, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
-      if (!firstPage) pdf.addPage();
-      pdf.addImage(slice.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, pageWidth, sliceHeight / pxPerMm);
-      firstPage = false;
-      offset += sliceHeight;
-    }
-    return pdf.output("blob");
-  };
-
-  const shareJobs: Record<ShareDoc, { build: () => Promise<HTMLCanvasElement>; filename: () => string; title: string }> = {
+  const shareJobs: Record<ShareDoc, { build: () => Promise<Blob>; filename: () => string; title: string }> = {
     results: {
-      build: () => captureHtmlDocumentCanvas(getBulkResultsHtml()),
+      build: () => renderPdfOnServer(getBulkResultsHtml()),
       filename: () => `نتائج-التحاليل-${format(new Date(), "yyyy-MM-dd")}.pdf`,
       title: "نتائج التحاليل",
     },
     detailed: {
-      build: () =>
-        captureHtmlDocumentCanvas(
-          getDetailedPrintHtml(),
-          (win) => Boolean((win as Window & { __detailsPrintReady?: boolean }).__detailsPrintReady)
-        ),
+      build: () => renderPdfOnServer(getDetailedPrintHtml(), true),
       filename: () => `كشف-النتائج-${format(new Date(), "yyyy-MM-dd")}.pdf`,
       title: "كشف التحاليل والنتائج",
     },
@@ -1181,7 +1127,7 @@ export default function LabDashboard() {
       build: async () => {
         const printContent = document.getElementById("print-content");
         if (!printContent) throw new Error("لا يوجد محتوى للمشاركة");
-        return captureHtmlDocumentCanvas(getReceiptsPrintHtml(printContent.innerHTML));
+        return renderPdfOnServer(getReceiptsPrintHtml(printContent.innerHTML));
       },
       filename: () => `سجل-الحالات-${format(new Date(), "yyyy-MM-dd")}.pdf`,
       title: "سجل الحالات اليومية",
@@ -1222,8 +1168,7 @@ export default function LabDashboard() {
 
     setShareStatus((prev) => ({ ...prev, [doc]: "preparing" }));
     (async () => {
-      const canvas = await job.build();
-      const pdfBlob = await canvasToPdf(canvas);
+      const pdfBlob = await job.build();
       const file = new File([pdfBlob], job.filename(), { type: "application/pdf" });
       preparedShareRef.current[doc] = { key, file, title: job.title };
       setShareStatus((prev) => ({ ...prev, [doc]: "idle" }));

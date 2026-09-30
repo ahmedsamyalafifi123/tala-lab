@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: "..",
   },
+  // Puppeteer must stay outside the server bundle: it resolves Chromium and
+  // node modules at runtime.
+  serverExternalPackages: ["puppeteer"],
   async headers() {
     return [
       {
