@@ -29,7 +29,8 @@ import {
   Wrench,
   ClipboardList,
   Hospital,
-  Share2
+  Share2,
+  Check
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase";
@@ -1076,28 +1077,27 @@ export default function LabDashboard() {
   };
 
   // ---------------------------------------------------------------------------
-  // Mobile share: render each printable document to an image and hand it to the
-  // phone's native share sheet. Buttons stay hidden when Web Share is missing.
+  // Mobile share: render each printable document to an image, then hand it to
+  // the phone's native share sheet. navigator.share must run inside the tap
+  // itself (user gesture), and rendering takes seconds — so it's two taps:
+  // first tap renders and marks the button ready, second tap opens the share
+  // sheet instantly with the prepared file.
   // ---------------------------------------------------------------------------
-  const [sharingDoc, setSharingDoc] = useState<"receipts" | "detailed" | "results" | null>(null);
+  type ShareDoc = "receipts" | "detailed" | "results";
+  const [preparingDoc, setPreparingDoc] = useState<ShareDoc | null>(null);
+  const [readyDoc, setReadyDoc] = useState<ShareDoc | null>(null);
+  const preparedShareRef = useRef<{ key: string; file: File; title: string } | null>(null);
   const isMobileViewport = useMediaQuery("(max-width: 767px)");
   const canWebShare = typeof navigator !== "undefined" && !!navigator.share && !!navigator.canShare;
   const showShareButtons = isMobileViewport && canWebShare;
 
-  const shareBlobAsFile = async (blob: Blob, filename: string, title: string) => {
-    const file = new File([blob], filename, { type: blob.type || "image/png" });
-    if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title });
-      return;
+  useEffect(() => {
+    if (!showPrintModal) {
+      preparedShareRef.current = null;
+      setReadyDoc(null);
+      setPreparingDoc(null);
     }
-    // Fallback when file sharing is unavailable: save the image instead.
-    const url = URL.createObjectURL(file);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
+  }, [showPrintModal]);
 
   const captureElement = async (node: HTMLElement) => {
     const { toBlob } = await import("html-to-image");
@@ -1129,52 +1129,109 @@ export default function LabDashboard() {
       while (isReady && !isReady(iframe.contentWindow) && Date.now() - start < 8000) {
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
-      // settle time for fonts and images
-      await new Promise((resolve) => setTimeout(resolve, 700));
+      // Wait for webfonts (Cairo) without a fixed long sleep.
+      const fontsReady = (doc as Document & { fonts?: FontFaceSet }).fonts?.ready;
+      await Promise.race([fontsReady, new Promise((resolve) => setTimeout(resolve, 1500))]);
+      await new Promise((resolve) => setTimeout(resolve, 250));
       return await captureElement(doc.body);
     } finally {
       iframe.remove();
     }
   };
 
-  const runShare = async (job: () => Promise<void>) => {
-    try {
-      await job();
-    } catch (error: any) {
-      // User closed the share sheet — not an error.
-      if (error?.name !== "AbortError") {
-        alert("تعذر المشاركة: " + (error?.message || "خطأ غير معروف"));
+  const shareJobs: Record<ShareDoc, { build: () => Promise<Blob>; filename: string; title: string }> = {
+    results: {
+      build: () => captureHtmlDocument(getBulkResultsHtml()),
+      filename: `نتائج-التحاليل-${format(new Date(), "yyyy-MM-dd")}.png`,
+      title: "نتائج التحاليل",
+    },
+    detailed: {
+      build: () =>
+        captureHtmlDocument(
+          getDetailedPrintHtml(),
+          (win) => Boolean((win as Window & { __detailsPrintReady?: boolean }).__detailsPrintReady)
+        ),
+      filename: `كشف-النتائج-${format(new Date(), "yyyy-MM-dd")}.png`,
+      title: "كشف التحاليل والنتائج",
+    },
+    receipts: {
+      build: async () => {
+        const node = document.getElementById("print-content");
+        if (!node) throw new Error("لا يوجد محتوى للمشاركة");
+        return captureElement(node);
+      },
+      filename: `سجل-الحالات-${format(new Date(), "yyyy-MM-dd")}.png`,
+      title: "سجل الحالات اليومية",
+    },
+  };
+
+  const handleShareButton = (doc: ShareDoc) => {
+    const job = shareJobs[doc];
+    const key = JSON.stringify([doc, printClients.map((client) => client.uuid)]);
+    const prepared = preparedShareRef.current;
+
+    // Ready path: the file is already rendered, so share it synchronously
+    // inside this tap — the only way navigator.share accepts the request.
+    if (prepared && prepared.key === key) {
+      if (navigator.canShare?.({ files: [prepared.file] })) {
+        navigator.share({ files: [prepared.file], title: prepared.title }).catch((error: any) => {
+          if (error?.name !== "AbortError") {
+            alert("تعذر المشاركة: " + (error?.message || "خطأ غير معروف"));
+          }
+        });
+      } else {
+        // File sharing unavailable: save the image instead.
+        const url = URL.createObjectURL(prepared.file);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = prepared.file.name;
+        link.click();
+        URL.revokeObjectURL(url);
       }
+      return;
     }
+
+    // First tap: render the document, then mark the button ready.
+    setReadyDoc(null);
+    setPreparingDoc(doc);
+    (async () => {
+      const blob = await job.build();
+      const file = new File([blob], job.filename, { type: blob.type || "image/png" });
+      preparedShareRef.current = { key, file, title: job.title };
+      setReadyDoc(doc);
+    })()
+      .catch((error: any) => {
+        alert("تعذر تحضير المشاركة: " + (error?.message || "خطأ غير معروف"));
+      })
+      .finally(() => setPreparingDoc(null));
   };
 
-  const handleShareReceipts = () => {
-    setSharingDoc("receipts");
-    runShare(async () => {
-      const node = document.getElementById("print-content");
-      if (!node) throw new Error("لا يوجد محتوى للمشاركة");
-      const blob = await captureElement(node);
-      await shareBlobAsFile(blob, `سجل-الحالات-${format(new Date(), "yyyy-MM-dd")}.png`, "سجل الحالات اليومية");
-    }).finally(() => setSharingDoc(null));
-  };
-
-  const handleShareDetailed = () => {
-    setSharingDoc("detailed");
-    runShare(async () => {
-      const blob = await captureHtmlDocument(
-        getDetailedPrintHtml(),
-        (win) => Boolean((win as Window & { __detailsPrintReady?: boolean }).__detailsPrintReady)
-      );
-      await shareBlobAsFile(blob, `كشف-النتائج-${format(new Date(), "yyyy-MM-dd")}.png`, "كشف التحاليل والنتائج");
-    }).finally(() => setSharingDoc(null));
-  };
-
-  const handleShareResultsReports = () => {
-    setSharingDoc("results");
-    runShare(async () => {
-      const blob = await captureHtmlDocument(getBulkResultsHtml());
-      await shareBlobAsFile(blob, `نتائج-التحاليل-${format(new Date(), "yyyy-MM-dd")}.png`, "نتائج التحاليل");
-    }).finally(() => setSharingDoc(null));
+  const renderShareButton = (doc: ShareDoc, label: string) => {
+    const isPreparing = preparingDoc === doc;
+    const isReady = readyDoc === doc;
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={preparingDoc !== null}
+        onClick={() => handleShareButton(doc)}
+        title={isReady ? "اضغط لفتح المشاركة" : "اضغط لتحضير الملف، ثم اضغط مجدداً للمشاركة"}
+        aria-label={label}
+        className={cn(
+          "h-7 gap-1 px-2 text-[11px] font-semibold",
+          isReady && "border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
+        )}
+      >
+        {isPreparing ? (
+          <Loader2 className="h-3 w-3 animate-spin" />
+        ) : isReady ? (
+          <Check className="h-3 w-3" />
+        ) : (
+          <Share2 className="h-3 w-3" />
+        )}
+        <span className="hidden xs:inline">{isPreparing ? "تحضير..." : isReady ? "جاهز" : "مشاركة"}</span>
+      </Button>
+    );
   };
 
   const handleBulkExportPDF = () => {
@@ -2470,20 +2527,7 @@ export default function LabDashboard() {
                     <FileDown className="h-3.5 w-3.5" />
                     <span className="hidden xs:inline sm:inline">تصدير التحاليل</span>
                   </Button>
-                  {showShareButtons && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={sharingDoc !== null}
-                      onClick={handleShareResultsReports}
-                      title="مشاركة"
-                      aria-label="مشاركة تصدير التحاليل"
-                      className="h-7 gap-1 px-2 text-[11px] font-semibold"
-                    >
-                      {sharingDoc === "results" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Share2 className="h-3 w-3" />}
-                      <span className="hidden xs:inline">مشاركة</span>
-                    </Button>
-                  )}
+                  {showShareButtons && renderShareButton("results", "مشاركة تصدير التحاليل")}
                 </div>
                 <div className="flex flex-col items-stretch gap-1">
                   <Button
@@ -2496,20 +2540,7 @@ export default function LabDashboard() {
                     <Printer className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">طباعة بالنتائج</span>
                   </Button>
-                  {showShareButtons && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={sharingDoc !== null}
-                      onClick={handleShareDetailed}
-                      title="مشاركة"
-                      aria-label="مشاركة طباعة بالنتائج"
-                      className="h-7 gap-1 px-2 text-[11px] font-semibold"
-                    >
-                      {sharingDoc === "detailed" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Share2 className="h-3 w-3" />}
-                      <span className="hidden xs:inline">مشاركة</span>
-                    </Button>
-                  )}
+                  {showShareButtons && renderShareButton("detailed", "مشاركة طباعة بالنتائج")}
                 </div>
                 <div className="flex flex-col items-stretch gap-1">
                   <Button
@@ -2579,20 +2610,7 @@ export default function LabDashboard() {
                   <FileDown className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">PDF</span>
                 </Button>
-                  {showShareButtons && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={sharingDoc !== null}
-                      onClick={handleShareReceipts}
-                      title="مشاركة"
-                      aria-label="مشاركة PDF"
-                      className="h-7 gap-1 px-2 text-[11px] font-semibold"
-                    >
-                      {sharingDoc === "receipts" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Share2 className="h-3 w-3" />}
-                      <span className="hidden xs:inline">مشاركة</span>
-                    </Button>
-                  )}
+                  {showShareButtons && renderShareButton("receipts", "مشاركة PDF")}
                 </div>
                 <Button
                   variant="ghost"
