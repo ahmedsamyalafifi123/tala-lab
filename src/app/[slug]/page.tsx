@@ -1112,15 +1112,15 @@ export default function LabDashboard() {
     return res.blob();
   };
 
-  const shareJobs: Record<ShareDoc, { build: () => Promise<Blob>; filename: () => string; title: string }> = {
+  const shareJobs: Record<ShareDoc, { build: () => Promise<Blob>; filename: string; title: string }> = {
     results: {
       build: () => renderPdfOnServer(getBulkResultsHtml()),
-      filename: () => `نتائج-التحاليل-${format(new Date(), "yyyy-MM-dd")}.pdf`,
+      filename: "نتائج-التحاليل.pdf",
       title: "نتائج التحاليل",
     },
     detailed: {
       build: () => renderPdfOnServer(getDetailedPrintHtml(), true),
-      filename: () => `كشف-النتائج-${format(new Date(), "yyyy-MM-dd")}.pdf`,
+      filename: "كشف-النتائج.pdf",
       title: "كشف التحاليل والنتائج",
     },
     receipts: {
@@ -1129,7 +1129,7 @@ export default function LabDashboard() {
         if (!printContent) throw new Error("لا يوجد محتوى للمشاركة");
         return renderPdfOnServer(getReceiptsPrintHtml(printContent.innerHTML));
       },
-      filename: () => `سجل-الحالات-${format(new Date(), "yyyy-MM-dd")}.pdf`,
+      filename: "سجل-الحالات.pdf",
       title: "سجل الحالات اليومية",
     },
   };
