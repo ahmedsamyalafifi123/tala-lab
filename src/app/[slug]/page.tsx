@@ -1169,7 +1169,7 @@ export default function LabDashboard() {
     setShareStatus((prev) => ({ ...prev, [doc]: "preparing" }));
     (async () => {
       const pdfBlob = await job.build();
-      const file = new File([pdfBlob], job.filename(), { type: "application/pdf" });
+      const file = new File([pdfBlob], job.filename, { type: "application/pdf" });
       preparedShareRef.current[doc] = { key, file, title: job.title };
       setShareStatus((prev) => ({ ...prev, [doc]: "idle" }));
       openShareSheet(doc, file, job.title);
