@@ -400,9 +400,12 @@ export default function LabDashboard() {
         return true;
       });
 
-      // Sort by: date DESC, primary_category ASC, daily_id ASC (to group categories together)
+      // Sort by: date ASC, primary_category ASC, daily_id ASC (natural ascending order).
+      // Descending mode (تنازلي) reverses this whole list, so within a day the rows
+      // keep a consistent direction relative to the selected sort: تصاعدي keeps
+      // within-day order ascending, تنازلي shows it reversed.
       results.sort((a, b) => {
-        const dateCompare = new Date(b.daily_date).getTime() - new Date(a.daily_date).getTime();
+        const dateCompare = new Date(a.daily_date).getTime() - new Date(b.daily_date).getTime();
         if (dateCompare !== 0) return dateCompare;
 
         const catA = (a.primary_category || (a.categories?.[0]) || '_default').toLowerCase();
@@ -435,7 +438,7 @@ export default function LabDashboard() {
   }, [filteredClients]);
 
   const visibleClients = useMemo(() => {
-    const orderedClients = printReversed ? [...filteredClients].reverse() : filteredClients;
+    const orderedClients = !printReversed ? [...filteredClients].reverse() : filteredClients;
     return orderedClients.slice(0, 100);
   }, [filteredClients, printReversed]);
 
@@ -532,7 +535,7 @@ export default function LabDashboard() {
       html: string;
     };
 
-    const sortedData = printReversed ? [...printClients].reverse() : printClients;
+    const sortedData = !printReversed ? [...printClients].reverse() : printClients;
     const clientGroupKey = (client: Client) => client.client_group_id || client.uuid;
     const resultEntriesByClientGroup = new Map<string, PrintableResult[]>();
     clients.forEach((client) => {
@@ -859,7 +862,7 @@ export default function LabDashboard() {
       notes?: string;
     };
 
-    const sortedClients = printReversed ? [...printClients].reverse() : printClients;
+    const sortedClients = !printReversed ? [...printClients].reverse() : printClients;
 
     const clientSections = sortedClients.map((client) => {
       const entries = Array.isArray(client.results?.entries)
@@ -2629,7 +2632,7 @@ export default function LabDashboard() {
 
               <div className="print-tables-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8mm', alignItems: 'start' }}>
                 {(() => {
-                  const sortedData = printReversed ? [...printClients].reverse() : printClients;
+                  const sortedData = !printReversed ? [...printClients].reverse() : printClients;
                   const numberedRows = sortedData.map((client, index) => ({
                     client,
                     number: useSequentialTestNumbers ? index + 1 : client.daily_id,
