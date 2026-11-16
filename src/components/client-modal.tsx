@@ -399,7 +399,7 @@ export function ClientModal({
             بيانات المريض
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-[minmax(0,1fr)_9rem] gap-4">
             <div className="space-y-2">
               <Label htmlFor="name" className="text-sm font-medium">الاسم الكامل <span className="text-destructive">*</span></Label>
               <Input
