@@ -416,7 +416,7 @@ export function ClientModal({
             <div className="space-y-2">
               <Label htmlFor="gender" className="text-sm font-medium">الجنس</Label>
               <Select value={gender} onValueChange={setGender}>
-                <SelectTrigger id="gender" className="h-11 text-right bg-background">
+                <SelectTrigger id="gender" className="h-11 w-full text-right bg-background">
                   <SelectValue placeholder="اختر" />
                 </SelectTrigger>
                 <SelectContent>
