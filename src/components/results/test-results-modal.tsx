@@ -85,7 +85,7 @@ interface TestResultsModalProps {
   clientGender?: "male" | "female" | "ذكر" | "أنثى";
   clientAge?: number;
   clientDailyDate?: string | Date;
-  clientClinicId?: string | null;
+  clientClinicIds?: string[];
 }
 
 export function TestResultsModal({
@@ -104,10 +104,10 @@ export function TestResultsModal({
   clientGender,
   clientAge,
   clientDailyDate,
-  clientClinicId,
+  clientClinicIds,
 }: TestResultsModalProps) {
   const { toast } = useToast();
-  const { clinicName } = useClinics();
+  const { clinicNames } = useClinics();
   const { tests, loading: testsLoading } = useLabTests();
   const { categories: labTestCategories } = useLabTestCategories();
   const { selectedTests, results, addResultEntry, updateResultEntry, deleteResultEntry, loading: resultsLoading } = useClientResults(clientUuid);
@@ -430,7 +430,7 @@ export function TestResultsModal({
     </div>
   );
 
-  const clientClinic = clientClinicId ? clinicName(clientClinicId) : undefined;
+  const clientClinic = clinicNames(clientClinicIds).join("، ") || undefined;
 
   const clientInfoCard = (
     <div className="mb-4 rounded-xl border border-border/60 bg-muted/40 px-4 py-3" dir="rtl">

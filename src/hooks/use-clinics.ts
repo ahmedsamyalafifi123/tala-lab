@@ -9,8 +9,8 @@ const byName = (a: Clinic, b: Clinic) => a.name.localeCompare(b.name, 'ar');
 /**
  * The lab's referring clinics.
  *
- * Clients store `clinic_id`, so every screen that displays a clinic name reads
- * it from `clinicName(id)` here rather than from the client row: renaming a
+ * Clients store `clinic_ids`, so every screen that displays a clinic name reads
+ * it from `clinicNames` / `clinicLabel` here rather than from the client row: renaming a
  * clinic then updates the client list, the reports and the exports at once.
  *
  * Deletion is a soft delete (`is_active = false`). A clinic that is still
@@ -132,18 +132,33 @@ export function useClinics() {
     [clinics]
   );
 
-  /** Name for a stored clinic_id, including clinics that were deleted. */
-  const clinicName = useCallback(
-    (clinicId?: string | null) => (clinicId ? namesById.get(clinicId) : undefined),
+  /** Names for stored clinic_ids, including clinics that were deleted. */
+  const clinicNames = useCallback(
+    (clinicIds?: string[] | null) =>
+      (clinicIds ?? []).map((id) => namesById.get(id)).filter((n): n is string => !!n),
     [namesById]
   );
 
-  /** Reverse lookup for Excel import, which carries the name rather than the id. */
-  const clinicIdByName = useCallback(
-    (name?: string | null) => {
-      if (!name) return undefined;
-      const wanted = name.trim().toLowerCase();
-      return activeClinics.find((clinic) => clinic.name.toLowerCase() === wanted)?.uuid;
+  /** Comma-separated names for a stored clinic_ids list; undefined when empty. */
+  const clinicLabel = useCallback(
+    (clinicIds?: string[] | null) => {
+      const names = clinicNames(clinicIds);
+      return names.length > 0 ? names.join("، ") : undefined;
+    },
+    [clinicNames]
+  );
+
+  /** Reverse lookup for Excel import, which carries names rather than ids. */
+  const clinicIdsByNames = useCallback(
+    (text?: string | null) => {
+      if (!text) return [];
+      const wanted = text
+        .split(/[,،;]/)
+        .map((n) => n.trim().toLowerCase())
+        .filter(Boolean);
+      return activeClinics
+        .filter((clinic) => wanted.includes(clinic.name.toLowerCase()))
+        .map((clinic) => clinic.uuid);
     },
     [activeClinics]
   );
@@ -157,7 +172,8 @@ export function useClinics() {
     createClinic,
     updateClinic,
     deleteClinic,
-    clinicName,
-    clinicIdByName,
+    clinicNames,
+    clinicLabel,
+    clinicIdsByNames,
   };
 }

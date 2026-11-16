@@ -97,7 +97,7 @@ import { getFlagLabel, isAbnormalFlag } from "@/lib/test-utils";
 export default function LabDashboard() {
   const { labId, labSlug, labName, userRole } = useLabContext();
   const { tests: labTests, loading: labTestsLoading } = useLabTests();
-  const { clinics, clinicName, clinicIdByName, refresh: refreshClinics } = useClinics();
+  const { clinics, clinicLabel, clinicNames, clinicIdsByNames, refresh: refreshClinics } = useClinics();
   const [clients, setClients] = useState<Client[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -385,8 +385,8 @@ export default function LabDashboard() {
              if (!cats.includes(categoryFilter)) return false;
         }
         if (clinicFilters.length > 0) {
-          const clientClinic = client.clinic_id || WITHOUT_VALUE;
-          if (!clinicFilters.includes(clientClinic)) return false;
+          const clientClinics = client.clinic_ids?.length ? client.clinic_ids : [WITHOUT_VALUE];
+          if (!clientClinics.some((id) => clinicFilters.includes(id))) return false;
         }
         // Required tests filter: any checked test matches, "بدون" matches clients with none
         if (testFilters.length > 0) {
@@ -577,7 +577,7 @@ export default function LabDashboard() {
 
       const insuranceIcon = `<svg class="patient-info-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M7 9h4M7 13h7M16 9h1"></path></svg>`;
       const clinicIcon = `<svg class="patient-info-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5M12 9v4M10 11h4"></path></svg>`;
-      const clinic = clinicName(client.clinic_id);
+      const clinic = clinicLabel(client.clinic_ids);
       const infoParts: string[] = [];
       if (clinic) infoParts.push(`<div>${clinicIcon}<span>${escapeHtml(clinic)}</span></div>`);
       if (client.insurance_number) infoParts.push(`<div>${insuranceIcon}<span>رقم تأميني: ${escapeHtml(client.insurance_number)}</span></div>`);
@@ -896,12 +896,12 @@ export default function LabDashboard() {
                   <td class="value">${client.patient_gender ? (client.patient_gender === 'male' || client.patient_gender === 'ذكر' ? 'Male' : 'Female') : '-'}</td>
                 </tr>
               ` : ''}
-              ${(client.insurance_number || clinicName(client.clinic_id)) ? `
+              ${(client.insurance_number || clinicLabel(client.clinic_ids)) ? `
                 <tr>
                   <td class="label">Insurance</td>
                   <td class="value">${escapeHtml(client.insurance_number || '-')}</td>
                   <td class="label">Clinic</td>
-                  <td class="value">${escapeHtml(clinicName(client.clinic_id) || '-')}</td>
+                  <td class="value">${escapeHtml(clinicLabel(client.clinic_ids) || '-')}</td>
                 </tr>
               ` : ''}
             </table>
@@ -1286,7 +1286,7 @@ export default function LabDashboard() {
     patient_phone?: string;
     insurance_number?: string;
     entity?: string;
-    clinic_id?: string | null;
+    clinic_ids?: string[];
     patient_age?: number;
   }) => {
     if (!labId) return;
@@ -1313,7 +1313,7 @@ export default function LabDashboard() {
           p_insurance_number: data.insurance_number ?? null,
           p_entity: data.entity ?? null,
           p_patient_age: data.patient_age ?? null,
-          p_clinic_id: data.clinic_id ?? null
+          p_clinic_ids: data.clinic_ids ?? []
         });
 
         if (error) throw error;
@@ -1336,7 +1336,7 @@ export default function LabDashboard() {
           p_insurance_number: data.insurance_number ?? null,
           p_entity: data.entity ?? null,
           p_patient_age: data.patient_age ?? null,
-          p_clinic_id: data.clinic_id ?? null
+          p_clinic_ids: data.clinic_ids ?? []
         });
 
         if (error) throw error;
@@ -1514,8 +1514,8 @@ export default function LabDashboard() {
         "patient_phone": client.patient_phone || "",
         "الرقم التأميني": client.insurance_number || "",
         "insurance_number": client.insurance_number || "",
-        "العيادة": clinicName(client.clinic_id) || "",
-        "clinic": clinicName(client.clinic_id) || "",
+        "العيادة": clinicLabel(client.clinic_ids) || "",
+        "clinic": clinicLabel(client.clinic_ids) || "",
         "التصنيف": (client.categories || []).join(", "),
         "categories": joinForExcel(client.categories),
         "primary_category": client.primary_category || "",
@@ -1606,9 +1606,9 @@ export default function LabDashboard() {
         const entity = parseExcelString(getExcelCell(row, ["entity", "الجهة"]));
         // Sheets carry the clinic by name; match it back to a clinic the lab
         // still has, and leave it unset when there is no match.
-        const clinicId = clinicIdByName(
+        const clinicIds = clinicIdsByNames(
           parseExcelString(getExcelCell(row, ["clinic", "العيادة", "عيادة"]))
-        ) ?? null;
+        );
         const patientAge = parseExcelNumber(getExcelCell(row, ["patient_age", "age", "السن", "العمر"]));
         const selectedTests = parseExcelList(selectedTestsRaw);
         const results = parseExcelJson(resultsRaw);
@@ -1624,7 +1624,7 @@ export default function LabDashboard() {
           patient_phone: patientPhone || null,
           insurance_number: insuranceNumber || null,
           entity: entity || null,
-          clinic_id: clinicId,
+          clinic_ids: clinicIds,
           patient_age: patientAge ?? null,
           results,
         };
@@ -1648,7 +1648,7 @@ export default function LabDashboard() {
           patient_phone: string | null;
           insurance_number: string | null;
           entity: string | null;
-          clinic_id: string | null;
+          clinic_ids: string[];
           patient_age: number | null;
           results?: unknown;
         };
@@ -1667,7 +1667,7 @@ export default function LabDashboard() {
           p_insurance_number: clientData.insurance_number,
           p_entity: clientData.entity,
           p_patient_age: clientData.patient_age,
-          p_clinic_id: clientData.clinic_id
+          p_clinic_ids: clientData.clinic_ids
         });
 
         if (error) throw error;
@@ -2273,7 +2273,7 @@ export default function LabDashboard() {
                              </div>
                           </TableCell>
                           <TableCell className="hidden sm:table-cell text-center text-sm">
-                              {clinicName(client.clinic_id) || "-"}
+                              {clinicLabel(client.clinic_ids) || "-"}
                           </TableCell>
                           <TableCell className="hidden sm:table-cell">
                               <div className="flex flex-wrap gap-1 justify-center">
@@ -2439,7 +2439,7 @@ export default function LabDashboard() {
         clientGender={resultsClient.patient_gender}
         clientAge={resultsClient.patient_age}
         clientDailyDate={resultsClient.daily_date}
-        clientClinicId={resultsClient.clinic_id}
+        clientClinicIds={resultsClient.clinic_ids}
       />
         );
       })()

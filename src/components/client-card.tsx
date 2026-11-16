@@ -11,7 +11,7 @@ interface ClientCardProps {
 }
 
 export function ClientCard({ client, onClick }: ClientCardProps) {
-  const { clinicName } = useClinics();
+  const { clinicLabel } = useClinics();
 
   const formatDate = (dateStr: string | Date) => {
     const date = new Date(dateStr);
@@ -46,7 +46,7 @@ export function ClientCard({ client, onClick }: ClientCardProps) {
           <p className="text-xs text-muted-foreground truncate">
             {formatDate(client.daily_date)}
             {client.patient_gender && ` • ${client.patient_gender === 'male' || client.patient_gender === 'ذكر' ? 'ذكر' : 'أنثى'}`}
-            {clinicName(client.clinic_id) && ` • ${clinicName(client.clinic_id)}`}
+            {clinicLabel(client.clinic_ids) && ` • ${clinicLabel(client.clinic_ids)}`}
             {client.notes && ` • ${client.notes}`}
           </p>
         </div>

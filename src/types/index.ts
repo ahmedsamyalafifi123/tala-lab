@@ -39,7 +39,7 @@ export interface Client {
   patient_gender?: "male" | "female" | "ذكر" | "أنثى";
   insurance_number?: string;
   entity?: "معاشات" | "ارامل" | "موظفين" | "طلبة" | "المرأة المعيلة" | "المقاولات";
-  clinic_id?: string | null; // Referring clinic; resolve the name through useClinics
+  clinic_ids?: string[]; // Referring clinics; resolve names through useClinics
   daily_id: number;
   daily_date: Date;
   results: Record<string, any>;

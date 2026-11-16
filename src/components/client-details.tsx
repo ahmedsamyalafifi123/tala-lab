@@ -42,7 +42,7 @@ export function ClientDetails({
   onEdit,
   onOpenResults,
 }: ClientDetailsProps) {
-  const { clinicName } = useClinics();
+  const { clinicLabel } = useClinics();
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showBarcodeDialog, setShowBarcodeDialog] = useState(false);
@@ -145,9 +145,9 @@ export function ClientDetails({
             تأمين: {client.insurance_number}
           </Badge>
         )}
-        {clinicName(client.clinic_id) && (
+        {clinicLabel(client.clinic_ids) && (
           <Badge variant="secondary" className="text-[10px] md:text-xs bg-primary/5 text-primary border-primary/10">
-            العيادة: {clinicName(client.clinic_id)}
+            العيادة: {clinicLabel(client.clinic_ids)}
           </Badge>
         )}
         {client.categories && client.categories.length > 0 && (
@@ -203,7 +203,7 @@ export function ClientDetails({
 
       <div className="flex-1 min-h-0 overflow-auto p-4 md:p-6">
         <TabsContent value="info" className="space-y-6 mt-0 h-full max-w-4xl mx-auto w-full">
-          {(client.patient_phone || client.insurance_number || clinicName(client.clinic_id)) && (
+          {(client.patient_phone || client.insurance_number || clinicLabel(client.clinic_ids)) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {client.patient_phone && (
                 <Card className="bg-background shadow-sm border-primary/10">
@@ -221,11 +221,11 @@ export function ClientDetails({
                   </CardContent>
                 </Card>
               )}
-              {clinicName(client.clinic_id) && (
+              {clinicLabel(client.clinic_ids) && (
                 <Card className="bg-background shadow-sm border-primary/10">
                   <CardContent className="p-4 md:p-6">
                     <p className="text-xs md:text-sm text-muted-foreground mb-1">العيادة</p>
-                    <p className="text-base md:text-lg font-bold text-primary">{clinicName(client.clinic_id)}</p>
+                    <p className="text-base md:text-lg font-bold text-primary">{clinicLabel(client.clinic_ids)}</p>
                   </CardContent>
                 </Card>
               )}
@@ -339,7 +339,7 @@ export function ClientDetails({
         clientGender={client.patient_gender}
         clientAge={client.patient_age}
         clientDailyDate={client.daily_date}
-        clientClinicId={client.clinic_id}
+        clientClinicIds={client.clinic_ids}
       />
 
       <ExportResultsDialog
@@ -350,7 +350,7 @@ export function ClientDetails({
         clientGender={client.patient_gender}
         clientAge={client.patient_age}
         insuranceNumber={client.insurance_number}
-        clinicId={client.clinic_id}
+        clinicIds={client.clinic_ids}
         clientDailyDate={client.daily_date}
       />
 

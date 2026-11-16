@@ -66,7 +66,7 @@ interface ClientModalProps {
     patient_phone?: string;
     insurance_number?: string;
     entity?: string;
-    clinic_id?: string | null;
+    clinic_ids?: string[];
     patient_age?: number;
   }) => Promise<void>;
   client?: Client | null;
@@ -87,7 +87,7 @@ export function ClientModal({
   const [age, setAge] = useState<string>("");
   const [phone, setPhone] = useState("");
   const [insuranceNumber, setInsuranceNumber] = useState("");
-  const [clinicId, setClinicId] = useState<string | null>(null);
+  const [clinicIds, setClinicIds] = useState<string[]>([]);
   const [isClinicOpen, setIsClinicOpen] = useState(false);
   const [clinicSearch, setClinicSearch] = useState("");
   const [notes, setNotes] = useState("");
@@ -109,7 +109,7 @@ export function ClientModal({
   const { tests, loading: testsLoading } = useLabTests();
   const { groups, loading: groupsLoading } = useTestGroups();
   const { categories: labTestCategories } = useLabTestCategories();
-  const { clinics, clinicName } = useClinics();
+  const { clinics, clinicLabel } = useClinics();
 
   // Order the grouped categories by the lab-test-category display_order so
   // reordering categories in the manager reflects here.
@@ -204,7 +204,7 @@ export function ClientModal({
       setAge(client.patient_age?.toString() || "");
       setPhone(client.patient_phone || "");
       setInsuranceNumber(client.insurance_number || "");
-      setClinicId(client.clinic_id ?? null);
+      setClinicIds(client.clinic_ids ?? []);
       setNotes(client.notes || "");
 
       // Handle categories - if empty, use "عام" (General) as default
@@ -241,7 +241,7 @@ export function ClientModal({
       setAge("");
       setPhone("");
       setInsuranceNumber("");
-      setClinicId(null);
+      setClinicIds([]);
       setClinicSearch("");
       setNotes("");
       // Default to "عام" for new clients
@@ -331,7 +331,7 @@ export function ClientModal({
       patient_phone: phone.trim() || undefined,
       insurance_number: insuranceNumber.trim() || undefined,
       entity: client?.entity,
-      clinic_id: clinicId,
+      clinic_ids: clinicIds,
       patient_age: age ? parseInt(age) : undefined,
     });
 
@@ -342,7 +342,7 @@ export function ClientModal({
       setAge("");
       setPhone("");
       setInsuranceNumber("");
-      setClinicId(null);
+      setClinicIds([]);
       setClinicSearch("");
       setNotes("");
       setIsManualId(false);
@@ -508,9 +508,12 @@ export function ClientModal({
                     aria-expanded={isClinicOpen}
                     className="w-full h-11 justify-between font-normal bg-background px-2"
                   >
-                    <span className={cn("truncate text-xs", !clinicId && "text-muted-foreground")}>
-                      {clinicName(clinicId) ?? "اختر"}
+                    <span className={cn("truncate text-xs", clinicIds.length === 0 && "text-muted-foreground")}>
+                      {clinicLabel(clinicIds) ?? "اختر"}
                     </span>
+                    {clinicIds.length > 0 && (
+                      <Badge variant="secondary" className="text-[9px] h-4 px-1 shrink-0">{clinicIds.length}</Badge>
+                    )}
                     <Search className="h-3.5 w-3.5 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -526,17 +529,14 @@ export function ClientModal({
                     <div
                       className={cn(
                         "flex items-center gap-3 cursor-pointer p-2 rounded-md transition-colors",
-                        !clinicId ? "bg-primary/10 text-primary" : "hover:bg-muted"
+                        clinicIds.length === 0 ? "bg-primary/10 text-primary" : "hover:bg-muted"
                       )}
-                      onClick={() => {
-                        setClinicId(null);
-                        setIsClinicOpen(false);
-                      }}
+                      onClick={() => setClinicIds([])}
                     >
                       <span className="text-sm font-medium">بدون</span>
                     </div>
                     {visibleClinics.map((clinic) => {
-                      const isSelected = clinic.uuid === clinicId;
+                      const isSelected = clinicIds.includes(clinic.uuid);
                       return (
                         <div
                           key={clinic.uuid}
@@ -544,10 +544,13 @@ export function ClientModal({
                             "flex items-center gap-3 cursor-pointer p-2 rounded-md transition-colors",
                             isSelected ? "bg-primary/10 text-primary" : "hover:bg-muted"
                           )}
-                          onClick={() => {
-                            setClinicId(clinic.uuid);
-                            setIsClinicOpen(false);
-                          }}
+                          onClick={() =>
+                            setClinicIds((prev) =>
+                              prev.includes(clinic.uuid)
+                                ? prev.filter((id) => id !== clinic.uuid)
+                                : [...prev, clinic.uuid]
+                            )
+                          }
                         >
                           <div
                             className={cn(

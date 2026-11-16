@@ -50,7 +50,7 @@ interface ExportResultsDialogProps {
   clientGender?: string;
   clientAge?: number;
   insuranceNumber?: string;
-  clinicId?: string | null;
+  clinicIds?: string[];
   clientDailyDate?: string | Date;
 }
 
@@ -62,13 +62,13 @@ export function ExportResultsDialog({
   clientGender,
   clientAge,
   insuranceNumber,
-  clinicId,
+  clinicIds,
   clientDailyDate,
 }: ExportResultsDialogProps) {
   const { labSlug } = useLabContext();
   const { toast } = useToast();
   const { tests } = useLabTests();
-  const { clinicName } = useClinics();
+  const { clinicLabel } = useClinics();
   const { selectedTests, getSortedEntries } = useClientResults(clientUuid);
   const [exporting, setExporting] = useState(false);
   const [includeReferenceRanges, setIncludeReferenceRanges] = useState(true);
@@ -99,8 +99,8 @@ export function ExportResultsDialog({
       excelData.push({
         "اسم المريض": clientName,
       });
-      if (clinicName(clinicId)) {
-        excelData.push({ "اسم المريض": "العيادة", "Result": clinicName(clinicId) });
+      if (clinicLabel(clinicIds)) {
+        excelData.push({ "اسم المريض": "العيادة", "Result": clinicLabel(clinicIds) });
       }
       excelData.push({}); // Empty row
 
@@ -431,12 +431,12 @@ export function ExportResultsDialog({
                   <td class="value">${clientGender ? (clientGender === 'male' || clientGender === 'ذكر' ? 'Male' : 'Female') : '-'}</td>
                 </tr>
               ` : ''}
-              ${(insuranceNumber || clinicName(clinicId)) ? `
+              ${(insuranceNumber || clinicLabel(clinicIds)) ? `
                 <tr>
                   <td class="label">Insurance</td>
                   <td class="value">${escapeHtml(insuranceNumber || '-')}</td>
                   <td class="label">Clinic</td>
-                  <td class="value">${escapeHtml(clinicName(clinicId) || '-')}</td>
+                  <td class="value">${escapeHtml(clinicLabel(clinicIds) || '-')}</td>
                 </tr>
               ` : ''}
             </table>
