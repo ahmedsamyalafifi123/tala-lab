@@ -578,7 +578,7 @@ export default function LabDashboard() {
       const insuranceIcon = `<svg class="patient-info-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M7 9h4M7 13h7M16 9h1"></path></svg>`;
       const clinicIcon = `<svg class="patient-info-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5M12 9v4M10 11h4"></path></svg>`;
       const clinic = clinicLabel(client.clinic_ids);
-      const category = (client.categories || []).filter((cat) => cat !== "عام").join(", ");
+      const category = (client.categories || []).join(", ");
       const clinicLine = [clinic, category].filter(Boolean).join(" - ");
       const infoParts: string[] = [];
       if (clinicLine) infoParts.push(`<div>${clinicIcon}<span>${escapeHtml(clinicLine)}</span></div>`);
