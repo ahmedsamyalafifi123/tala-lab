@@ -174,7 +174,10 @@ export function SettingsModal({
       <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent 
           side="bottom" 
-          className="h-[80vh] sm:h-[70vh] rounded-t-3xl sm:max-w-lg sm:mx-auto sm:rounded-t-2xl flex flex-col p-0"
+          className={cn(
+            "h-[80vh] sm:h-[70vh] rounded-t-3xl sm:mx-auto sm:rounded-t-2xl flex flex-col p-0",
+            activeTab === 'tests' ? "sm:max-w-5xl" : "sm:max-w-lg"
+          )}
         >
           <SheetHeader className="p-4 border-b">
             <SheetTitle className="text-xl">إعدادات المعمل</SheetTitle>

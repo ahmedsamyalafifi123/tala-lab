@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { useLabTestCatalog, type LabTestCatalogMode } from "@/hooks/use-lab-tests";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -241,6 +241,9 @@ export function TestsManagement({ mode, labId = null, canEdit = true }: TestsMan
       description: "تم إظهار التحليل في معملك",
     });
 
+  // Action buttons inside a clickable row must not also open the editor.
+  const stopRowClick = (e: MouseEvent) => e.stopPropagation();
+
   const categoryLabel = (value: string) =>
     categories.find((c) => c.value === value)?.label_ar || value;
 
@@ -312,8 +315,20 @@ export function TestsManagement({ mode, labId = null, canEdit = true }: TestsMan
                 const badge = sourceBadge(test);
                 const busy = busyUuid === test.uuid;
                 return (
-                  <TableRow key={test.uuid}>
-                    <TableCell className="text-right">
+                  <TableRow
+                    key={test.uuid}
+                    className={writable ? "cursor-pointer" : undefined}
+                    tabIndex={writable ? 0 : undefined}
+                    onClick={writable ? () => handleEdit(test) : undefined}
+                    onKeyDown={
+                      writable
+                        ? (e) => {
+                            if (e.key === "Enter" && e.target === e.currentTarget) handleEdit(test);
+                          }
+                        : undefined
+                    }
+                  >
+                    <TableCell className="text-right" onClick={stopRowClick}>
                       {writable && (
                         <div className="flex items-center gap-0.5">
                           <Button
@@ -322,7 +337,7 @@ export function TestsManagement({ mode, labId = null, canEdit = true }: TestsMan
                             className="h-7 w-7"
                             disabled={index === 0 || reordering}
                             onClick={() => handleMove(index, -1)}
-                            title="تحريك لأعلى"
+                            title="تحريك لأعلى" aria-label="تحريك لأعلى"
                           >
                             <ArrowUp className="h-4 w-4" />
                           </Button>
@@ -332,7 +347,7 @@ export function TestsManagement({ mode, labId = null, canEdit = true }: TestsMan
                             className="h-7 w-7"
                             disabled={index === tests.length - 1 || reordering}
                             onClick={() => handleMove(index, 1)}
-                            title="تحريك لأسفل"
+                            title="تحريك لأسفل" aria-label="تحريك لأسفل"
                           >
                             <ArrowDown className="h-4 w-4" />
                           </Button>
@@ -340,16 +355,27 @@ export function TestsManagement({ mode, labId = null, canEdit = true }: TestsMan
                       )}
                     </TableCell>
                     <TableCell className="hidden md:table-cell font-mono text-xs text-right">{test.test_code}</TableCell>
-                    <TableCell className="font-medium text-right">{test.test_name_ar}</TableCell>
-                    <TableCell className="hidden lg:table-cell text-muted-foreground text-right">{test.test_name_en}</TableCell>
+                    <TableCell className="font-medium text-right max-w-[14rem]">
+                      <span className="block truncate" title={test.test_name_ar}>{test.test_name_ar}</span>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell text-muted-foreground text-right max-w-[12rem]">
+                      <span className="block truncate" title={test.test_name_en}>{test.test_name_en}</span>
+                    </TableCell>
                     <TableCell className="hidden md:table-cell text-right">
                       <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-primary/10 text-primary">
                         {categoryLabel(test.category)}
                       </span>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell text-right">{test.unit || "-"}</TableCell>
-                    <TableCell className="hidden lg:table-cell text-right">
-                      {formatRules(asRules(test.reference_ranges))}
+                    <TableCell className="hidden lg:table-cell max-w-[14rem] text-right">
+                      {(() => {
+                        const summary = formatRules(asRules(test.reference_ranges));
+                        return (
+                          <span className="block truncate text-xs" title={summary}>
+                            {summary || "-"}
+                          </span>
+                        );
+                      })()}
                     </TableCell>
                     {isLab && (
                       <TableCell className="hidden md:table-cell text-right">
@@ -360,25 +386,25 @@ export function TestsManagement({ mode, labId = null, canEdit = true }: TestsMan
                         )}
                       </TableCell>
                     )}
-                    <TableCell className="text-right">
+                    <TableCell className="text-right" onClick={stopRowClick}>
                       <div className="flex gap-1 justify-start">
                         {writable && (
                           <>
                             {isLab && test.source === "shared" ? (
-                              <Button variant="ghost" size="sm" disabled={busy} onClick={() => handleDelete(test)} title="إخفاء من معملك">
+                              <Button variant="ghost" size="sm" disabled={busy} onClick={() => handleDelete(test)} title="إخفاء من معملك" aria-label="إخفاء من معملك">
                                 <EyeOff className="h-4 w-4 text-destructive" />
                               </Button>
                             ) : (
-                              <Button variant="ghost" size="sm" disabled={busy} onClick={() => handleDelete(test)} title="حذف">
+                              <Button variant="ghost" size="sm" disabled={busy} onClick={() => handleDelete(test)} title="حذف" aria-label="حذف">
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
                             )}
                             {isLab && test.overridden && (
-                              <Button variant="ghost" size="sm" disabled={busy} onClick={() => handleReset(test)} title="استعادة الإعداد المشترك">
+                              <Button variant="ghost" size="sm" disabled={busy} onClick={() => handleReset(test)} title="استعادة الإعداد المشترك" aria-label="استعادة الإعداد المشترك">
                                 <RotateCcw className="h-4 w-4" />
                               </Button>
                             )}
-                            <Button variant="ghost" size="sm" disabled={busy} onClick={() => handleEdit(test)} title="تعديل">
+                            <Button variant="ghost" size="sm" disabled={busy} onClick={() => handleEdit(test)} title="تعديل" aria-label="تعديل">
                               <Pencil className="h-4 w-4" />
                             </Button>
                           </>
