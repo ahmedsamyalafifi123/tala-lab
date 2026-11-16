@@ -48,7 +48,7 @@ export default function TestsManagementPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <TestsManagement />
+              <TestsManagement mode="manager" />
             </CardContent>
           </Card>
         </TabsContent>

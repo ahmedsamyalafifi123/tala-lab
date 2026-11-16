@@ -43,6 +43,7 @@ import { useTestGroups } from "@/hooks/use-test-groups";
 import { useLabTestCategories } from "@/hooks/use-lab-test-categories";
 import { useClinics } from "@/hooks/use-clinics";
 import { groupTestsByCategory } from "@/lib/test-utils";
+import type { LabTest } from "@/types/results";
 import {
   Accordion,
   AccordionContent,
@@ -126,7 +127,7 @@ export function ClientModal({
     return clinics.filter((clinic) => clinic.name.toLowerCase().includes(query));
   }, [clinics, clinicSearch]);
 
-  const filteredGroupedTests = useMemo((): Record<string, typeof tests> => {
+  const filteredGroupedTests = useMemo((): Record<string, LabTest[]> => {
     if (!trimmedSearch) return groupedTests;
 
     // Build lookup map once — O(G) instead of O(categories × G)
@@ -143,7 +144,7 @@ export function ClientModal({
       g.test_codes.forEach((code) => matchedGroupTestCodes.add(code));
     });
 
-    const result: Record<string, typeof tests> = {};
+    const result: Record<string, LabTest[]> = {};
     for (const [cat, catTests] of Object.entries(groupedTests)) {
       // Full category match → include everything
       if (cat.toLowerCase().includes(trimmedSearch)) {

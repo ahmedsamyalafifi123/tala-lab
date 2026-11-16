@@ -10,7 +10,8 @@ import {
   X,
   Users,
   Tags,
-  Stethoscope
+  Stethoscope,
+  FlaskConical
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 import { Category } from "@/types";
@@ -20,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { LabUserManagement } from "@/components/lab-user-management";
 import { ClinicsManagement } from "@/components/clinics-management";
+import { TestsManagement } from "@/components/manager/tests-management";
 import {
   Sheet,
   SheetContent,
@@ -51,8 +53,8 @@ export function SettingsModal({
   categories,
   onCategoriesChange,
 }: SettingsModalProps) {
-  const { labId } = useLabContext();
-  const [activeTab, setActiveTab] = useState<'categories' | 'clinics' | 'users'>('categories');
+  const { labId, userRole } = useLabContext();
+  const [activeTab, setActiveTab] = useState<'categories' | 'clinics' | 'tests' | 'users'>('categories');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -206,6 +208,18 @@ export function SettingsModal({
               العيادات
             </button>
             <button
+              onClick={() => setActiveTab('tests')}
+              className={cn(
+                "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap",
+                activeTab === 'tests'
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <FlaskConical className="h-4 w-4" />
+              التحاليل
+            </button>
+            <button
               onClick={() => setActiveTab('users')}
               className={cn(
                 "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap",
@@ -226,6 +240,17 @@ export function SettingsModal({
                   <h3 className="text-sm font-semibold text-muted-foreground">قائمة العيادات</h3>
                 </div>
                 <ClinicsManagement />
+              </>
+            ) : activeTab === 'tests' ? (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-muted-foreground">تحاليل المعمل</h3>
+                </div>
+                <TestsManagement
+                  mode="lab"
+                  labId={labId}
+                  canEdit={userRole === 'lab_admin'}
+                />
               </>
             ) : activeTab === 'categories' ? (
               <>

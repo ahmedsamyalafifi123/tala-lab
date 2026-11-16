@@ -7,10 +7,12 @@ import type { ReferenceRule } from '@/lib/reference-rules';
 export type { ReferenceRule } from '@/lib/reference-rules';
 
 /**
- * Lab Test Definition (Global - shared across all labs)
+ * Lab Test Definition. lab_id null = shared across all labs (manager-managed);
+ * otherwise owned by that lab. Labs customise shared tests via overrides.
  */
 export interface LabTest {
   uuid: string;
+  lab_id?: string | null;
   test_code: string; // e.g., "CBC_WBC", "GLUC_FBS"
   test_name_ar: string;
   test_name_en: string;

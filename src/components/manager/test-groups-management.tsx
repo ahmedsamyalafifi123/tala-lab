@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTestGroups } from "@/hooks/use-test-groups";
-import { useLabTests } from "@/hooks/use-lab-tests";
+import { useLabTestCatalog } from "@/hooks/use-lab-tests";
 import { useLabTestCategories } from "@/hooks/use-lab-test-categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +37,7 @@ import type { TestGroup } from "@/types/results";
 
 export function TestGroupsManagement() {
   const { groups, loading, createGroup, updateGroup, deleteGroup, reorderGroups } = useTestGroups();
-  const { tests, loading: testsLoading } = useLabTests();
+  const { tests, loading: testsLoading } = useLabTestCatalog({ mode: "manager", labId: null });
   const { categories: labTestCategories } = useLabTestCategories();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
