@@ -399,8 +399,8 @@ export function ClientModal({
             بيانات المريض
           </div>
           
-          <div className="grid grid-cols-[2fr_1fr] gap-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="col-span-3 space-y-2">
               <Label htmlFor="name" className="text-sm font-medium">الاسم الكامل <span className="text-destructive">*</span></Label>
               <Input
                 id="name"
@@ -468,7 +468,7 @@ export function ClientModal({
 
         {/* Section 2: Administrative Information */}
         <div className="space-y-4 p-4 rounded-2xl border bg-muted/30">
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="phone" className="text-sm font-medium truncate">رقم الهاتف</Label>
               <Input
