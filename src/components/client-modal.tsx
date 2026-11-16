@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { CalendarIcon, Loader2, Check, User, FileText, FlaskConical, Search, X } from "lucide-react";
@@ -89,6 +89,8 @@ export function ClientModal({
   const [phone, setPhone] = useState("");
   const [insuranceNumber, setInsuranceNumber] = useState("");
   const [clinicIds, setClinicIds] = useState<string[]>([]);
+  // Pickers portal into the form so the drawer's scroll lock lets them scroll on phones.
+  const formRef = useRef<HTMLFormElement>(null);
   const [isClinicOpen, setIsClinicOpen] = useState(false);
   const [clinicSearch, setClinicSearch] = useState("");
   const [notes, setNotes] = useState("");
@@ -390,7 +392,7 @@ export function ClientModal({
   );
 
   const formContent = (
-    <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+    <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
       <div className={cn("flex-1 overflow-y-auto overscroll-contain p-4 space-y-6", !isDesktop && "pb-8")}>
         
         {/* Section 1: Patient Information */}
@@ -400,7 +402,7 @@ export function ClientModal({
             بيانات المريض
           </div>
           
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-[1fr_1fr_1.4fr] gap-4">
             <div className="col-span-3 space-y-2">
               <Label htmlFor="name" className="text-sm font-medium">الاسم الكامل <span className="text-destructive">*</span></Label>
               <Input
@@ -450,10 +452,10 @@ export function ClientModal({
                     )}
                   >
                     <CalendarIcon className="me-1 h-4 w-4 shrink-0" />
-                    <span className="truncate text-xs">{date ? format(date, "d/M/yy") : "اختر"}</span>
+                    <span className="truncate text-sm">{date ? format(date, "d/M") : "اختر"}</span>
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0" align="start" container={formRef.current}>
                   <Calendar
                     mode="single"
                     selected={date}
@@ -518,7 +520,7 @@ export function ClientModal({
                     <Search className="h-3.5 w-3.5 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[260px] p-2" align="start">
+                <PopoverContent className="w-[260px] p-2" align="start" container={formRef.current}>
                   <Input
                     value={clinicSearch}
                     onChange={(e) => setClinicSearch(e.target.value)}
@@ -599,7 +601,7 @@ export function ClientModal({
                     <Badge variant="secondary" className="text-[9px] h-4 px-1 shrink-0">{selectedCategories.length}</Badge>
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-2" align="start">
+                <PopoverContent className="w-[300px] p-2" align="start" container={formRef.current}>
                   <Input
                     value={categorySearch}
                     onChange={(event) => setCategorySearch(event.target.value)}
