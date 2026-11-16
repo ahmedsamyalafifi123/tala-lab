@@ -399,8 +399,8 @@ export function ClientModal({
             بيانات المريض
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="md:col-span-2 space-y-2">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-4">
+            <div className="col-span-full space-y-2">
               <Label htmlFor="name" className="text-sm font-medium">الاسم الكامل <span className="text-destructive">*</span></Label>
               <Input
                 id="name"
@@ -413,38 +413,62 @@ export function ClientModal({
               />
             </div>
             
-            <div className="grid grid-cols-2 md:col-span-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="age" className="text-sm font-medium">العمر</Label>
-                <Input
-                  id="age"
-                  type="number"
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                  placeholder="سنة"
-                  className="h-11 bg-background"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="gender" className="text-sm font-medium">الجنس</Label>
-                <Select value={gender} onValueChange={setGender}>
-                  <SelectTrigger id="gender" className="h-11 text-right bg-background">
-                    <SelectValue placeholder="اختر" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">بدون</SelectItem>
-                    <SelectItem value="ذكر">ذكر</SelectItem>
-                    <SelectItem value="أنثى">أنثى</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="age" className="text-sm font-medium">العمر</Label>
+              <Input
+                id="age"
+                type="number"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                placeholder="سنة"
+                className="h-11 bg-background"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="gender" className="text-sm font-medium">الجنس</Label>
+              <Select value={gender} onValueChange={setGender}>
+                <SelectTrigger id="gender" className="h-11 text-right bg-background">
+                  <SelectValue placeholder="اختر" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">بدون</SelectItem>
+                  <SelectItem value="ذكر">ذكر</SelectItem>
+                  <SelectItem value="أنثى">أنثى</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">التاريخ</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full h-11 justify-start font-normal bg-background px-2",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="me-1 h-4 w-4 shrink-0" />
+                    <span className="truncate text-xs">{date ? format(date, "d/M/yy") : "اختر"}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={(d) => d && setDate(d)}
+                    initialFocus
+                    locale={ar}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </div>
 
         {/* Section 2: Administrative Information */}
         <div className="space-y-4 p-4 rounded-2xl border bg-muted/30">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-3">
             <div className="space-y-2">
               <Label htmlFor="phone" className="text-sm font-medium truncate">رقم الهاتف</Label>
               <Input
@@ -548,41 +572,6 @@ export function ClientModal({
                 </PopoverContent>
               </Popover>
             </div>
-          </div>
-        </div>
-
-        {/* Section 3: Booking & Category */}
-        <div className="space-y-4 p-4 rounded-2xl border bg-muted/30">
-
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">التاريخ</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full h-11 justify-start font-normal bg-background px-2",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="me-1 h-4 w-4 shrink-0" />
-                    <span className="truncate text-xs">{date ? format(date, "d/M/yy") : "اختر"}</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={(d) => d && setDate(d)}
-                    initialFocus
-                    locale={ar}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
             <div className="space-y-2">
               <Label className="text-sm font-medium">التصنيف</Label>
               <Popover open={isCategoryOpen} onOpenChange={(open) => {
@@ -653,8 +642,11 @@ export function ClientModal({
               </Popover>
             </div>
           </div>
+        </div>
 
-          <div className="pt-2 border-t mt-2">
+        {/* Section 3: Case Number */}
+        <div className="space-y-4 p-4 rounded-2xl border bg-muted/30">
+          <div>
             <div className="flex items-center justify-between mb-2">
               <Label htmlFor="manual-id-mode" className="text-sm font-medium cursor-pointer">تحديد رقم الحالة يدوياً</Label>
               <Switch
