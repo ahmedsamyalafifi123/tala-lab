@@ -399,8 +399,8 @@ export function ClientModal({
             بيانات المريض
           </div>
           
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-3 space-y-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="name" className="text-sm font-medium">الاسم الكامل <span className="text-destructive">*</span></Label>
               <Input
                 id="name"
@@ -414,17 +414,6 @@ export function ClientModal({
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="age" className="text-sm font-medium">العمر</Label>
-              <Input
-                id="age"
-                type="number"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                placeholder="سنة"
-                className="h-11 bg-background"
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="gender" className="text-sm font-medium">الجنس</Label>
               <Select value={gender} onValueChange={setGender}>
                 <SelectTrigger id="gender" className="h-11 text-right bg-background">
@@ -436,6 +425,17 @@ export function ClientModal({
                   <SelectItem value="أنثى">أنثى</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="age" className="text-sm font-medium">العمر</Label>
+              <Input
+                id="age"
+                type="number"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                placeholder="سنة"
+                className="h-11 bg-background"
+              />
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">التاريخ</Label>
