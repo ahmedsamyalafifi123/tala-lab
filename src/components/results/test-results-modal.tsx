@@ -59,6 +59,7 @@ import { ar } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useClinics } from "@/hooks/use-clinics";
+import { PickerContainerProvider } from "@/components/ui/picker-container";
 
 /** Sentinel for "no manual status" — Radix Select rejects an empty value. */
 const NO_FLAG = "__none__";
@@ -355,6 +356,7 @@ export function TestResultsModal({
 
   const isLoading = testsLoading || resultsLoading;
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [drawerElement, setDrawerElement] = useState<HTMLDivElement | null>(null);
 
   const titleText = viewMode === "history"
     ? "نتائج التحاليل"
@@ -766,7 +768,8 @@ export function TestResultsModal({
 
   return (
     <Drawer open={isOpen} onOpenChange={onClose}>
-      <DrawerContent className="flex flex-col max-h-[92dvh] overflow-hidden">
+      <DrawerContent ref={setDrawerElement} className="flex flex-col max-h-[92dvh] overflow-hidden">
+        <PickerContainerProvider value={drawerElement}>
         <DrawerHeader className="px-4 py-3 border-b bg-muted/20 shrink-0">
           <div className="flex items-center justify-between" dir="rtl">
             <DrawerTitle className="text-lg">{titleText}</DrawerTitle>
@@ -937,6 +940,7 @@ export function TestResultsModal({
         <DrawerFooter className="border-t bg-muted/20 px-4 py-3 shrink-0">
           {footerContent}
         </DrawerFooter>
+        </PickerContainerProvider>
       </DrawerContent>
     </Drawer>
   );

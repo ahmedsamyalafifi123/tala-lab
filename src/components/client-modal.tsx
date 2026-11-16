@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { CalendarIcon, Loader2, Check, User, FileText, FlaskConical, Search, X } from "lucide-react";
@@ -42,6 +42,7 @@ import { useLabTests } from "@/hooks/use-lab-tests";
 import { useTestGroups } from "@/hooks/use-test-groups";
 import { useLabTestCategories } from "@/hooks/use-lab-test-categories";
 import { useClinics } from "@/hooks/use-clinics";
+import { PickerContainerProvider } from "@/components/ui/picker-container";
 import { groupTestsByCategory } from "@/lib/test-utils";
 import type { LabTest } from "@/types/results";
 import {
@@ -89,8 +90,7 @@ export function ClientModal({
   const [phone, setPhone] = useState("");
   const [insuranceNumber, setInsuranceNumber] = useState("");
   const [clinicIds, setClinicIds] = useState<string[]>([]);
-  // Pickers portal into the form so the drawer's scroll lock lets them scroll on phones.
-  const formRef = useRef<HTMLFormElement>(null);
+  const [pickerContainer, setPickerContainer] = useState<HTMLFormElement | null>(null);
   const [isClinicOpen, setIsClinicOpen] = useState(false);
   const [clinicSearch, setClinicSearch] = useState("");
   const [notes, setNotes] = useState("");
@@ -392,7 +392,7 @@ export function ClientModal({
   );
 
   const formContent = (
-    <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+    <PickerContainerProvider value={isDesktop ? null : pickerContainer}><form ref={setPickerContainer} onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
       <div className={cn("flex-1 overflow-y-auto overscroll-contain p-4 space-y-6", !isDesktop && "pb-8")}>
         
         {/* Section 1: Patient Information */}
@@ -455,7 +455,7 @@ export function ClientModal({
                     <span className="truncate text-sm">{date ? format(date, "d/M") : "اختر"}</span>
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start" container={formRef.current}>
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={date}
@@ -520,7 +520,7 @@ export function ClientModal({
                     <Search className="h-3.5 w-3.5 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[260px] p-2" align="start" container={formRef.current}>
+                <PopoverContent className="w-[260px] p-2" align="start">
                   <Input
                     value={clinicSearch}
                     onChange={(e) => setClinicSearch(e.target.value)}
@@ -601,7 +601,7 @@ export function ClientModal({
                     <Badge variant="secondary" className="text-[9px] h-4 px-1 shrink-0">{selectedCategories.length}</Badge>
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-2" align="start" container={formRef.current}>
+                <PopoverContent className="w-[300px] p-2" align="start">
                   <Input
                     value={categorySearch}
                     onChange={(event) => setCategorySearch(event.target.value)}
@@ -858,7 +858,7 @@ export function ClientModal({
           {renderFooterButtons()}
         </div>
       )}
-    </form>
+    </form></PickerContainerProvider>
   );
 
   if (isDesktop) {

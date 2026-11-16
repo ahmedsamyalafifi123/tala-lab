@@ -4,6 +4,7 @@ import * as React from "react"
 import * as PopoverPrimitive from "@radix-ui/react-popover"
 
 import { cn } from "@/lib/utils"
+import { usePickerContainer } from "@/components/ui/picker-container"
 
 function Popover({
   ...props
@@ -21,9 +22,9 @@ function PopoverContent({
   className,
   align = "center",
   sideOffset = 4,
-  container,
   ...props
-}: React.ComponentProps<typeof PopoverPrimitive.Content> & { container?: HTMLElement | null }) {
+}: React.ComponentProps<typeof PopoverPrimitive.Content>) {
+  const container = usePickerContainer()
   return (
     <PopoverPrimitive.Portal container={container}>
       <PopoverPrimitive.Content
