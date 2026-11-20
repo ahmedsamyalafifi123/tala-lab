@@ -579,7 +579,8 @@ export default function LabDashboard() {
       const clinicIcon = `<svg class="patient-info-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5M12 9v4M10 11h4"></path></svg>`;
       const clinic = clinicLabel(client.clinic_ids);
       const category = (client.categories || []).filter((cat) => cat !== "عام").join(", ");
-      const clinicLine = [clinic, category].filter(Boolean).join(" - ");
+      const dayMonth = client.daily_date ? format(new Date(client.daily_date), "dd/MM") : "";
+      const clinicLine = [clinic, category, dayMonth].filter(Boolean).join(" - ");
       const infoParts: string[] = [];
       if (clinicLine) infoParts.push(`<div>${clinicIcon}<span>${escapeHtml(clinicLine)}</span></div>`);
       if (client.insurance_number) infoParts.push(`<div>${insuranceIcon}<span>رقم تأميني: ${escapeHtml(client.insurance_number)}</span></div>`);
