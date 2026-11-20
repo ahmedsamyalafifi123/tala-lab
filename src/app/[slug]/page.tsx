@@ -665,8 +665,8 @@ export default function LabDashboard() {
           .patient { width: 180px; text-align: center; vertical-align: middle; }
           .patient-name { font-weight: 700; font-size: 13px; color: #0f172a; line-height: 1.25; }
           .patient-info { margin-top: 3px; font-size: 10px; font-weight: 600; color: #475569; line-height: 1.25; }
-          .patient-info div { display: flex; align-items: center; justify-content: flex-start; gap: 4px; direction: rtl; text-align: right; border-top: 1px dotted #cbd5e1; padding-top: 2px; margin-top: 2px; }
-          .patient-info div:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+          .patient-info { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px 8px; direction: rtl; }
+          .patient-info div { display: flex; align-items: center; gap: 4px; direction: rtl; text-align: right; }
           .patient-info-icon { width: 11px; height: 11px; color: #0f172a; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
           .tests { width: auto; text-align: center; }
           .results { width: 62px; direction: ltr; text-align: center; }
