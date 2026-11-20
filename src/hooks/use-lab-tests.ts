@@ -196,6 +196,26 @@ export function useLabTestCatalog({ mode, labId }: CatalogOptions) {
   };
 
   /**
+   * Renames a test code everywhere it is stored (catalogue, groups, client
+   * selections and results) in one transaction on the server.
+   */
+  const renameTestCode = async (uuid: string, newCode: string): Promise<Result<null>> => {
+    try {
+      const { error: renameError } = await supabase.rpc('rename_lab_test_code', {
+        p_test_uuid: uuid,
+        p_new_code: newCode,
+      });
+      if (renameError) throw renameError;
+
+      await refresh();
+      return { data: null, error: null };
+    } catch (err) {
+      console.error('Error renaming test code:', err);
+      return { data: null, error: errorMessage(err, 'تعذر تعديل كود التحليل') };
+    }
+  };
+
+  /**
    * Removes a test from this catalogue. A shared test is hidden for this lab
    * only; a lab's own test is soft-deleted (is_active = false).
    */
@@ -312,6 +332,7 @@ export function useLabTestCatalog({ mode, labId }: CatalogOptions) {
     refresh,
     createTest,
     updateTest,
+    renameTestCode,
     deleteTest,
     resetTest,
     reorderTests,

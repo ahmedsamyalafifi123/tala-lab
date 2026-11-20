@@ -75,6 +75,7 @@ export function TestsManagement({ mode, labId = null, canEdit = true }: TestsMan
     isLab,
     createTest,
     updateTest,
+    renameTestCode,
     deleteTest,
     resetTest,
     reorderTests,
@@ -91,6 +92,8 @@ export function TestsManagement({ mode, labId = null, canEdit = true }: TestsMan
   const [rules, setRules] = useState<ReferenceRule[]>([]);
 
   const writable = mode === "manager" || canEdit;
+  // A lab can't rename a shared test: its code belongs to every lab.
+  const codeEditable = !editingTest || !isLab || editingTest.source === "lab";
 
   const resetForm = () => {
     setFormData(emptyForm);
@@ -160,9 +163,31 @@ export function TestsManagement({ mode, labId = null, canEdit = true }: TestsMan
       return;
     }
 
+    // Compare the raw value: some stored codes end in spaces, and normalising
+    // them here would turn every edit of those tests into a rename.
+    const newCode = formData.test_code.trim().toUpperCase();
+    const codeChanged =
+      !!editingTest &&
+      formData.test_code !== editingTest.test_code &&
+      newCode !== editingTest.test_code;
+    if (
+      codeChanged &&
+      !confirm(
+        `تغيير كود التحليل من "${editingTest.test_code}" إلى "${newCode}"؟\n` +
+          "سيتم التغيير في النظام كله: المجموعات، وتحاليل العملاء المختارة، وكل النتائج المحفوظة."
+      )
+    ) {
+      return;
+    }
+
     setSaving(true);
 
     try {
+      if (codeChanged) {
+        const renamed = await renameTestCode(editingTest.uuid, newCode);
+        if (renamed.error) throw new Error(renamed.error);
+      }
+
       // null (not undefined) clears the unit: undefined would be dropped from
       // the request, so a cleared unit would silently keep its old value.
       const testData = {
@@ -178,8 +203,11 @@ export function TestsManagement({ mode, labId = null, canEdit = true }: TestsMan
           : editingTest?.display_order ?? tests.length,
       };
 
+      // The code is only ever changed by renameTestCode above.
+      const editData: Partial<typeof testData> = { ...testData };
+      delete editData.test_code;
       const result = editingTest
-        ? await updateTest(editingTest.uuid, testData as Partial<LabTest>)
+        ? await updateTest(editingTest.uuid, editData as Partial<LabTest>)
         : await createTest(testData as Parameters<typeof createTest>[0]);
 
       if (result.error) throw new Error(result.error);
@@ -478,9 +506,16 @@ export function TestsManagement({ mode, labId = null, canEdit = true }: TestsMan
                     setFormData({ ...formData, test_code: e.target.value })
                   }
                   placeholder="CBC_WBC"
-                  disabled={!!editingTest}
+                  disabled={!codeEditable}
                   className="font-mono text-right"
                 />
+                {editingTest && (
+                  <p className="text-xs text-muted-foreground">
+                    {codeEditable
+                      ? "تغيير الكود يُطبَّق على النظام كله، بما فيه النتائج المحفوظة."
+                      : "كود التحليل المشترك يعدّله مدير النظام فقط."}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
