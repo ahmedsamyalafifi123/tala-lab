@@ -579,11 +579,13 @@ export default function LabDashboard() {
       const clinicIcon = `<svg class="patient-info-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-5h6v5M12 9v4M10 11h4"></path></svg>`;
       const clinic = clinicLabel(client.clinic_ids);
       const category = (client.categories || []).filter((cat) => cat !== "عام").join(", ");
+      const dateIcon = `<svg class="patient-info-icon is-small" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>`;
       const dayMonth = client.daily_date ? format(new Date(client.daily_date), "dd/MM") : "";
-      const clinicLine = [clinic, category, dayMonth].filter(Boolean).join(" - ");
+      const clinicLine = [clinic, category].filter(Boolean).join(" - ");
       const infoParts: string[] = [];
       if (clinicLine) infoParts.push(`<div>${clinicIcon}<span>${escapeHtml(clinicLine)}</span></div>`);
       if (client.insurance_number) infoParts.push(`<div>${insuranceIcon}<span>رقم تأميني: ${escapeHtml(client.insurance_number)}</span></div>`);
+      if (dayMonth) infoParts.push(`<div class="info-date">${dateIcon}<span dir="ltr">${dayMonth}</span></div>`);
       const clientInfoHtml = infoParts.length > 0
         ? `<div class="patient-info">${infoParts.join("")}</div>`
         : '';
@@ -664,10 +666,11 @@ export default function LabDashboard() {
           .serial { width: 28px; text-align: center; font-weight: 700; }
           .patient { width: 180px; text-align: center; vertical-align: middle; }
           .patient-name { font-weight: 700; font-size: 13px; color: #0f172a; line-height: 1.25; }
-          .patient-info { margin-top: 3px; font-size: 10px; font-weight: 600; color: #475569; line-height: 1.25; }
-          .patient-info { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px 8px; direction: rtl; }
+          .patient-info { margin-top: 3px; font-size: 10px; font-weight: 600; color: #475569; line-height: 1.25; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px 8px; direction: rtl; }
           .patient-info div { display: flex; align-items: center; gap: 4px; direction: rtl; text-align: right; }
+          .patient-info .info-date { color: #64748b; font-weight: 500; font-variant-numeric: tabular-nums; }
           .patient-info-icon { width: 11px; height: 11px; color: #0f172a; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
+          .patient-info-icon.is-small { width: 9px; height: 9px; color: #64748b; }
           .tests { width: auto; text-align: center; }
           .results { width: 62px; direction: ltr; text-align: center; }
           .test-name, .test-result { height: 24px; min-height: 24px; padding: 3px 4px; border-bottom: 1px dashed #e2e8f0; display: flex; align-items: center; justify-content: center; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
